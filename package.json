@@ -1,7 +1,7 @@
 {
   "name": "react-vite-tailwind",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.1.14",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,7 +15,9 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "tailwind-merge": "3.4.0",
-    "vercel": "^63.1.2"
+    "vercel": "^63.1.2",
+    "@capacitor/core": "^7.4.0",
+    "@capacitor/android": "^7.4.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.17",
@@ -26,6 +28,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
     "vite": "7.3.2",
-    "vite-plugin-singlefile": "2.3.0"
+    "vite-plugin-singlefile": "2.3.0",
+    "@capacitor/cli": "^7.4.0"
   }
 }
