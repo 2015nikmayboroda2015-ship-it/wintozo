@@ -12,7 +12,6 @@ export default function VideoMessage({ src, duration, own }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [hovered, setHovered] = useState(false);
 
   // Загружаем превью при монтировании
   useEffect(() => {
@@ -73,15 +72,14 @@ export default function VideoMessage({ src, duration, own }: Props) {
         onClick={toggle}
       >
         <video
+          ref={videoRef}
           src={src}
           preload="metadata"
           muted
           playsInline
           className="h-full w-full object-cover"
           onLoadedData={(e) => {
-            const v = e.currentTarget;
-            v.currentTime = 0.1;
-            v.captureFrame();
+            e.currentTarget.currentTime = 0.1;
           }}
           onEnded={(e) => {
             e.currentTarget.currentTime = 0;
@@ -93,7 +91,7 @@ export default function VideoMessage({ src, duration, own }: Props) {
         <div
           className={cn(
             "absolute inset-0 flex items-center justify-center transition-opacity duration-200",
-            (playing && hovered) || !hovered ? "opacity-0" : "opacity-100"
+            playing ? "opacity-0" : "opacity-100"
           )}
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm transition-transform hover:scale-110">
