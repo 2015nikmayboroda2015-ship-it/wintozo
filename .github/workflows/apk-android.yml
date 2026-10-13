@@ -11,9 +11,8 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
-  workflow_dispatch:  # ручной запуск
+  workflow_dispatch:
 
-# Отменяем старые сборки при новых коммитах
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -24,22 +23,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Кодируем APK-ключ ──────────────────────────────
-      # Создаём ключ подписи APK:
-      #   key.store=keystore.jks
-      #   key.store.password=<password>
-      #   key.alias=alias
-      #   key.alias.password=<password>
-      # Команды для генерации (выполнить ОДИН раз на компьютере):
-      #   keytool -genkeypair -v -dname "CN=WinChat, OU=WinChat, O=WinChat, L=City, ST=State, C=RU" \
-      #     -keystore keystore.jks -storepass <password> -alias alias -keypass <password> -keysize 2048 -validity 10000
-      # Затем в репозитории: Settings → Secrets → Actions → добавить:
-      #   ANDROID_KEYSTORE  → содержимое keystore.jks (base64)
-      #   ANDROID_KEYSTORE_PASSWORD → пароль от keystore
-      #   ANDROID_KEY_ALIAS → alias
-      #   ANDROID_KEY_PASSWORD → пароль от ключа
-      # ────────────────────────────────────────────────────────
-
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -55,7 +38,7 @@ jobs:
       - name: Build production bundle
         run: npm run build
 
-      - name: Setup Java 21 (Capacitor requirement)
+      - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -63,56 +46,90 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: '11076708'  # Android SDK Tools 11.0
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11'
 
-      # ── Создаём Android-проект Capacitor ──────────────────
+      # ── Инициализация Capacitor Android ──────────────────────
       - name: Initialize Capacitor Android project
         run: |
-          npx @capacitor/cli@latest init WinChat org.wintozo.messenger WinChat --web-dir=dist --yes
-          # Убедимся, что package.json и версия совпадают
-          npx @capacitor/app@latest set-name WinChat
-
-      - name: Sync Capacitor Android
-        run: |
+          npx @capacitor/cli@latest init WinChat org.wintozo.messenger WinChat --web-dir=dist --no-open
           npx @capacitor/cli@latest sync android --force
 
-      - name: Create and save APK keystore
+      # ── Настройка версии и пакета Android ────────────────────
+      - name: Configure Android version and package
+        run: |
+          # Обновляем app/build.gradle с нужной версией, пакетом и minSdk
+          cat > android/app/build.gradle << 'GRADLE_EOF'
+          plugins {
+              id "com.android.application"
+              id "kotlin-android"
+          }
+
+          android {
+              namespace "org.wintozo.messenger"
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "org.wintozo.messenger"
+                  minSdk 26
+                  targetSdk 34
+                  versionCode 20114
+                  versionName "2.0.1.14"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_21
+                  targetCompatibility JavaVersion.VERSION_21
+              }
+          }
+
+          dependencies {
+              implementation fileTree(include: ['*.jar'], dir: 'libs')
+              implementation "androidx.appcompat:appcompat:1.6.1"
+              implementation "androidx.coordinatorlayout:coordinatorlayout:1.2.0"
+              implementation 'com.google.android.material:material:1.11.0'
+              implementation project(':capacitor-android')
+          }
+          GRADLE_EOF
+
+      # ── Подпись APK (если есть keystore в secrets) ───────────
+      - name: Decode keystore
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
           ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [ -n "$ANDROID_KEYSTORE" ]; then
             echo "$ANDROID_KEYSTORE" | base64 -d > android/app/keystore.jks
             echo "KEYSTORE_SAVED=true" >> $GITHUB_ENV
           fi
 
-      # ── Собираем APK ──────────────────────────────────────
+      # ── Сборка ───────────────────────────────────────────────
       - name: Build debug APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
-      - name: Build release APK (signed, if keystore available)
+      - name: Build release APK
         if: env.KEYSTORE_SAVED == 'true'
         run: |
           cd android
-          ./gradlew assembleRelease \
+          ./gradlew assembleRelease --no-daemon \
             -Pandroid.injected.signing.store.file=keystore.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
 
-      # ── Артефакты ─────────────────────────────────────────
+      # ── Артефакты ────────────────────────────────────────────
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -120,7 +137,7 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      - name: Upload release APK (signed)
+      - name: Upload release APK
         if: env.KEYSTORE_SAVED == 'true'
         uses: actions/upload-artifact@v4
         with:
@@ -128,7 +145,7 @@ jobs:
           path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
 
-      # ── GitHub Release (при пуше в main) ─────────────────
+      # ── GitHub Release ───────────────────────────────────────
       - name: Create GitHub Release
         if: github.ref == 'refs/heads/main' && env.KEYSTORE_SAVED == 'true'
         uses: softprops/action-gh-release@v2
@@ -138,9 +155,7 @@ jobs:
           files: android/app/build/outputs/apk/release/app-release.apk
           body: |
             **WinChat v2.0.1.14**
-            
             Android 8+ • org.wintozo.messenger
             Подписанный APK
-
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

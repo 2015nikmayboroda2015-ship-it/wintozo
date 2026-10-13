@@ -1,0 +1,8 @@
+{
+  "appId": "org.wintozo.messenger",
+  "appName": "WinChat",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true
+  }
+}
