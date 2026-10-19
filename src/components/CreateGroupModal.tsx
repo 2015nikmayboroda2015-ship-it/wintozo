@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Check, CircleAlert, Loader2, Search, Users, X } from "lucide-react";
-import { isVerified, supabase, type Profile } from "../lib/supabase";
+import { isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
 import { uuid, validateBio, validateGroupTitle } from "../lib/utils";
 import Avatar from "./Avatar";
 import Verified from "./Verified";
@@ -25,6 +25,13 @@ export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const debounce = useRef<number | undefined>(undefined);
+
+  /** Получить уровень галочки для профиля */
+  const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
+    const lvl = p?.verify_status || "user";
+    if (!["grey", "green", "full"].includes(lvl)) return "full";
+    return lvl as Exclude<VerifyLevel, "user">;
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -248,7 +255,7 @@ export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
                     <div className="min-w-0 flex-1">
                       <p className="flex min-w-0 items-center gap-1 text-sm font-bold">
                         <span className="truncate">{p.nickname}</span>
-                        {isVerified(p) && <Verified size="xs" />}
+                        {isVerified(p) && <Verified size="xs" level={badgeLevel(p)} />}
                       </p>
                       <p className="truncate font-mono text-[11px] text-black/40">@{p.username}</p>
                     </div>

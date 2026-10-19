@@ -23,6 +23,7 @@ import {
   type ChatItem,
   type Message,
   type Profile,
+  type VerifyLevel,
 } from "../lib/supabase";
 import { dateLabel, formatDuration, formatTime, sameDay, uuid } from "../lib/utils";
 import Avatar from "./Avatar";
@@ -109,6 +110,13 @@ export default function ChatView({
   const online = chat.isGroup
     ? chat.members.some((p) => p.id !== me.id && onlineIds.has(p.id))
     : !!chat.other && onlineIds.has(chat.other.id);
+
+  /** Получить уровень галочки для профиля */
+  const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
+    const lvl = p?.verify_status || "user";
+    if (!["grey", "green", "full"].includes(lvl)) return "full";
+    return lvl as Exclude<VerifyLevel, "user">;
+  };
 
   /* ---------- история + realtime ---------- */
   useEffect(() => {
@@ -552,7 +560,7 @@ export default function ChatView({
                 )}
               >
                 {sender?.nickname || "Участник"}
-                {isVerified(sender) && <Verified size="xs" className="h-3 w-3" />}
+                {isVerified(sender) && <Verified size="xs" className="h-3 w-3" level={badgeLevel(sender)} />}
               </p>
             )}
 
@@ -684,7 +692,7 @@ export default function ChatView({
             <p className="flex min-w-0 items-center gap-1 text-[15px] font-extrabold tracking-tight">
               {chat.isGroup && <Users className="mr-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />}
               <span className="truncate">{chat.title}</span>
-              {!chat.isGroup && isVerified(chat.other) && <Verified size="sm" />}
+              {!chat.isGroup && isVerified(chat.other) && <Verified size="sm" level={badgeLevel(chat.other)} />}
             </p>
             <p
               className={cn(

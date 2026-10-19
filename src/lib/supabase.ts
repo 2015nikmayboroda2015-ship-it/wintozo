@@ -10,6 +10,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 /** Синтетическая почта из username — Supabase Auth требует email. */
 export const emailFor = (username: string) => `${username.toLowerCase()}@winchat.app`;
 
+export type VerifyLevel = "user" | "grey" | "green" | "full";
+
 export interface Profile {
   id: string;
   username: string;
@@ -17,15 +19,24 @@ export interface Profile {
   avatar_url: string | null;
   bio: string | null;
   verified?: boolean | null;
+  verify_status?: VerifyLevel;
   created_at: string;
 }
 
 /** Аккаунты, которым галочка положена всегда. */
 export const ALWAYS_VERIFIED = ["admin", "winchat"];
 
-/** Подтверждён ли аккаунт: флаг в базе или системный username. */
-export const isVerified = (p?: Profile | null): boolean =>
-  !!p && (p.verified === true || ALWAYS_VERIFIED.includes(p.username.toLowerCase()));
+/** Уровень верификации пользователя (для галочек). */
+export const verifyLevel = (p?: Profile | null): VerifyLevel => {
+  if (!p) return "user";
+  const lvl = (p.verify_status || "user") as VerifyLevel;
+  // Системные аккаунты всегда "full"
+  if (ALWAYS_VERIFIED.includes(p.username.toLowerCase())) return "full";
+  return lvl;
+};
+
+/** Есть ли у пользователя хоть какая-то галочка. */
+export const isVerified = (p?: Profile | null): boolean => verifyLevel(p) !== "user";
 
 export interface Message {
   id: string;

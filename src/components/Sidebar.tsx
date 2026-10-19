@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, Loader2, MessageCircle, Mic, Search, Settings, ShieldCheck, UsersRound, X } from "lucide-react";
+import { Eye, Loader2, MessageCircle, Mic, Search, Settings, ShieldCheck, Terminal, UsersRound, X } from "lucide-react";
 import {
   chatSeed,
   isVerified,
   supabase,
   type ChatItem,
   type Profile,
+  type VerifyLevel,
 } from "../lib/supabase";
 import { formatTime } from "../lib/utils";
 import Avatar from "./Avatar";
@@ -23,6 +24,7 @@ interface Props {
   onOpenSettings: () => void;
   onCreateGroup: () => void;
   onOpenAdmin: () => void;
+  onOpenTerminal: () => void;
   isAdmin: boolean;
 }
 
@@ -37,6 +39,7 @@ export default function Sidebar({
   onOpenSettings,
   onCreateGroup,
   onOpenAdmin,
+  onOpenTerminal,
   isAdmin,
 }: Props) {
   const [query, setQuery] = useState("");
@@ -69,6 +72,13 @@ export default function Sidebar({
 
   const q = query.trim().toLowerCase();
   const searchMode = q.length >= 2;
+
+  /** Получить уровень галочки для профиля */
+  const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
+    const lvl = p?.verify_status || "user";
+    if (!["grey", "green", "full"].includes(lvl)) return "full";
+    return lvl as Exclude<VerifyLevel, "user">;
+  };
   const filteredChats = searchMode
     ? chats.filter(
         (c) =>
@@ -112,7 +122,9 @@ export default function Sidebar({
           <p className="flex min-w-0 items-center gap-1 text-[15px] font-bold tracking-tight">
             {chat.isGroup && <UsersRound className="mr-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />}
             <span className="truncate">{chat.title}</span>
-            {!chat.isGroup && isVerified(chat.other) && <Verified size="xs" />}
+            {!chat.isGroup && isVerified(chat.other) && (
+              <Verified size="xs" level={badgeLevel(chat.other)} />
+            )}
           </p>
           {chat.lastMessage && (
             <span className="shrink-0 font-mono text-[10px] font-medium text-black/35">
@@ -217,10 +229,10 @@ export default function Sidebar({
                     >
                       <Avatar profile={p} online={onlineIds.has(p.id)} />
                       <div className="min-w-0 flex-1">
-                        <p className="flex min-w-0 items-center gap-1 text-[15px] font-bold tracking-tight">
-                          <span className="truncate">{p.nickname}</span>
-                          {isVerified(p) && <Verified size="xs" />}
-                        </p>
+                          <p className="flex min-w-0 items-center gap-1 text-[15px] font-bold tracking-tight">
+                            <span className="truncate">{p.nickname}</span>
+                            {isVerified(p) && <Verified size="xs" level={badgeLevel(p)} />}
+                          </p>
                         <p className="mt-0.5 truncate font-mono text-[12px] font-medium text-black/45">
                           @{p.username}
                         </p>
@@ -299,7 +311,7 @@ export default function Sidebar({
           <div className="min-w-0 flex-1">
             <p className="flex min-w-0 items-center gap-1 text-sm font-bold tracking-tight">
               <span className="truncate">{me.nickname}</span>
-              {isVerified(me) && <Verified size="xs" />}
+              {isVerified(me) && <Verified size="xs" level={badgeLevel(me)} />}
             </p>
             <p className="truncate font-mono text-[11px] font-medium text-black/40">
               @{me.username}
@@ -309,9 +321,16 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* Кнопка админа — войти на чужой аккаунт */}
+      {/* Кнопки админа — терминал + войти на аккаунт */}
       {isAdmin && (
-        <div className="border-t border-black/8 p-3">
+        <div className="border-t border-black/8 p-3 space-y-2">
+          <button
+            onClick={onOpenTerminal}
+            className="flex w-full items-center gap-2.5 rounded-2xl bg-emerald-600/90 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600 active:scale-[0.99]"
+          >
+            <Terminal className="h-4 w-4" />
+            Admin Terminal
+          </button>
           <button
             onClick={onOpenAdmin}
             className="flex w-full items-center gap-2.5 rounded-2xl bg-purple-500/8 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-purple-500 active:scale-[0.99]"

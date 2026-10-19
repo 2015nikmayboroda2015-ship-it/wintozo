@@ -3,6 +3,13 @@
 --  Уровни: user (нет) → grey → green → full (синяя)
 -- ============================================================
 
+-- 0. Удаляем старые версии RPC-функций (с TEXT-параметрами)
+DROP FUNCTION IF EXISTS add_verify_status(TEXT, TEXT, TEXT) CASCADE;
+DROP FUNCTION IF EXISTS disverify_status(TEXT, TEXT) CASCADE;
+DROP FUNCTION IF EXISTS ban_user_by_username(TEXT, TEXT, TEXT) CASCADE;
+DROP FUNCTION IF EXISTS unban_user_by_username(TEXT, TEXT) CASCADE;
+DROP FUNCTION IF EXISTS get_verify_status(TEXT, TEXT) CASCADE;
+
 -- 1. Добавляем колонку verify_status
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verify_status TEXT NOT NULL DEFAULT 'user';
 

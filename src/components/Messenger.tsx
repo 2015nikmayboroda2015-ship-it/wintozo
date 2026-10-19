@@ -13,6 +13,7 @@ import SettingsModal from "./SettingsModal";
 import CreateGroupModal from "./CreateGroupModal";
 import ChatInfoModal from "./ChatInfoModal";
 import AdminPanel from "./AdminPanel";
+import AdminTerminal from "./AdminTerminal";
 import { cn } from "../utils/cn";
 
 interface Props {
@@ -46,6 +47,7 @@ export default function Messenger({ me, onProfileSaved, onLogout }: Props) {
   const [groupOpen, setGroupOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [termOpen, setTermOpen] = useState(false);
 
   // Admin flag: check if username is 'admin'
   const isAdmin = me.username.toLowerCase() === "admin";
@@ -274,6 +276,7 @@ export default function Messenger({ me, onProfileSaved, onLogout }: Props) {
           onOpenSettings={() => setSettingsOpen(true)}
           onCreateGroup={() => setGroupOpen(true)}
           onOpenAdmin={() => setAdminOpen(true)}
+          onOpenTerminal={() => setTermOpen(true)}
           isAdmin={isAdmin}
         />
       </div>
@@ -340,6 +343,20 @@ export default function Messenger({ me, onProfileSaved, onLogout }: Props) {
         <AdminPanel
           meId={me.id}
           onClose={() => setAdminOpen(false)}
+        />
+      )}
+
+      {termOpen && (
+        <AdminTerminal
+          me={me}
+          open={termOpen}
+          onClose={() => setTermOpen(false)}
+          onProfileUpdated={() => {
+            // Обновляем данные профиля после команд верификации
+            supabase.from("profiles").select("*").eq("id", me.id).single().then(({ data }) => {
+              if (data) onProfileSaved(data as Profile);
+            });
+          }}
         />
       )}
     </div>

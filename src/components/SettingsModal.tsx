@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Check, CircleAlert, Loader2, LogOut, X } from "lucide-react";
-import { isVerified, supabase, type Profile } from "../lib/supabase";
+import { isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
 import { validateBio, validateNickname } from "../lib/utils";
 import Avatar from "./Avatar";
 import Verified from "./Verified";
@@ -21,6 +21,13 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout }: Props)
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  /** Получить уровень галочки для профиля */
+  const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
+    const lvl = p?.verify_status || "user";
+    if (!["grey", "green", "full"].includes(lvl)) return "full";
+    return lvl as Exclude<VerifyLevel, "user">;
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -124,11 +131,11 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout }: Props)
           </div>
           <p className="mt-3 flex items-center gap-1.5 font-mono text-sm font-semibold text-black/40">
             @{me.username}
-            {isVerified(me) && <Verified size="sm" />}
+            {isVerified(me) && <Verified size="sm" level={badgeLevel(me)} />}
           </p>
           {isVerified(me) && (
             <p className="mt-1.5 flex items-center gap-1 rounded-full bg-[#1d9bf0]/10 px-2.5 py-1 text-[11px] font-bold text-[#1d9bf0]">
-              <Verified size="xs" className="h-3 w-3" />
+              <Verified size="xs" className="h-3 w-3" level={badgeLevel(me)} />
               Подтверждённый аккаунт
             </p>
           )}

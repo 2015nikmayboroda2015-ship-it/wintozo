@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AtSign, Camera, Crown, Loader2, LogOut, Pencil, Users, X } from "lucide-react";
-import { chatSeed, isVerified, supabase, type ChatItem, type Profile } from "../lib/supabase";
+import { chatSeed, isVerified, supabase, type ChatItem, type Profile, type VerifyLevel } from "../lib/supabase";
 import { validateBio, validateGroupTitle } from "../lib/utils";
 import Avatar from "./Avatar";
 import Verified from "./Verified";
@@ -29,6 +29,13 @@ export default function ChatInfoModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  /** Получить уровень галочки для профиля */
+  const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
+    const lvl = p?.verify_status || "user";
+    if (!["grey", "green", "full"].includes(lvl)) return "full";
+    return lvl as Exclude<VerifyLevel, "user">;
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -156,7 +163,7 @@ export default function ChatInfoModal({
             ) : (
               <p className="mt-4 flex items-center justify-center gap-1.5 text-xl font-extrabold tracking-tight">
                 {chat.title}
-                {!chat.isGroup && isVerified(chat.other) && <Verified size="md" />}
+                {!chat.isGroup && isVerified(chat.other) && <Verified size="md" level={badgeLevel(chat.other)} />}
               </p>
             )}
 
@@ -241,7 +248,7 @@ export default function ChatInfoModal({
                     <div className="min-w-0 flex-1">
                       <p className="flex min-w-0 items-center gap-1 text-sm font-bold">
                         <span className="truncate">{p.nickname}</span>
-                        {isVerified(p) && <Verified size="xs" />}
+                        {isVerified(p) && <Verified size="xs" level={badgeLevel(p)} />}
                         {p.id === me.id && (
                           <span className="ml-0.5 text-xs font-semibold text-black/35">вы</span>
                         )}
