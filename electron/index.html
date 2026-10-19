@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WinChat</title>
+  <!-- Для Electron: отключаем ограничение на microphone/camera -->
+  <script>
+    // В Electron нет проблемы с isSecureContext — микрофон работает без HTTPS
+    // Если нужно, можно переопределить, но это не требуется
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

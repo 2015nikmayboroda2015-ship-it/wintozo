@@ -299,13 +299,7 @@ export default function ChatView({
   async function startRecording() {
     if (recording) return;
 
-    /* Микрофон браузеры разрешают только в безопасном контексте (HTTPS/localhost) */
-    if (!window.isSecureContext) {
-      return flashError(
-        "Микрофон заблокирован браузером: страница открыта по HTTP. Голосовые работают только по HTTPS или на localhost — выложите приложение на Vercel/Netlify (HTTPS из коробки) и откройте по защищённой ссылке.",
-        9000
-      );
-    }
+    /* В Electron-обёртке (EXE/APK) нет HTTPS-ограничения — проверяем только API */
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       return flashError(
         "Запись голоса недоступна в этом браузере. Откройте WinChat в актуальном Chrome, Safari или Firefox — а не во встроенном браузере мессенджера или соцсети.",
@@ -376,12 +370,6 @@ export default function ChatView({
   async function startVideoRecording() {
     if (videoRecording) return;
 
-    if (!window.isSecureContext) {
-      return flashError(
-        "Камера заблокирована браузером: страница открыта по HTTP. Видеокружки работают только по HTTPS или на localhost.",
-        9000
-      );
-    }
     if (!navigator.mediaDevices?.getUserMedia) {
       return flashError(
         "Запись видео недоступна. Откройте WinChat в актуальном Chrome, Safari или Firefox.",
