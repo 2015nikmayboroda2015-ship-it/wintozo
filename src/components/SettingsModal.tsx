@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Check, CircleAlert, Loader2, LogOut, X } from "lucide-react";
+import { Camera, Check, CircleAlert, Loader2, LogOut, Palette, ShieldCheck, X } from "lucide-react";
 import { isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
-import { validateBio, validateNickname } from "../lib/utils";
+import { filesUpload } from "../lib/blobStorage";
+import { normalizeWinpass, validateBio, validateNickname } from "../lib/utils";
 import Avatar from "./Avatar";
 import Verified from "./Verified";
 import { cn } from "../utils/cn";
+import { ALL_THEMES, applyTheme, saveThemeId } from "../lib/themes";
 
 interface Props {
   me: Profile;
@@ -21,6 +23,12 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout }: Props)
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [wpCopied, setWpCopied] = useState(false);
+
+  /* --- Палитра --- */
+  const [currentId, setCurrentId] = useState<string>(
+    () => localStorage.getItem("winchat_theme_id") || "ink-blue"
+  );
 
   /** Получить уровень галочки для профиля */
   const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
@@ -41,12 +49,7 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout }: Props)
     try {
       const ext = (file.name.split(".").pop() || "png").toLowerCase();
       const path = `${me.id}/avatar.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true, cacheControl: "0" });
-      if (upErr) throw upErr;
-      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      const url = `${data.publicUrl}?t=${Date.now()}`;
+      const url = `${await filesUpload("avatars", path, file, file.type)}?t=${Date.now()}`;
       const { data: row, error: pErr } = await supabase
         .from("profiles")
         .update({ avatar_url: url })
@@ -170,6 +173,72 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout }: Props)
           <p className="mt-1 text-right font-mono text-[10px] text-black/35">{bio.length}/160</p>
         </div>
 
+        {/* Палитра чатов */}
+        <div className="mt-6">
+          <span className="mb-3 flex items-center gap-2 font-mono text-[11px] font-semibold tracking-[0.16em] text-black/45 uppercase">
+            <Palette className="h-3.5 w-3.5" />
+            Палитра чатов
+          </span>
+
+          {/* Встроенные темы — карточки-превью */}
+          <div className="grid grid-cols-3 gap-3">
+            {ALL_THEMES.map((t) => {
+              const active = currentId === t.id;
+              return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  saveThemeId(t.id);
+                  applyTheme(t);
+                  setCurrentId(t.id);
+                }}
+                className={cn(
+                  "group relative overflow-hidden rounded-2xl border-2 p-3 text-left transition-all active:scale-[0.97]",
+                  active
+                    ? "border-accent shadow-lg shadow-accent/20"
+                    : "border-transparent hover:border-black/15"
+                )}
+                style={{ background: t.chatBg }}
+              >
+                <span
+                  className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full opacity-0 transition group-hover:opacity-100"
+                  style={{ background: t.accent }}
+                >
+                  <Check className="h-3 w-3 text-white" />
+                </span>
+                {/* Мини-пузыри сообщений */}
+                <div className="space-y-1.5">
+                  <div
+                    className="ml-auto h-2.5 w-10 rounded-full"
+                    style={{ background: t.ownerMsg }}
+                  />
+                  <div
+                    className="h-2.5 w-8 rounded-full"
+                    style={{ background: t.otherMsg, boxShadow: `inset 0 0 0 1px ${t.otherMsgBorder}` }}
+                  />
+                  <div
+                    className="ml-auto h-2.5 w-6 rounded-full"
+                    style={{ background: t.ownerMsg }}
+                  />
+                </div>
+                {/* Градиент-полоска */}
+                <div
+                  className="mt-2.5 h-1.5 w-full rounded-full"
+                  style={{ background: `linear-gradient(90deg, ${t.gradientFrom}, ${t.gradientTo})` }}
+                />
+                <p
+                  className="mt-2 text-[11px] font-bold leading-tight"
+                  style={{ color: t.id === "sunset" ? "#431407" : "#101214" }}
+                >
+                  {t.name}
+                </p>
+              </button>
+              );
+            })}
+          </div>
+        </div>
+
         <button
           onClick={saveProfile}
           disabled={saving}
@@ -194,6 +263,34 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout }: Props)
             <span>{error}</span>
           </div>
         )}
+
+        {/* WinPass */}
+        <div className="mt-6">
+          <span className="mb-1.5 flex items-center gap-2 font-mono text-[11px] font-semibold tracking-[0.16em] text-black/45 uppercase">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            WinPass — код восстановления
+          </span>
+          <div className="flex items-center gap-2 rounded-2xl border border-dashed border-accent/40 bg-accent-soft px-4 py-3">
+            <p className="min-w-0 flex-1 truncate font-mono text-[13px] font-bold text-ink">
+              {normalizeWinpass(me.winpass || "") || me.winpass || "—"}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                const code = normalizeWinpass(me.winpass || "");
+                if (code) navigator.clipboard?.writeText(code).catch(() => undefined);
+                setWpCopied(true);
+                setTimeout(() => setWpCopied(false), 1600);
+              }}
+              className="shrink-0 rounded-lg bg-white/70 px-3 py-1.5 text-[11px] font-bold text-ink transition hover:bg-white"
+            >
+              {wpCopied ? "Скопировано ✓" : "Копировать"}
+            </button>
+          </div>
+          <p className="mt-1.5 text-[11px] font-medium leading-relaxed text-black/40">
+            Сохраните код — он поможет войти, если вы забудете пароль.
+          </p>
+        </div>
 
         {/* Инфо */}
         <div className="mt-6 space-y-2 rounded-2xl bg-paper p-4 font-mono text-[11px] tracking-wide text-black/45">

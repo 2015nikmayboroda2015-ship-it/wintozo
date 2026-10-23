@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, type Profile } from "./lib/supabase";
 import { checkBanned } from "./lib/adminApi";
+import { applyTheme, getCurrentTheme } from "./lib/themes";
 import Auth from "./components/Auth";
 import Messenger from "./components/Messenger";
 
@@ -23,6 +24,10 @@ export default function App() {
   const [banReason, setBanReason] = useState("");
 
   useEffect(() => {
+    // Применить тему из localStorage при старте
+    const theme = getCurrentTheme();
+    applyTheme(theme);
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setBooting(false);
@@ -50,7 +55,8 @@ export default function App() {
       if (!p) {
         // Запасной путь, если триггер handle_new_user ещё не выполнен
         const meta = session.user.user_metadata as { username?: string; nickname?: string };
-        await supabase.from("profiles").insert({
+        // upsert: профиль мог создать триггер между двумя нашими запросами
+        await supabase.from("profiles").upsert({
           id: session.user.id,
           username: (meta.username || `user_${session.user.id.slice(0, 6)}`).toLowerCase(),
           nickname: meta.nickname || "Пользователь",

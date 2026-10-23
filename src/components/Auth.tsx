@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   ImagePlus,
+  KeyRound,
   Lock,
   Loader2,
   ShieldCheck,
@@ -13,8 +14,9 @@ import {
   User,
   Zap,
 } from "lucide-react";
-import { emailFor, supabase } from "../lib/supabase";
-import { validateNickname, validatePassword, validateUsername } from "../lib/utils";
+import { emailFor, loginByWinpass, supabase } from "../lib/supabase";
+import { normalizeWinpass, validateNickname, validatePassword, validateUsername } from "../lib/utils";
+void normalizeWinpass; // канонизация в supabase.loginByWinpass
 import { cn } from "../utils/cn";
 
 const inputCls =
@@ -83,7 +85,7 @@ function mapAuthError(err: unknown): string {
 }
 
 export default function Auth() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register" | "winpass">("login");
   const [nickname, setNickname] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -92,6 +94,10 @@ export default function Auth() {
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [serverOk, setServerOk] = useState<"checking" | "ok" | "fail">("checking");
+  /* WinPass */
+  const [wpInput, setWpInput] = useState("");
+  const [issuedWinpass, setIssuedWinpass] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   /* Проверка: выполнен ли SQL на сервере (таблица profiles существует) */
   useEffect(() => {
@@ -156,6 +162,22 @@ export default function Auth() {
               : setError(mapAuthError(siErr));
           }
         }
+
+        /* Забрать WinPass, который выдал триггер на сервере */
+        const uid = data.user?.id;
+        if (uid) {
+          let code: string | null = null;
+          for (let attempt = 0; attempt < 5 && !code; attempt++) {
+            const { data: prof } = await supabase
+              .from("profiles")
+              .select("winpass")
+              .eq("id", uid)
+              .maybeSingle();
+            code = (prof as { winpass?: string } | null)?.winpass || null;
+            if (!code) await new Promise((r) => setTimeout(r, 400));
+          }
+          if (code) setIssuedWinpass(code);
+        }
       } else {
         const { error: inErr } = await supabase.auth.signInWithPassword({
           email: emailFor(username),
@@ -168,6 +190,76 @@ export default function Auth() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function submitWinpass(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setNotice(null);
+
+    const code = normalizeWinpass(wpInput);
+    if (!code) return setError("Неверный формат WinPass. Пример: 33b42-a1b2c3d4e5f6");
+
+    setLoading(true);
+    try {
+      // Вход по WinPass без пароля — сервер сам сбрасывает пароль и выдаёт сессию
+      await loginByWinpass(code);
+    } catch (errCaught) {
+      setError(mapAuthError(errCaught));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* ---------- Экран-подарок: выданный WinPass ---------- */
+  if (issuedWinpass) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-paper px-5">
+        <div className="animate-scale-in w-full max-w-[420px] rounded-[28px] bg-white p-8 text-center shadow-2xl">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[22px] bg-accent-soft">
+            <ShieldCheck className="h-8 w-8 text-accent" />
+          </div>
+          <h2 className="text-xl font-extrabold tracking-tight">Аккаунт создан!</h2>
+          <p className="mt-2 text-sm font-medium leading-relaxed text-black/50">
+            Сохраните <b>WinPass</b> — это ваш код восстановления. Он навсегда привязан к аккаунту и
+            поможет войти, если вы забудете пароль.
+          </p>
+
+          <div className="relative mt-6 rounded-2xl border border-dashed border-accent/40 bg-accent-soft px-4 py-5">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-accent/70">
+              Ваш WinPass
+            </p>
+            <p className="mt-2 break-all font-mono text-lg font-extrabold text-ink">
+              {issuedWinpass}
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              navigator.clipboard?.writeText(issuedWinpass).catch(() => undefined);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1800);
+            }}
+            className={cn(
+              "mt-4 w-full rounded-xl py-3 text-sm font-bold transition active:scale-[0.99]",
+              copied ? "bg-emerald-500 text-white" : "bg-ink text-white hover:bg-black"
+            )}
+          >
+            {copied ? "Скопировано ✓" : "Скопировать код"}
+          </button>
+
+          <button
+            onClick={() => setIssuedWinpass(null)}
+            className="mt-3 w-full rounded-xl border border-black/10 py-3 text-sm font-bold text-black/60 transition hover:bg-black/5"
+          >
+            Войти в мессенджер
+          </button>
+          <p className="mt-4 text-[11px] font-semibold text-black/35">
+            После закрытия окна код можно посмотреть в Настройках профиля.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -246,7 +338,11 @@ export default function Auth() {
           )}
 
           <div className="mt-7 flex rounded-xl bg-black/5 p-1">
-            {(["login", "register"] as const).map((m) => (
+            {([
+              ["login", "Вход"],
+              ["register", "Регистрация"],
+              ["winpass", "По WinPass"],
+            ] as const).map(([m, label]) => (
               <button
                 key={m}
                 type="button"
@@ -262,12 +358,12 @@ export default function Auth() {
                     : "text-black/45 hover:text-ink"
                 )}
               >
-                {m === "login" ? "Вход" : "Регистрация"}
+                {label}
               </button>
             ))}
           </div>
 
-          <form onSubmit={submit} className="mt-6 space-y-4">
+          <form onSubmit={mode === "winpass" ? submitWinpass : submit} className="mt-6 space-y-4">
             {mode === "register" && (
               <Field label="Никнейм">
                 <div className="relative">
@@ -283,45 +379,67 @@ export default function Auth() {
               </Field>
             )}
 
-            <Field label="Username">
-              <div className="relative">
-                <AtSign className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-black/35" />
-                <input
-                  className={cn(inputCls, "font-mono")}
-                  placeholder="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))}
-                  autoComplete="username"
-                />
-              </div>
-              {mode === "register" && (
+            {mode === "winpass" && (
+              <Field label="WinPass">
+                <div className="relative">
+                  <KeyRound className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-black/35" />
+                  <input
+                    className={cn(inputCls, "font-mono")}
+                    placeholder="33b42-a1b2c3d4e5f6"
+                    value={wpInput}
+                    onChange={(e) => setWpInput(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
                 <p className="mt-1.5 text-xs font-medium text-black/40">
-                  Английские строчные буквы, цифры, «_» и «.»
+                  Код восстановления, полученный при регистрации
                 </p>
-              )}
-            </Field>
+              </Field>
+            )}
 
-            <Field label="Пароль">
-              <div className="relative">
-                <Lock className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-black/35" />
-                <input
-                  className={cn(inputCls, "pr-11")}
-                  type={showPw ? "text" : "password"}
-                  placeholder="Минимум 6 символов"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((s) => !s)}
-                  className="absolute top-1/2 right-3 -translate-y-1/2 rounded-lg p-1.5 text-black/35 transition hover:bg-black/5 hover:text-ink"
-                  aria-label={showPw ? "Скрыть пароль" : "Показать пароль"}
-                >
-                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </Field>
+            {(mode === "login" || mode === "register") && (
+              <Field label="Username">
+                <div className="relative">
+                  <AtSign className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-black/35" />
+                  <input
+                    className={cn(inputCls, "font-mono")}
+                    placeholder="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))}
+                    autoComplete="username"
+                  />
+                </div>
+                {mode === "register" && (
+                  <p className="mt-1.5 text-xs font-medium text-black/40">
+                    Английские строчные буквы, цифры, «_» и «.»
+                  </p>
+                )}
+              </Field>
+            )}
+
+            {(mode === "login" || mode === "register") && (
+              <Field label="Пароль">
+                <div className="relative">
+                  <Lock className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-black/35" />
+                  <input
+                    className={cn(inputCls, "pr-11")}
+                    type={showPw ? "text" : "password"}
+                    placeholder="Минимум 6 символов"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((s) => !s)}
+                    className="absolute top-1/2 right-3 -translate-y-1/2 rounded-lg p-1.5 text-black/35 transition hover:bg-black/5 hover:text-ink"
+                    aria-label={showPw ? "Скрыть пароль" : "Показать пароль"}
+                  >
+                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </Field>
+            )}
 
             {error && (
               <div className="flex items-start gap-2.5 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm font-semibold text-red-600 animate-fade-in">
@@ -345,7 +463,7 @@ export default function Auth() {
                 <Loader2 className="h-4.5 w-4.5 animate-spin" />
               ) : (
                 <>
-                  {mode === "login" ? "Войти" : "Создать аккаунт"}
+                  {mode === "login" ? "Войти" : mode === "register" ? "Создать аккаунт" : "Войти по WinPass"}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </>
               )}

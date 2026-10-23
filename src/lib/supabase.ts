@@ -20,6 +20,7 @@ export interface Profile {
   bio: string | null;
   verified?: boolean | null;
   verify_status?: VerifyLevel;
+  winpass?: string | null;
   created_at: string;
 }
 
@@ -161,3 +162,77 @@ export function getEffectiveUserId(realUserId: string): string {
   const imp = getImpersonateSession();
   return imp?.targetId ?? realUserId;
 }
+
+/* ============================================================ */
+/*  WinPass — код восстановления аккаунта (33b42-XXXXXXXX)      */
+/* ============================================================ */
+
+/** RPC: найти пользователя по WinPass. */
+export async function findWinpass(winpass: string): Promise<{
+  ok: boolean;
+  user_id?: string;
+  username?: string;
+  nickname?: string;
+  temp_password?: string;
+  error?: string;
+}> {
+  const { data, error } = await supabase.rpc("login_by_winpass", { _winpass: winpass });
+  if (error) throw error;
+  return data as any;
+}
+
+/**
+ * Войти по WinPass без пароля:
+ *   1. login_by_winpass (RPC security definer) -> проверяет код и ставит
+ *      пароль аккаунта = временный ключ из кода, возвращает его
+ *   2. signInWithPassword(username, temp_password)
+ * Секретный ключ в браузере не используется — вся привилегия на стороне Postgres.
+ */
+export async function loginByWinpass(winpass: string): Promise<void> {
+  const code = normalizeWinpass(winpass);
+  const res = await findWinpass(code);
+  if (!res.ok || !res.username || !res.temp_password) {
+    throw new Error(res.error || "Неверный WinPass");
+  }
+
+  const { error: signErr } = await supabase.auth.signInWithPassword({
+    email: emailFor(res.username),
+    password: res.temp_password,
+  });
+  if (signErr) throw new Error(signErr.message);
+}
+
+/**
+ * Нормализовать ввод WinPass — канонический вид «33b42-xxxxxxxxxxxx».
+ * Локально, чтобы не тянуть utils по кругу.
+ */
+export function normalizeWinpass(v: string): string {
+  let s = v.trim().toLowerCase().replace(/\s+/g, "");
+  if (s.startsWith("33b42")) s = s.slice(5).replace(/^-/, "");
+  if (!/^[0-9a-f]{12}$/.test(s)) return "";
+  return `33b42-${s}`;
+}
+
+/** RPC: получить свой WinPass. */
+export async function getMyWinpass(userId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("get_my_winpass", { _user_id: userId });
+  if (error) throw error;
+  return data as string | null;
+}
+
+/** RPC: сгенерировать новый WinPass (сброс кода). */
+export async function regenerateWinpass(userId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("regenerate_winpass", { _user_id: userId });
+  if (error) throw error;
+  return data as string;
+}
+
+/** Прямая проверка пароля через Supabase Auth (для входа по WinPass). */
+export async function verifyPasswordFor(username: string, password: string): Promise<boolean> {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: emailFor(username),
+    password,
+  });
+  return !error;
+}
+

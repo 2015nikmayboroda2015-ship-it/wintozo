@@ -134,6 +134,30 @@ export function directKey(a: string, b: string): string {
 }
 
 /**
+ * Сгенерировать WinPass — код восстановления аккаунта.
+ * Формат: 33b42-XXXXXXXXXXXX (12 строчных hex-символов).
+ * Используется как фолбэк, если триггер на сервере не сработал.
+ */
+export function generateWinpass(): string {
+  const bytes = new Uint8Array(6);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = (Math.random() * 256) | 0;
+  }
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `33b42-${hex}`;
+}
+
+/** Нормализовать ввод WinPass: «33B42-ABCD...», «33b42abcd...» → канонический вид. */
+export function normalizeWinpass(v: string): string {
+  let s = v.trim().toLowerCase().replace(/\s+/g, "");
+  if (s.startsWith("33b42")) s = s.slice(5).replace(/^-/, "");
+  if (!/^[0-9a-f]{12}$/.test(s)) return "";
+  return `33b42-${s}`;
+}
+
+/**
  * UUID v4, который работает везде:
  * crypto.randomUUID (HTTPS) → crypto.getRandomValues → Math.random.
  */

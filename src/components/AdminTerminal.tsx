@@ -64,6 +64,7 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             { type: "info", text: "/ban <username> <причина>   — Заблокировать" },
             { type: "info", text: "/unban <username>           — Разблокировать" },
             { type: "info", text: "/status <username>          — Статус пользователя" },
+            { type: "info", text: "/get winpass @username      — WinPass аккаунта (восстановление)" },
             { type: "info", text: "/help                       — Эта справка" },
           ]);
           break;
@@ -221,6 +222,84 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
           } else {
             setHistory((prev) => [...prev, { type: "error", text: `✗ ${res.error}` }]);
           }
+          break;
+        }
+
+        case "/get": {
+          const what = parts[1];
+          if (what !== "winpass") {
+            setHistory((prev) => [
+              ...prev,
+              { type: "error", text: "Использование: /get winpass @username" },
+            ]);
+            return;
+          }
+          const username = parts[2]?.replace("@", "");
+          if (!username) {
+            setHistory((prev) => [
+              ...prev,
+              { type: "error", text: "Использование: /get winpass @username" },
+            ]);
+            return;
+          }
+
+          const { data, error } = await supabase.rpc("admin_get_winpass", {
+            _admin_id: me.id,
+            _target_username: username,
+          });
+
+          if (error) {
+            setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+            return;
+          }
+
+          const res = data as {
+            ok: boolean;
+            error?: string;
+            nickname?: string;
+            username?: string;
+            winpass?: string | null;
+          };
+          if (!res.ok) {
+            setHistory((prev) => [...prev, { type: "error", text: `✗ ${res.error}` }]);
+            break;
+          }
+          if (!res.winpass) {
+            setHistory((prev) => [
+              ...prev,
+              { type: "info", text: `У @${res.username} WinPass ещё нет — выдаю новый…` },
+            ]);
+            // Выдать код существующему аккаунту через серверный генератор (формат 33b42 + строчные hex)
+            const { data: newCode, error: genErr } = await supabase.rpc("generate_winpass");
+            if (genErr || !newCode) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: `Не удалось сгенерировать WinPass: ${genErr?.message || "пустой ответ"}` },
+              ]);
+              break;
+            }
+            const { error: setErr } = await supabase
+              .from("profiles")
+              .update({ winpass: newCode as string })
+              .eq("username", username);
+            if (setErr) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: `Не удалось выдать WinPass: ${setErr.message}` },
+              ]);
+              break;
+            }
+            setHistory((prev) => [
+              ...prev,
+              { type: "success", text: `✓ WinPass выдан: ${newCode}` },
+            ]);
+            break;
+          }
+          setHistory((prev) => [
+            ...prev,
+            { type: "info", text: `${res.nickname} (@${res.username})` },
+            { type: "success", text: `WinPass: ${res.winpass}` },
+          ]);
           break;
         }
 

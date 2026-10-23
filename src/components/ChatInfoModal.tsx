@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AtSign, Camera, Crown, Loader2, LogOut, Pencil, Users, X } from "lucide-react";
 import { chatSeed, isVerified, supabase, type ChatItem, type Profile, type VerifyLevel } from "../lib/supabase";
 import { validateBio, validateGroupTitle } from "../lib/utils";
+import { filesUpload } from "../lib/blobStorage";
 import Avatar from "./Avatar";
 import Verified from "./Verified";
 
@@ -65,11 +66,7 @@ export default function ChatInfoModal({
     try {
       const ext = (file.name.split(".").pop() || "png").toLowerCase();
       const path = `${chat.id}/cover.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true, cacheControl: "0" });
-      if (upErr) throw upErr;
-      const url = `${supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl}?t=${Date.now()}`;
+      const url = `${await filesUpload("avatars", path, file, file.type)}?t=${Date.now()}`;
       await supabase.from("chats").update({ avatar_url: url }).eq("id", chat.id);
       onUpdated();
     } catch {

@@ -26,6 +26,7 @@ import {
   type VerifyLevel,
 } from "../lib/supabase";
 import { dateLabel, formatDuration, formatTime, sameDay, uuid } from "../lib/utils";
+import { filesUpload } from "../lib/blobStorage";
 import Avatar from "./Avatar";
 import AudioMessage from "./AudioMessage";
 import VideoMessage from "./VideoMessage";
@@ -225,32 +226,20 @@ export default function ChatView({
         setUploading(true);
         const ext = (opts.image.name.split(".").pop() || "jpg").toLowerCase();
         const path = `${chatId}/${uuid()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("attachments")
-          .upload(path, opts.image, { cacheControl: "31536000" });
-        if (upErr) throw upErr;
-        image_url = supabase.storage.from("attachments").getPublicUrl(path).data.publicUrl;
+        image_url = await filesUpload("attachments", path, opts.image, opts.image.type || "image/jpeg");
       }
 
       if (opts?.audio) {
         setUploading(true);
         const path = `${chatId}/voice/${uuid()}.webm`;
-        const { error: upErr } = await supabase.storage
-          .from("attachments")
-          .upload(path, opts.audio, { contentType: "audio/webm", cacheControl: "31536000" });
-        if (upErr) throw upErr;
-        audio_url = supabase.storage.from("attachments").getPublicUrl(path).data.publicUrl;
+        audio_url = await filesUpload("attachments", path, opts.audio, "audio/webm");
         audio_duration = opts.seconds ?? 0;
       }
 
       if (opts?.video) {
         setUploading(true);
         const path = `${chatId}/video/${uuid()}.webm`;
-        const { error: upErr } = await supabase.storage
-          .from("video-attachments")
-          .upload(path, opts.video, { contentType: "video/webm", cacheControl: "31536000" });
-        if (upErr) throw upErr;
-        video_url = supabase.storage.from("video-attachments").getPublicUrl(path).data.publicUrl;
+        video_url = await filesUpload("video-attachments", path, opts.video, "video/webm");
         video_duration = opts.videoSeconds ?? 0;
       }
 
