@@ -35,6 +35,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Генерируем build/icon.ico из Icon.png — electron-builder требует ICO для Windows
+      - name: Generate Windows icon (.ico)
+        run: npm run icons:win
+
       - name: Build production bundle
         run: npm run build
 

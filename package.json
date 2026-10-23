@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "electron:build": "electron-builder --win --x64",
-    "electron:dev": "vite --host"
+    "electron:dev": "vite --host",
+    "icons:win": "node -e \"const{execSync}=require('child_process');execSync('npx --yes sharp-cli convert Icon.png build/icon.ico',{stdio:'inherit'})\""
   },
   "main": "electron/main.js",
   "dependencies": {
