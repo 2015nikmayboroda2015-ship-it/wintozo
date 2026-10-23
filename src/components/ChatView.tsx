@@ -26,7 +26,6 @@ import {
   type VerifyLevel,
 } from "../lib/supabase";
 import { dateLabel, formatDuration, formatTime, sameDay, uuid } from "../lib/utils";
-import { blobPut } from "../lib/blobStorage";
 import Avatar from "./Avatar";
 import AudioMessage from "./AudioMessage";
 import VideoMessage from "./VideoMessage";
@@ -225,21 +224,33 @@ export default function ChatView({
       if (opts?.image) {
         setUploading(true);
         const ext = (opts.image.name.split(".").pop() || "jpg").toLowerCase();
-        const path = `chat/${chatId}/${uuid()}.${ext}`;
-        image_url = await blobPut(path, opts.image, opts.image.type || "image/jpeg");
+        const path = `${chatId}/${uuid()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("attachments")
+          .upload(path, opts.image, { cacheControl: "31536000" });
+        if (upErr) throw upErr;
+        image_url = supabase.storage.from("attachments").getPublicUrl(path).data.publicUrl;
       }
 
       if (opts?.audio) {
         setUploading(true);
-        const path = `chat/${chatId}/voice/${uuid()}.webm`;
-        audio_url = await blobPut(path, opts.audio, "audio/webm");
+        const path = `${chatId}/voice/${uuid()}.webm`;
+        const { error: upErr } = await supabase.storage
+          .from("attachments")
+          .upload(path, opts.audio, { contentType: "audio/webm", cacheControl: "31536000" });
+        if (upErr) throw upErr;
+        audio_url = supabase.storage.from("attachments").getPublicUrl(path).data.publicUrl;
         audio_duration = opts.seconds ?? 0;
       }
 
       if (opts?.video) {
         setUploading(true);
-        const path = `chat/${chatId}/video/${uuid()}.webm`;
-        video_url = await blobPut(path, opts.video, "video/webm");
+        const path = `${chatId}/video/${uuid()}.webm`;
+        const { error: upErr } = await supabase.storage
+          .from("video-attachments")
+          .upload(path, opts.video, { contentType: "video/webm", cacheControl: "31536000" });
+        if (upErr) throw upErr;
+        video_url = supabase.storage.from("video-attachments").getPublicUrl(path).data.publicUrl;
         video_duration = opts.videoSeconds ?? 0;
       }
 

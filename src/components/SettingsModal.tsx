@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Check, CircleAlert, Loader2, LogOut, X } from "lucide-react";
 import { isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
-import { blobPut } from "../lib/blobStorage";
 import { validateBio, validateNickname } from "../lib/utils";
 import Avatar from "./Avatar";
 import Verified from "./Verified";
@@ -41,9 +40,13 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout }: Props)
     setUploading(true);
     try {
       const ext = (file.name.split(".").pop() || "png").toLowerCase();
-      const path = `avatars/${me.id}/avatar-${Date.now()}.${ext}`;
-      const publicUrl = await blobPut(path, file, file.type || "image/png");
-      const url = `${publicUrl}?t=${Date.now()}`;
+      const path = `${me.id}/avatar.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, cacheControl: "0" });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      const url = `${data.publicUrl}?t=${Date.now()}`;
       const { data: row, error: pErr } = await supabase
         .from("profiles")
         .update({ avatar_url: url })

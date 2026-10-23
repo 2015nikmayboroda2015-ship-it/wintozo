@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Check, CircleAlert, Loader2, Search, Users, X } from "lucide-react";
 import { isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
-import { blobPut } from "../lib/blobStorage";
 import { uuid, validateBio, validateGroupTitle } from "../lib/utils";
 import Avatar from "./Avatar";
 import Verified from "./Verified";
@@ -83,12 +82,12 @@ export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
 
       if (avatarFile) {
         const ext = (avatarFile.name.split(".").pop() || "png").toLowerCase();
-        const path = `chat/${chatId}/cover.${ext}`;
-        try {
-          const publicUrl = await blobPut(path, avatarFile, avatarFile.type || "image/png");
-          avatar_url = `${publicUrl}?t=${Date.now()}`;
-        } catch {
-          /* обложка не критична — группа создастся без неё */
+        const path = `${chatId}/cover.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("avatars")
+          .upload(path, avatarFile, { upsert: true, cacheControl: "0" });
+        if (!upErr) {
+          avatar_url = `${supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl}?t=${Date.now()}`;
         }
       }
 

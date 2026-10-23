@@ -15,7 +15,6 @@
     "@capacitor/android": "^7.4.0",
     "@capacitor/core": "^7.4.0",
     "@supabase/supabase-js": "^2.109.0",
-    "@upstash/blob": "^0.0.11",
     "clsx": "2.1.1",
     "lucide-react": "^1.55.0",
     "react": "19.2.6",
