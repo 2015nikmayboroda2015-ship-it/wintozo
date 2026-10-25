@@ -1,6 +1,6 @@
 # ============================================================
 #  WinChat — GitHub Actions: сборка APK (Android 8+, Java 21)
-#  Версия: 2.0.1.14
+#  Версия: 3.0.0
 #  Пакет: org.wintozo.messenger
 # ============================================================
 
@@ -109,11 +109,11 @@ jobs:
         if: github.ref == 'refs/heads/main' && env.KEYSTORE_SAVED == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.0.1.14
-          name: WinChat v2.0.1.14
+          tag_name: v3.0.0
+          name: WinChat v3.0.0
           files: android/app/build/outputs/apk/release/app-release.apk
           body: |
-            **WinChat v2.0.1.14**
+            **WinChat v3.0.0**
 
             Android 8+ | org.wintozo.messenger
             Подписанный APK
