@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { supabase, type Profile } from "./lib/supabase";
+import { isWinProActive, supabase, type Profile } from "./lib/supabase";
 import { checkBanned } from "./lib/adminApi";
-import { applyTheme, getCurrentTheme } from "./lib/themes";
+import { applyTheme, getCurrentTheme, getThemeById, isWinProTheme, saveThemeId, THEMES } from "./lib/themes";
+import { getAnimationId } from "./lib/animations";
 import Auth from "./components/Auth";
 import Messenger from "./components/Messenger";
 
@@ -85,6 +86,53 @@ export default function App() {
       }
     })();
   }, [session]);
+
+  /* ---------- тема + WinPro-анимация ---------- */
+  useEffect(() => {
+    if (!profile) return;
+    const winPro = isWinProActive(profile);
+    const saved = getCurrentTheme();
+
+    // Тема WinPro недоступна без подписки — откатываемся на базовую
+    if (isWinProTheme(saved.id) && !winPro) {
+      saveThemeId(THEMES[0].id);
+      applyTheme(THEMES[0]);
+    } else {
+      applyTheme(getThemeById(saved.id) ?? THEMES[0]);
+    }
+
+    // Фоновая анимация
+    const root = document.documentElement;
+    root.classList.remove(
+      "winpro-bg-gold-dust",
+      "winpro-bg-aurora",
+      "winpro-bg-crown-rain",
+      "winpro-bg-gradient-shift",
+      "winpro-bg-ripple",
+      "winpro-bg-nebula"
+    );
+    const anim = getAnimationId();
+    if (winPro && anim !== "off") root.classList.add(`winpro-bg-${anim}`);
+  }, [profile]);
+
+  useEffect(() => {
+    const onChange = () => {
+      const root = document.documentElement;
+      root.classList.remove(
+        "winpro-bg-gold-dust",
+        "winpro-bg-aurora",
+        "winpro-bg-crown-rain",
+        "winpro-bg-gradient-shift",
+        "winpro-bg-ripple",
+        "winpro-bg-nebula"
+      );
+      if (!profile || !isWinProActive(profile)) return;
+      const anim = getAnimationId();
+      if (anim !== "off") root.classList.add(`winpro-bg-${anim}`);
+    };
+    window.addEventListener("winchat-animation-change", onChange);
+    return () => window.removeEventListener("winchat-animation-change", onChange);
+  }, [profile]);
 
   if (booting || (session && !profile)) return <Splash />;
   if (!session || !profile) return <Auth />;

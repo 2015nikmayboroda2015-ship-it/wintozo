@@ -5,9 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleAlert,
-  Eye,
   Loader2,
-  LogOut,
   Search,
   ShieldCheck,
   Trash2,
@@ -20,10 +18,7 @@ import {
   adminEditProfile,
   adminGetAudit,
   adminGetUsers,
-  adminImpersonate,
-  adminResign,
 } from "../lib/adminApi";
-import { clearImpersonateSession, getImpersonateSession } from "../lib/supabase";
 import { cn } from "../utils/cn";
 import Avatar from "./Avatar";
 
@@ -59,9 +54,6 @@ export default function AdminPanel({ meId, onClose }: Props) {
   const [banReason, setBanReason] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Impersonate state
-  const [impersonating, setImpersonating] = useState<string | null>(null);
-
   // Audit
   const [audits, setAudits] = useState<
     Array<{ id: string; admin_id: string; admin_username: string; target_id: string; action: string; details: Record<string, unknown>; created_at: string; target_nickname?: string; target_username?: string }>
@@ -69,9 +61,6 @@ export default function AdminPanel({ meId, onClose }: Props) {
   const [auditPage, setAuditPage] = useState(1);
   const [auditTotal, setAuditTotal] = useState(0);
   const [auditLoading, setAuditLoading] = useState(false);
-
-  // Check if we're impersonating
-  const impSession = getImpersonateSession();
 
   /* ---------- Load users ---------- */
   const loadUsers = async (p: number, q: string) => {
@@ -171,60 +160,6 @@ export default function AdminPanel({ meId, onClose }: Props) {
     }
   };
 
-  const handleImpersonate = async (userId: string) => {
-    setImpersonating(userId);
-    try {
-      const res = await adminImpersonate(userId);
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
-      if (!res.ok || !res.target_id) {
-        setError("Не удалось войти на аккаунт");
-        return;
-      }
-      // Navigate away from AdminPanel
-      onClose();
-      // This will be handled by the parent component
-      window.dispatchEvent(
-        new CustomEvent("winchat:impersonate", {
-          detail: {
-            targetId: res.target_id,
-            targetUsername: res.target_username || "",
-            targetNickname: res.target_nickname || "",
-          },
-        })
-      );
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setImpersonating(null);
-    }
-  };
-
-  const handleResign = async () => {
-    try {
-      await adminResign();
-      clearImpersonateSession();
-      window.dispatchEvent(new CustomEvent("winchat:resign"));
-      // Reload page to refresh session
-      window.location.reload();
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  };
-
-  /* ---------- Detail modal ---------- */
-  useEffect(() => {
-    if (selectedUser) {
-      setEditNickname(selectedUser.nickname);
-      setEditUsername(selectedUser.username);
-      setEditVerified(selectedUser.verified);
-      setBanReason(selectedUser.ban_reason || "");
-      setDetailMode("view");
-    }
-  }, [selectedUser]);
-
   /* ---------- Helpers ---------- */
   const formatDate = (iso: string) => {
     return new Date(iso).toLocaleString("ru-RU", {
@@ -244,7 +179,6 @@ export default function AdminPanel({ meId, onClose }: Props) {
       verify: "Верификация",
       unverify: "Отмена верификации",
       edit: "Редактирование",
-      impersonate: "Вход под пользователем",
       resign: "Выход из админ-режима",
     };
     return map[a] || a;
@@ -258,7 +192,6 @@ export default function AdminPanel({ meId, onClose }: Props) {
       verify: "text-blue-600 bg-blue-500/10",
       unverify: "text-gray-600 bg-gray-500/10",
       edit: "text-amber-600 bg-amber-500/10",
-      impersonate: "text-purple-600 bg-purple-500/10",
       resign: "text-gray-600 bg-gray-500/10",
     };
     return map[a] || "text-black/40 bg-black/5";
@@ -279,11 +212,6 @@ export default function AdminPanel({ meId, onClose }: Props) {
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-ink" strokeWidth={2} />
             <h3 className="text-lg font-extrabold tracking-tight">Админ-панель</h3>
-            {impSession && (
-              <span className="rounded-full bg-purple-500/10 px-2.5 py-1 text-[11px] font-bold text-purple-600">
-                👁 Режим просмотра: {impSession.targetUsername}
-              </span>
-            )}
           </div>
           <button
             onClick={onClose}
@@ -573,21 +501,6 @@ export default function AdminPanel({ meId, onClose }: Props) {
                         <Trash2 className="h-3.5 w-3.5" />
                         Удалить аккаунт
                       </button>
-
-                      <button
-                        onClick={() => handleImpersonate(selectedUser.id)}
-                        disabled={impersonating === selectedUser.id}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-purple-500 py-2.5 text-xs font-bold text-white transition hover:bg-purple-600 disabled:opacity-50"
-                      >
-                        {impersonating === selectedUser.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Eye className="h-3.5 w-3.5" />
-                        )}
-                        {impersonating === selectedUser.id
-                          ? "Входим…"
-                          : `Зайти на аккаунт ${selectedUser.nickname}`}
-                      </button>
                     </div>
                   )}
                 </div>
@@ -654,18 +567,6 @@ export default function AdminPanel({ meId, onClose }: Props) {
           </div>
         )}
 
-        {/* Footer - resign button (only if impersonating) */}
-        {impSession && (
-          <div className="border-t border-black/8 bg-purple-50 px-6 py-3">
-            <button
-              onClick={handleResign}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-500/25 py-2.5 text-xs font-bold text-purple-600 transition hover:bg-purple-500/5"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Выйти из админ-режима ({impSession.targetUsername})
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

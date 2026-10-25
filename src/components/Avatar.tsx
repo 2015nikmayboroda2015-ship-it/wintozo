@@ -1,7 +1,9 @@
 import { Users } from "lucide-react";
 import type { Profile } from "../lib/supabase";
+import { hasWinPro } from "../lib/winpro";
 import { avatarGradient, initials } from "../lib/utils";
 import { cn } from "../utils/cn";
+import Crown from "./Crown";
 
 const SIZES: Record<string, string> = {
   sm: "h-9 w-9 text-[13px] rounded-xl",
@@ -36,6 +38,8 @@ interface Props {
   /** null — не показывать индикатор присутствия */
   online?: boolean | null;
   className?: string;
+  /** Показывать ли корону WinPro */
+  showWinPro?: boolean;
 }
 
 export default function Avatar({
@@ -47,10 +51,12 @@ export default function Avatar({
   size = "md",
   online = null,
   className,
+  showWinPro,
 }: Props) {
   const label = name ?? profile?.nickname ?? "W";
   const url = avatarUrl !== undefined ? avatarUrl : (profile?.avatar_url ?? null);
   const gradSeed = seed ?? profile?.username ?? label ?? "winchat";
+  const showCrown = showWinPro ?? hasWinPro(profile);
 
   return (
     <div className={cn("relative shrink-0", className)}>
@@ -82,6 +88,11 @@ export default function Avatar({
             online ? "bg-emerald-500" : "bg-black/25"
           )}
         />
+      )}
+      {showCrown && (
+        <span className="absolute -top-1.5 -right-1.5 drop-shadow-lg">
+          <Crown size="xs" className="h-4 w-4" />
+        </span>
       )}
     </div>
   );

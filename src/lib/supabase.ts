@@ -21,11 +21,18 @@ export interface Profile {
   verified?: boolean | null;
   verify_status?: VerifyLevel;
   winpass?: string | null;
+  winpro_until?: string | null;
   created_at: string;
 }
 
 /** Аккаунты, которым галочка положена всегда. */
 export const ALWAYS_VERIFIED = ["admin", "winchat"];
+
+/** Активна ли подписка WinPro (базовая серая галочка и корона). */
+export const isWinProActive = (p?: Profile | null): boolean => {
+  if (!p?.winpro_until) return false;
+  return new Date(p.winpro_until) > new Date();
+};
 
 /** Уровень верификации пользователя (для галочек). */
 export const verifyLevel = (p?: Profile | null): VerifyLevel => {
@@ -33,6 +40,8 @@ export const verifyLevel = (p?: Profile | null): VerifyLevel => {
   const lvl = (p.verify_status || "user") as VerifyLevel;
   // Системные аккаунты всегда "full"
   if (ALWAYS_VERIFIED.includes(p.username.toLowerCase())) return "full";
+  // WinPro даёт базовую серую галочку
+  if (lvl === "user" && isWinProActive(p)) return "grey";
   return lvl;
 };
 

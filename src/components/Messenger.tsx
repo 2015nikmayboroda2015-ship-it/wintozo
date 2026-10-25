@@ -48,15 +48,34 @@ export default function Messenger({ me, onProfileSaved, onLogout }: Props) {
   const [infoOpen, setInfoOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [termOpen, setTermOpen] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
-  // Admin flag: check if username is 'admin'
+  /* ---------- высота под мобильную клавиатуру ---------- */
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      if (window.innerWidth >= 768) {
+        setViewportHeight(null);
+        return;
+      }
+      setViewportHeight(vv.height);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
   const isAdmin = me.username.toLowerCase() === "admin";
-
   const active = chats.find((c) => c.id === activeId) ?? null;
 
   /* ---------- загрузка чатов ---------- */
   const loadChats = useCallback(async () => {
-    loadChatsForUser(me.id);
+    await loadChatsForUser(me.id);
   }, [me.id]);
 
   const loadChatsForUser = useCallback(async (userId: string) => {
@@ -244,26 +263,16 @@ export default function Messenger({ me, onProfileSaved, onLogout }: Props) {
     [me.id, loadChats]
   );
 
-  /* ---------- impersonation handler ---------- */
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as {
-        targetId: string;
-        targetUsername: string;
-        targetNickname: string;
-      };
-      loadChatsForUser(detail.targetId);
-      setActiveId(null);
-      setAdminOpen(false);
-    };
-    window.addEventListener("winchat:impersonate", handler);
-    return () => window.removeEventListener("winchat:impersonate", handler);
-  }, [loadChatsForUser]);
-
   return (
-    <div className="font-app flex h-dvh overflow-hidden bg-paper">
+    <div
+      className="font-app flex h-dvh overflow-hidden bg-paper"
+      style={viewportHeight ? { height: viewportHeight } : undefined}
+    >
       <div
-        className={cn("h-full w-full md:w-[380px] md:shrink-0", active ? "hidden md:block" : "block")}
+        className={cn(
+          "winchat-page-transition h-full w-full md:w-[380px] md:shrink-0",
+          active ? "hidden md:block" : "block"
+        )}
       >
         <Sidebar
           me={me}
@@ -281,7 +290,7 @@ export default function Messenger({ me, onProfileSaved, onLogout }: Props) {
         />
       </div>
 
-      <main className={cn("min-w-0 flex-1", active ? "block" : "hidden md:block")}>
+      <main className={cn("winchat-page-transition min-w-0 flex-1", active ? "block" : "hidden md:block")}>
         {active ? (
           <ChatView
             key={active.id}
@@ -291,12 +300,6 @@ export default function Messenger({ me, onProfileSaved, onLogout }: Props) {
             onBack={() => setActiveId(null)}
             onActivity={applyIncoming}
             onOpenInfo={() => setInfoOpen(true)}
-            onResign={async () => {
-              const { clearImpersonateSession } = await import("../lib/supabase");
-              clearImpersonateSession();
-              window.dispatchEvent(new CustomEvent("winchat:resign"));
-              await loadChats();
-            }}
           />
         ) : (
           <Placeholder />
@@ -352,7 +355,6 @@ export default function Messenger({ me, onProfileSaved, onLogout }: Props) {
           open={termOpen}
           onClose={() => setTermOpen(false)}
           onProfileUpdated={() => {
-            // Обновляем данные профиля после команд верификации
             supabase.from("profiles").select("*").eq("id", me.id).single().then(({ data }) => {
               if (data) onProfileSaved(data as Profile);
             });

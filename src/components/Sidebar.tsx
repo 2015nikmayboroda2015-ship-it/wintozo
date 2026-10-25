@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, Loader2, MessageCircle, Mic, Search, Settings, ShieldCheck, Terminal, UsersRound, X } from "lucide-react";
+import { Loader2, MessageCircle, Mic, Search, Settings, ShieldCheck, Terminal, UsersRound, X } from "lucide-react";
 import {
   chatSeed,
   isVerified,
@@ -9,7 +9,9 @@ import {
   type VerifyLevel,
 } from "../lib/supabase";
 import { formatTime } from "../lib/utils";
+import { hasWinPro } from "../lib/winpro";
 import Avatar from "./Avatar";
+import Crown from "./Crown";
 import Verified from "./Verified";
 import { cn } from "../utils/cn";
 
@@ -231,6 +233,7 @@ export default function Sidebar({
                       <div className="min-w-0 flex-1">
                           <p className="flex min-w-0 items-center gap-1 text-[15px] font-bold tracking-tight">
                             <span className="truncate">{p.nickname}</span>
+                            {hasWinPro(p) && <Crown size="xs" />}
                             {isVerified(p) && <Verified size="xs" level={badgeLevel(p)} />}
                           </p>
                         <p className="mt-0.5 truncate font-mono text-[12px] font-medium text-black/45">
@@ -238,26 +241,6 @@ export default function Sidebar({
                         </p>
                       </div>
                     </button>
-                    {isAdmin && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenAdmin();
-                          // Передаём ID пользователя через event
-                          setTimeout(() => {
-                            window.dispatchEvent(
-                              new CustomEvent("winchat:admin-select-user", {
-                                detail: p.id,
-                              })
-                            );
-                          }, 100);
-                        }}
-                        className="shrink-0 rounded-full bg-purple-500/10 p-1.5 text-purple-600 transition hover:bg-purple-500/20"
-                        title="Зайти на аккаунт"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </button>
-                    )}
                   </div>
                 ))}
               </div>
@@ -321,22 +304,15 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* Кнопки админа — терминал + войти на аккаунт */}
+      {/* Кнопки админа — терминал */}
       {isAdmin && (
-        <div className="border-t border-black/8 p-3 space-y-2">
+        <div className="border-t border-black/8 p-3">
           <button
             onClick={onOpenTerminal}
             className="flex w-full items-center gap-2.5 rounded-2xl bg-emerald-600/90 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600 active:scale-[0.99]"
           >
             <Terminal className="h-4 w-4" />
             Admin Terminal
-          </button>
-          <button
-            onClick={onOpenAdmin}
-            className="flex w-full items-center gap-2.5 rounded-2xl bg-purple-500/8 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-purple-500 active:scale-[0.99]"
-          >
-            <Eye className="h-4 w-4" />
-            Зайти на аккаунт
           </button>
         </div>
       )}

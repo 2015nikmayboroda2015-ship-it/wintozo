@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   ArrowUp,
   CircleAlert,
-  Eye,
   ImagePlus,
   Info,
   Loader2,
@@ -17,7 +16,6 @@ import {
 } from "lucide-react";
 import {
   chatSeed,
-  getImpersonateSession,
   isVerified,
   supabase,
   type ChatItem,
@@ -42,7 +40,6 @@ interface Props {
   onBack: () => void;
   onActivity: (m: Message) => void;
   onOpenInfo: () => void;
-  onResign: () => void;
 }
 
 function TypingLabel({ who }: { who?: string }) {
@@ -65,17 +62,18 @@ export default function ChatView({
   onBack,
   onActivity,
   onOpenInfo,
-  onResign,
 }: Props) {
   const chatId = chat.id;
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [typingName, setTypingName] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [hasText, setHasText] = useState(false);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const uncontrolledText = useRef("");
 
   // Запись голоса
   const [recording, setRecording] = useState(false);
@@ -99,7 +97,6 @@ export default function ChatView({
 
   const boxRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
-  const taRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const firstScroll = useRef(true);
@@ -211,7 +208,8 @@ export default function ChatView({
 
   /* ---------- отправка ---------- */
   async function send(opts?: { image?: File; audio?: Blob; seconds?: number; video?: Blob; videoSeconds?: number }) {
-    const content = text.trim();
+    const ta = textRef.current;
+    const content = uncontrolledText.current.trim();
     if (!content && !opts?.image && !opts?.audio && !opts?.video) return;
     if (sending) return;
     setSending(true);
@@ -263,10 +261,13 @@ export default function ChatView({
       setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
       onActivity(m);
       if (!opts?.audio && !opts?.video) {
-        setText("");
-        requestAnimationFrame(() => {
-          if (taRef.current) taRef.current.style.height = "auto";
-        });
+        uncontrolledText.current = "";
+        setHasText(false);
+        if (ta) {
+          ta.value = "";
+          ta.style.height = "auto";
+        }
+        autoResize();
       }
     } catch {
       flashError(
@@ -458,7 +459,7 @@ export default function ChatView({
   }
 
   function autoResize() {
-    const el = taRef.current;
+    const el = textRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 128) + "px";
@@ -628,26 +629,6 @@ export default function ChatView({
 
   return (
     <div className="flex h-full flex-col bg-paper">
-      {/* Плашка админ-режима */}
-      {getImpersonateSession() && (
-        <div className="bg-purple-600 px-4 py-2 text-center text-xs font-bold text-white">
-          <span className="inline-flex items-center gap-2">
-            <Eye className="h-3.5 w-3.5" />
-            Вы смотрите чаты от имени «{getImpersonateSession()!.targetNickname}» (@{getImpersonateSession()!.targetUsername})
-            <span className="font-mono text-[10px] opacity-60">
-              (осталось {Math.max(0, Math.round((15 * 60 * 1000 - (Date.now() - getImpersonateSession()!.startedAt)) / 60000))} мин)
-            </span>
-            <button
-              onClick={onResign}
-              className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white transition hover:bg-white/30"
-              title="Выйти из админ-режима"
-            >
-              Закрыть
-            </button>
-          </span>
-        </div>
-      )}
-
       {/* Шапка */}
       <header className="flex items-center gap-3 border-b border-black/8 bg-white/70 px-4 py-3 backdrop-blur">
         <button
@@ -827,16 +808,20 @@ export default function ChatView({
                   )}
                 </button>
                 <textarea
-                  ref={taRef}
+                  ref={textRef}
                   rows={1}
-                  value={text}
-                  onChange={(e) => {
-                    setText(e.target.value);
+                  defaultValue=""
+                  enterKeyHint="send"
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    uncontrolledText.current = target.value;
+                    setHasText(target.value.trim().length > 0);
                     autoResize();
                     notifyTyping();
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
+                    // Enter во время IME-ввода (предиктивный ввод) не отправляет сообщение
+                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                       e.preventDefault();
                       send();
                     }
@@ -857,7 +842,7 @@ export default function ChatView({
                 />
               </div>
 
-              {text.trim() ? (
+              {hasText ? (
                 <button
                   onClick={() => send()}
                   disabled={sending}

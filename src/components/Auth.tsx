@@ -75,7 +75,7 @@ function mapAuthError(err: unknown): string {
   if (t.includes("already registered") || t.includes("already exists") || t.includes("user_already_exists"))
     return "Такой аккаунт уже существует — войдите.";
   if (t.includes("invalid login credentials"))
-    return "Неверный username или пароль.";
+    return "Неверный username или пароль. Если раньше вы входили по WinPass — пароль был сброшен: войдите по WinPass, затем задайте новый пароль в Настройки → Безопасность.";
   if (t.includes("email_address_invalid") || (t.includes("invalid") && t.includes("email")))
     return "Supabase отклонил служебную почту аккаунта. Проверьте настройки Email-провайдера в разделе Authentication.";
   if (t.includes("weak_password") || (t.includes("password") && (t.includes("least") || t.includes("short") || t.includes("weak"))))
@@ -392,7 +392,8 @@ export default function Auth() {
                   />
                 </div>
                 <p className="mt-1.5 text-xs font-medium text-black/40">
-                  Код восстановления, полученный при регистрации
+                  Код восстановления, полученный при регистрации. Внимание: после входа по WinPass
+                  прежний пароль сбрасывается — новый задайте в Настройки → Безопасность.
                 </p>
               </Field>
             )}
