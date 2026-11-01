@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { AtSign, Camera, Crown, Loader2, LogOut, Pencil, Users, X } from "lucide-react";
+import { AtSign, Camera, Crown, Loader2, LogOut, Pencil, Search, Users, UserMinus, UserPlus, X } from "lucide-react";
 import { chatSeed, isVerified, supabase, type ChatItem, type Profile, type VerifyLevel } from "../lib/supabase";
 import { validateBio, validateGroupTitle } from "../lib/utils";
 import { filesUpload } from "../lib/blobStorage";
 import Avatar from "./Avatar";
 import Verified from "./Verified";
+import { cn } from "../utils/cn";
 
 interface Props {
   chat: ChatItem;
@@ -30,6 +31,13 @@ export default function ChatInfoModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  /* --- Управление участниками --- */
+  const [manageOpen, setManageOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Profile[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchDebounce = useRef<number | undefined>(undefined);
 
   /** Получить уровень галочки для профиля */
   const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
@@ -74,6 +82,53 @@ export default function ChatInfoModal({
     } finally {
       setBusy(false);
     }
+  }
+
+  /* --- Поиск кандидатов для добавления (только когда панель открыта) --- */
+  useEffect(() => {
+    if (!manageOpen || !isOwner) return;
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
+    window.clearTimeout(searchDebounce.current);
+    searchDebounce.current = window.setTimeout(async () => {
+      const pattern = `%${q.replace(/[%_]/g, "")}%`;
+      const memberIds = new Set(chat.members.map((p) => p.id));
+      memberIds.add(me.id);
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .or(`username.ilike.${pattern},nickname.ilike.${pattern}`)
+        .limit(20);
+      setSearchResults(((data as Profile[]) || []).filter((p) => !memberIds.has(p.id)));
+      setSearching(false);
+    }, 300);
+    return () => window.clearTimeout(searchDebounce.current);
+  }, [searchQuery, manageOpen, isOwner, chat.members, me.id]);
+
+  async function addMember(p: Profile) {
+    setError(null);
+    const { error: aErr } = await supabase
+      .from("chat_members")
+      .insert({ chat_id: chat.id, user_id: p.id });
+    if (aErr) return setError("Не удалось добавить участника");
+    setSearchResults((prev) => prev.filter((x) => x.id !== p.id));
+    onUpdated();
+  }
+
+  async function removeMember(p: Profile) {
+    if (p.id === chat.ownerId) return;
+    setError(null);
+    const { error: rErr } = await supabase
+      .from("chat_members")
+      .delete()
+      .eq("chat_id", chat.id)
+      .eq("user_id", p.id);
+    if (rErr) return setError("Не удалось удалить участника");
+    onUpdated();
   }
 
   async function leave() {
@@ -235,12 +290,72 @@ export default function ChatInfoModal({
           {/* Участники группы */}
           {chat.isGroup && (
             <div className="mt-6">
-              <span className="mb-2 block font-mono text-[11px] font-semibold tracking-[0.16em] text-black/45 uppercase">
-                Участники
-              </span>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-mono text-[11px] font-semibold tracking-[0.16em] text-black/45 uppercase">
+                  Участники
+                </span>
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => setManageOpen((v) => !v)}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition",
+                      manageOpen ? "bg-accent text-white" : "bg-accent-soft text-accent hover:bg-accent/15"
+                    )}
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    {manageOpen ? "Готово" : "Управлять"}
+                  </button>
+                )}
+              </div>
+
+              {/* Панель поиска новых участников */}
+              {manageOpen && isOwner && (
+                <div className="animate-fade-in mb-3 rounded-2xl border border-black/8 bg-paper p-3">
+                  <div className="relative">
+                    <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-black/35" />
+                    <input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Найти пользователя по @username или нику"
+                      className="w-full rounded-xl border border-black/10 bg-white py-2 pr-3 pl-9 text-sm font-medium outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10"
+                    />
+                  </div>
+                  <div className="mt-2 space-y-0.5">
+                    {searching ? (
+                      <div className="flex items-center gap-2 px-2 py-2 text-sm font-semibold text-black/40">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Поиск…
+                      </div>
+                    ) : (
+                      searchResults.map((p) => (
+                        <div key={p.id} className="flex items-center gap-3 rounded-xl px-2 py-1.5">
+                          <Avatar profile={p} size="sm" />
+                          <div className="min-w-0 flex-1">
+                            <p className="flex min-w-0 items-center gap-1 text-[13px] font-bold">
+                              <span className="truncate">{p.nickname}</span>
+                              {isVerified(p) && <Verified size="xs" level={badgeLevel(p)} />}
+                            </p>
+                            <p className="truncate font-mono text-[11px] text-black/40">@{p.username}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addMember(p)}
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-white transition hover:bg-accent/85 active:scale-95"
+                            aria-label={`Добавить ${p.nickname}`}
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-0.5">
                 {chat.members.map((p) => (
-                  <div key={p.id} className="flex items-center gap-3 rounded-2xl px-2 py-2">
+                  <div key={p.id} className="group/member flex items-center gap-3 rounded-2xl px-2 py-2">
                     <Avatar profile={p} size="sm" online={onlineIds.has(p.id)} />
                     <div className="min-w-0 flex-1">
                       <p className="flex min-w-0 items-center gap-1 text-sm font-bold">
@@ -252,11 +367,22 @@ export default function ChatInfoModal({
                       </p>
                       <p className="truncate font-mono text-[11px] text-black/40">@{p.username}</p>
                     </div>
-                    {chat.ownerId === p.id && (
-                      <span className="flex items-center gap-1 rounded-full bg-amber-500/12 px-2 py-1 text-[10px] font-bold text-amber-700">
-                        <Crown className="h-3 w-3" />
-                        владелец
-                      </span>
+                    {manageOpen && isOwner && p.id !== me.id && p.id !== chat.ownerId ? (
+                      <button
+                        type="button"
+                        onClick={() => removeMember(p)}
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-red-600 transition hover:bg-red-500/20 active:scale-95"
+                        aria-label={`Удалить ${p.nickname} из группы`}
+                      >
+                        <UserMinus className="h-4 w-4" />
+                      </button>
+                    ) : (
+                      chat.ownerId === p.id && (
+                        <span className="flex items-center gap-1 rounded-full bg-amber-500/12 px-2 py-1 text-[10px] font-bold text-amber-700">
+                          <Crown className="h-3 w-3" />
+                          владелец
+                        </span>
+                      )
                     )}
                   </div>
                 ))}

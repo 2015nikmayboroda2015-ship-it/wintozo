@@ -209,7 +209,9 @@ export default function ChatView({
   /* ---------- отправка ---------- */
   async function send(opts?: { image?: File; audio?: Blob; seconds?: number; video?: Blob; videoSeconds?: number }) {
     const ta = textRef.current;
-    const content = uncontrolledText.current.trim();
+    // Читаем актуальное значение из DOM — на мобильных Android при IME-вводе
+    // uncontrolledText может быть устаревшим, пока не сработает compositionend.
+    const content = (ta?.value ?? uncontrolledText.current).trim();
     if (!content && !opts?.image && !opts?.audio && !opts?.video) return;
     if (sending) return;
     setSending(true);
@@ -368,25 +370,58 @@ export default function ChatView({
     }
 
     try {
+      // audio: { echoCancellation: true } — на Android при audio:true без
+      // ограничений WebView иногда не отдаёт аудио-трек в поток.
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 1280 } },
-        audio: true,
+        audio: { echoCancellation: true, noiseSuppression: false },
       });
       videoStreamRef.current = stream;
+
+      // Проверяем, что аудио-дорожка реально получена
+      if (stream.getAudioTracks().length === 0) {
+        stream.getTracks().forEach((t) => t.stop());
+        return flashError(
+          "Нет доступа к микрофону. Дайте разрешёние микрофона и повторите запись.",
+          7000
+        );
+      }
 
       // Подключаем поток к превью
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
       }
 
+      // Явно собираем микс видео + аудио, чтобы MediaRecorder гарантированно
+      // писал звуковую дорожку (в WebView some devices теряют audio из raw stream).
+      let recStream: MediaStream = stream;
+      const audioTracks = stream.getAudioTracks();
+      const videoTrack = stream.getVideoTracks()[0];
+      if (audioTracks.length > 0 && typeof AudioContext !== "undefined") {
+        try {
+          const ctx = new AudioContext();
+          const src = ctx.createMediaStreamSource(new MediaStream(audioTracks));
+          const dest = ctx.createMediaStreamDestination();
+          src.connect(dest);
+          const mixed = new MediaStream();
+          if (videoTrack) mixed.addTrack(videoTrack);
+          dest.stream.getAudioTracks().forEach((t) => mixed.addTrack(t));
+          recStream = mixed;
+        } catch {
+          recStream = stream;
+        }
+      }
+
+      // Подбираем mimeType с аудиокодеком Opus — без него Chrome на Android
+      // пишет webm только с видеодорожкой.
       const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
         ? "video/webm;codecs=vp9,opus"
         : MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
           ? "video/webm;codecs=vp8,opus"
-          : MediaRecorder.isTypeSupported("video/webm")
-            ? "video/webm"
-            : "";
-      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+          : MediaRecorder.isTypeSupported("video/webm;codecs=h264,aac")
+            ? "video/webm;codecs=h264,aac"
+            : "video/webm";
+      const rec = new MediaRecorder(recStream, { mimeType: mime, videoBitsPerSecond: 1_500_000 });
       videoChunksRef.current = [];
       videoCancelledRec.current = false;
 
@@ -405,7 +440,7 @@ export default function ChatView({
       };
 
       videoRecorderRef.current = rec;
-      rec.start();
+      rec.start(250); // ondataavailable каждые 250мс — надёжнее для звука
       setVideoRecording(true);
       setVideoRecSeconds(0);
       videoRecSecondsRef.current = 0;
@@ -818,6 +853,19 @@ export default function ChatView({
                     setHasText(target.value.trim().length > 0);
                     autoResize();
                     notifyTyping();
+                  }}
+                  onCompositionEnd={(e) => {
+                    // После подтверждения IME (Gboard предиктивный ввод) — обновляем состояние
+                    const target = e.target as HTMLTextAreaElement;
+                    uncontrolledText.current = target.value;
+                    setHasText(target.value.trim().length > 0);
+                  }}
+                  onFocus={() => {
+                    // При возврате фокуса — синхронизируем с DOM
+                    if (textRef.current) {
+                      uncontrolledText.current = textRef.current.value;
+                      setHasText(textRef.current.value.trim().length > 0);
+                    }
                   }}
                   onKeyDown={(e) => {
                     // Enter во время IME-ввода (предиктивный ввод) не отправляет сообщение

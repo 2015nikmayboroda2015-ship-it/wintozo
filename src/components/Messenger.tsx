@@ -14,6 +14,7 @@ import CreateGroupModal from "./CreateGroupModal";
 import ChatInfoModal from "./ChatInfoModal";
 import AdminPanel from "./AdminPanel";
 import AdminTerminal from "./AdminTerminal";
+import CheckVersion from "./CheckVersion";
 import { cn } from "../utils/cn";
 
 interface Props {
@@ -268,6 +269,9 @@ export default function Messenger({ me, onProfileSaved, onLogout }: Props) {
       className="font-app flex h-dvh overflow-hidden bg-paper"
       style={viewportHeight ? { height: viewportHeight } : undefined}
     >
+      {/* Проверка версии / баннеры обновления */}
+      <CheckVersion />
+
       <div
         className={cn(
           "winchat-page-transition h-full w-full md:w-[380px] md:shrink-0",
