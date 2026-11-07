@@ -1,12 +1,13 @@
 import { useState, useRef, useCallback } from 'react'
-import { mediaSupabase, MEDIA_BUCKETS, registerMediaFile } from '../lib/supabase.js'
+import { mediaSupabase, MEDIA_BUCKETS } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
 
 /**
- * Хук записи голосовых как в Telegram.
+ * Хук записи голосовых как в Telegram (логика WinChat).
  * Зажал кнопку → запись → отпустил → авто-загрузка + отправка.
- * Логика загрузки из старого проекта (wintozo-voice).
- * Файлы голосовых уходят в ПЕРВЫЙ Supabase (медиа-проект).
+ * Файл уходит в бакет attachments媒а-проекта по пути
+ *   ${chatId}/voice/${uuid()}.webm
+ * بدون registerMediaFile (в медиа-проекте такой таблицы нет).
  */
 export function useVoiceRecorder(onComplete, activeChat, user) {
   const [isRecording, setIsRecording] = useState(false)
@@ -56,15 +57,10 @@ export function useVoiceRecorder(onComplete, activeChat, user) {
     cancelledRef.current = false
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100
-        }
+        audio: true
       })
       streamRef.current = stream
 
-      // Анализатор громкости для визуализации
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
       audioCtxRef.current = audioCtx
       const source = audioCtx.createMediaStreamSource(stream)
@@ -131,40 +127,35 @@ export function useVoiceRecorder(onComplete, activeChat, user) {
       recorder.stop()
     })
 
+    const chatId = activeChat
     const finalDuration = Math.max(1, Math.floor((Date.now() - startTimeRef.current) / 1000))
     cleanup()
     setIsRecording(false)
     setAudioLevel(0)
 
     if (wasCancelled || blob.size < 500) return
+    if (!chatId) {
+      toast('Чат не найден', 'error')
+      return
+    }
 
-    // Загрузка в ПЕРВЫЙ Supabase (медиа) — логика из старого проекта
+    // Загрузка в бакет attachments (та же логика, что и в WinChat)
     setUploading(true)
     try {
-      const fileName = `voice_${user?.username || 'unknown'}_${Date.now()}.webm`
+      const fileName = `${chatId}/voice/${crypto.randomUUID()}.webm`
 
       const { error: uploadError } = await mediaSupabase.storage
         .from(MEDIA_BUCKETS.messageMedia)
-        .upload(fileName, blob, { contentType: 'audio/webm' })
+        .upload(fileName, blob, { contentType: 'audio/webm', upsert: true })
 
       if (uploadError) {
-        toast('Ошибка загрузки: ' + uploadError.message, 'error')
+        toast('Ошибка загрузки голосового: ' + uploadError.message, 'error')
         return
       }
 
       const { data: urlData } = mediaSupabase.storage
         .from(MEDIA_BUCKETS.messageMedia)
         .getPublicUrl(fileName)
-
-      await registerMediaFile({
-        bucket: MEDIA_BUCKETS.messageMedia,
-        path: fileName,
-        url: urlData.publicUrl,
-        mime: 'audio/webm',
-        size: blob.size,
-        username: user?.username || 'unknown',
-        kind: 'voice'
-      }).catch(() => {})
 
       onComplete?.({
         type: 'audio',
@@ -176,7 +167,7 @@ export function useVoiceRecorder(onComplete, activeChat, user) {
       toast('Ошибка: ' + (err?.message || String(err)), 'error')
     }
     setUploading(false)
-  }, [cleanup, user, onComplete])
+  }, [cleanup, user, onComplete, activeChat])
 
   // Отменить запись (увёл палец с кнопки)
   const cancelRecording = useCallback(() => {

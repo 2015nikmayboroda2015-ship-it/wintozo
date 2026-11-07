@@ -1,22 +1,41 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { isWinProActive, supabase, type Profile } from "./lib/supabase";
 import { checkBanned } from "./lib/adminApi";
-import { applyTheme, getCurrentTheme, getThemeById, isWinProTheme, saveThemeId, THEMES } from "./lib/themes";
+import {
+  applyTheme,
+  getCurrentTheme,
+  getThemeById,
+  isWinProTheme,
+  saveThemeId,
+  THEMES,
+  YOU_THEME_ID,
+} from "./lib/themes";
 import { getAnimationId } from "./lib/animations";
+import { requestNotifyPermission } from "./lib/notify";
 import { applyLegacyGate, declineLegacyUi, isLegacyUi, resetLegacyChoice } from "./lib/checkVersion";
+import { navigate } from "./lib/router";
 import Auth from "./components/Auth";
 import Messenger from "./components/Messenger";
 import LegacyScreen from "./components/LegacyScreen";
+import YouLocked from "./components/YouLocked";
 
 /* ============================================================
    Лёгкий роутер (как в старом Wintozo)
    Новые маршруты:  /login  /registration  /chats  /settings
                     /settings/status/winpro
+   WinChat You:     /themes/you  /themes/you/chat  /themes/you/settings
+                    /themes/you/winpro
    Старый интерфейс (ивент «Память о Wintozo»):
                     /events/themes/wintozo/*
    ============================================================ */
 const LEGACY_PREFIX = "/events/themes/wintozo";
+const YOU_PREFIX = "/themes/you";
+const YOU_PREV_THEME_KEY = "winchat_you_prev_theme";
+
+function isYouPath(path: string): boolean {
+  return path === YOU_PREFIX || path.startsWith(`${YOU_PREFIX}/`);
+}
 
 function useRoute(): string {
   const [path, setPath] = useState(window.location.pathname);
@@ -28,11 +47,7 @@ function useRoute(): string {
   return path;
 }
 
-/** Поменять адрес без перезагрузки страницы. */
-export function navigate(path: string): void {
-  window.history.pushState({}, "", path);
-  window.dispatchEvent(new PopStateEvent("popstate"));
-}
+export { navigate } from "./lib/router";
 
 function Splash() {
   return (
@@ -54,6 +69,12 @@ export default function App() {
   const [legacyAsk, setLegacyAsk] = useState(false);
   /* Лёгкий роутер: путь синхронизируется с экранами приложения */
   const path = useRoute();
+  /* WinChat You — отдельный режим-маршрут /themes/you/* */
+  const youMode = isYouPath(path);
+  const youChatId = youMode
+    ? path.match(/^\/themes\/you\/chat\/([^/?#]+)/)?.[1] ?? null
+    : null;
+  const wasYou = useRef(false);
 
   useEffect(() => {
     // Применить тему из localStorage при старте
@@ -63,6 +84,7 @@ export default function App() {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setBooting(false);
+      void requestNotifyPermission();
     });
     const {
       data: { subscription },
@@ -177,6 +199,54 @@ export default function App() {
     return () => window.removeEventListener("winchat-animation-change", onChange);
   }, [profile]);
 
+  /* ---------- WinChat You: короткий адрес → чат ---------- */
+  useEffect(() => {
+    if (path !== YOU_PREFIX) return;
+    window.history.replaceState({}, "", `${YOU_PREFIX}/chat`);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, [path]);
+
+  /* ---------- WinChat You: включение/выключение режима ---------- */
+  useEffect(() => {
+    if (!profile) return;
+    const winPro = isWinProActive(profile);
+    const active = youMode && winPro;
+
+    if (active) {
+      if (!wasYou.current) {
+        // Запоминаем тему, к которой вернёмся после выхода из You.
+        try {
+          const prev = localStorage.getItem("winchat_theme_id");
+          if (prev && prev !== YOU_THEME_ID) {
+            localStorage.setItem(YOU_PREV_THEME_KEY, prev);
+          }
+        } catch {
+          /* no-op */
+        }
+      }
+      wasYou.current = true;
+      saveThemeId(YOU_THEME_ID);
+      applyTheme(getThemeById(YOU_THEME_ID) ?? THEMES[0]);
+      document.title = "WinChat You";
+      return;
+    }
+
+    // Вышли из /themes/you/* или остались с «висящей» темой You после перезапуска.
+    if (wasYou.current || (getCurrentTheme() as { id: string }).id === YOU_THEME_ID) {
+      wasYou.current = false;
+      let prev: string = THEMES[0].id;
+      try {
+        prev = localStorage.getItem(YOU_PREV_THEME_KEY) || THEMES[0].id;
+      } catch {
+        /* no-op */
+      }
+      if (isWinProTheme(prev) && !winPro) prev = THEMES[0].id;
+      saveThemeId(prev);
+      applyTheme(getThemeById(prev) ?? THEMES[0]);
+      document.title = "WinChat";
+    }
+  }, [profile, youMode]);
+
   if (booting || (session && !profile)) return <Splash />;
 
   /* ---------- Маршруты старого интерфейса ---------- */
@@ -249,9 +319,27 @@ export default function App() {
         }}
       />
     );
-  /* ---------- /settings и /settings/status/winpro ---------- */
+
+  /* ---------- /themes/you/* — Material You только для WinPro ---------- */
+  if (youMode && !isWinProActive(profile)) {
+    return (
+      <YouLocked
+        me={profile}
+        onBack={() => navigate("/chats")}
+        onGetWinPro={() => navigate("/settings/status/winpro")}
+      />
+    );
+  }
+
+  /* ---------- /settings, /settings/status/winpro, /themes/you/settings ---------- */
   const settingsTab =
-    path === "/settings/status/winpro" ? "winpro" as const : path === "/settings" ? "profile" as const : null;
+    path === "/settings/status/winpro" || path === "/themes/you/winpro"
+      ? "winpro" as const
+      : path === "/settings"
+        ? "profile" as const
+        : path === "/themes/you/settings"
+          ? "customization" as const
+          : null;
 
   return (
     <Messenger
@@ -264,6 +352,14 @@ export default function App() {
       }}
       initialSettingsOpen={!!settingsTab}
       initialSettingsTab={settingsTab ?? undefined}
+      youMode={youMode}
+      initialChatId={youChatId}
+      onYouChatRoute={(id) => navigate(id ? `${YOU_PREFIX}/chat/${id}` : `${YOU_PREFIX}/chat`)}
+      onExitYou={() => navigate("/chats")}
+      onOpenYouSettings={() => navigate(`${YOU_PREFIX}/settings`)}
+      onYouSettingsClosed={() => {
+        if (youMode) navigate(`${YOU_PREFIX}/chat`);
+      }}
     />
   );
 }

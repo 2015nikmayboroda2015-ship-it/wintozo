@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, RefreshCw, X, Sparkles } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 import {
   APP_VERSION,
-  DOWNLOAD_URL,
   fetchLatestVersion,
   isVersionNewer,
   shouldShowUpdateBanner,
@@ -71,15 +70,6 @@ export default function CheckVersion() {
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                <a
-                  href={DOWNLOAD_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 rounded-xl bg-amber-900/20 px-3 py-1.5 text-[11px] font-bold text-amber-900 transition hover:bg-amber-900/30"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  Скачать
-                </a>
                 <button
                   type="button"
                   onClick={dismissUpdate}
@@ -138,18 +128,6 @@ export default function CheckVersion() {
                 </>
               );
             })()}
-
-            {newer && (
-              <a
-                href={DOWNLOAD_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 py-3 text-sm font-extrabold text-amber-900 transition hover:brightness-110 active:scale-[0.99]"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Скачать v{version}
-              </a>
-            )}
           </div>
         </div>
       )}

@@ -15,6 +15,7 @@ import ChatInfoModal from "./ChatInfoModal";
 import AdminPanel from "./AdminPanel";
 import AdminTerminal from "./AdminTerminal";
 import CheckVersion from "./CheckVersion";
+import YouBackdrop from "./YouBackdrop";
 import { cn } from "../utils/cn";
 
 interface Props {
@@ -27,28 +28,72 @@ interface Props {
   initialSettingsOpen?: boolean;
   /** Роут /settings/status/winpro — открыть настройки на вкладке WinPro. */
   initialSettingsTab?: "profile" | "customization" | "security" | "winpro";
+  /** Режим WinChat You (Material You). */
+  youMode?: boolean;
+  /** Чат из адреса /themes/you/chat/:id. */
+  initialChatId?: string | null;
+  /** Обновить адрес при выборе чата в режиме You. */
+  onYouChatRoute?: (chatId: string | null) => void;
+  /** Выйти из WinChat You в обычный интерфейс. */
+  onExitYou?: () => void;
+  /** Открыть настройки по адресу /themes/you/settings. */
+  onOpenYouSettings?: () => void;
+  /** Настройки закрыли — вернуть адрес на /themes/you/chat. */
+  onYouSettingsClosed?: () => void;
 }
 
-function Placeholder() {
+function Placeholder({ youMode }: { youMode?: boolean }) {
   return (
-    <div className="dot-grid-dark flex h-full flex-col items-center justify-center gap-5 bg-paper text-center">
-      <div className="flex h-20 w-20 items-center justify-center rounded-[26px] bg-ink text-3xl font-extrabold text-white shadow-xl">
-        W
+    <div
+      className={cn(
+        "dot-grid-dark flex h-full flex-col items-center justify-center gap-5 text-center",
+        youMode ? "you-chat" : "bg-paper"
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-20 w-20 items-center justify-center overflow-hidden rounded-[26px] text-3xl font-extrabold shadow-xl",
+          youMode ? "you-logo" : "bg-ink text-white"
+        )}
+      >
+        {youMode ? (
+          <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
+        ) : (
+          "W"
+        )}
       </div>
       <div>
         <p className="text-xl font-extrabold tracking-tight">WinChat</p>
-        <p className="mt-2 max-w-[300px] text-sm leading-relaxed font-medium text-black/45">
-          Выберите чат слева, найдите человека через поиск или соберите группу
+        <p
+          className={cn(
+            "mt-2 max-w-[320px] text-sm leading-relaxed font-medium",
+            youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/45"
+          )}
+        >
+          Выберите чат слева, найдите человека или соберите группу
         </p>
       </div>
     </div>
   );
 }
 
-export default function Messenger({ me, onProfileSaved, onLogout, onShowLegacy, initialSettingsOpen = false, initialSettingsTab }: Props) {
+export default function Messenger({
+  me,
+  onProfileSaved,
+  onLogout,
+  onShowLegacy,
+  initialSettingsOpen = false,
+  initialSettingsTab,
+  youMode = false,
+  initialChatId = null,
+  onYouChatRoute,
+  onExitYou,
+  onOpenYouSettings,
+  onYouSettingsClosed,
+}: Props) {
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [loadingChats, setLoadingChats] = useState(true);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(initialChatId);
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const [settingsOpen, setSettingsOpen] = useState(initialSettingsOpen);
   const [groupOpen, setGroupOpen] = useState(false);
@@ -79,6 +124,15 @@ export default function Messenger({ me, onProfileSaved, onLogout, onShowLegacy, 
 
   const isAdmin = me.username.toLowerCase() === "admin";
   const active = chats.find((c) => c.id === activeId) ?? null;
+
+  /* ---------- WinChat You: адрес синхронизирует выбранный чат и настройки ---------- */
+  useEffect(() => {
+    if (youMode) setActiveId(initialChatId ?? null);
+  }, [youMode, initialChatId]);
+
+  useEffect(() => {
+    if (initialSettingsOpen) setSettingsOpen(true);
+  }, [initialSettingsOpen]);
 
   /* ---------- загрузка чатов ---------- */
   const loadChats = useCallback(async () => {
@@ -266,21 +320,40 @@ export default function Messenger({ me, onProfileSaved, onLogout, onShowLegacy, 
       }
       await loadChats();
       setActiveId(chatId!);
+      if (youMode) onYouChatRoute?.(chatId!);
     },
-    [me.id, loadChats]
+    [me.id, loadChats, youMode, onYouChatRoute]
   );
+
+  /** Выбор чата: обновляет и интерфейс, и адрес /themes/you/chat/:id. */
+  const selectChat = useCallback(
+    (chat: ChatItem) => {
+      setActiveId(chat.id);
+      if (youMode) onYouChatRoute?.(chat.id);
+    },
+    [youMode, onYouChatRoute]
+  );
+
+  /** Закрыть чат: в You-режиме возвращаем адрес на /themes/you/chat. */
+  const closeChat = useCallback(() => {
+    setActiveId(null);
+    if (youMode) onYouChatRoute?.(null);
+  }, [youMode, onYouChatRoute]);
 
   return (
     <div
-      className="font-app flex h-dvh overflow-hidden bg-paper"
+      className={cn("font-app flex h-dvh overflow-hidden", youMode ? "you-shell" : "bg-paper")}
       style={viewportHeight ? { height: viewportHeight } : undefined}
     >
+      {/* Живой фон Material You */}
+      {youMode && <YouBackdrop />}
+
       {/* Проверка версии / баннеры обновления */}
       <CheckVersion />
 
       <div
         className={cn(
-          "winchat-page-transition h-full w-full md:w-[380px] md:shrink-0",
+          "winchat-page-transition you-front h-full w-full md:w-[380px] md:shrink-0",
           active ? "hidden md:block" : "block"
         )}
       >
@@ -290,40 +363,54 @@ export default function Messenger({ me, onProfileSaved, onLogout, onShowLegacy, 
           loading={loadingChats}
           activeChatId={activeId}
           onlineIds={onlineIds}
-          onSelect={(c) => setActiveId(c.id)}
+          onSelect={selectChat}
           onOpenChatWith={openChatWith}
-          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenSettings={() =>
+            youMode ? onOpenYouSettings?.() : setSettingsOpen(true)
+          }
           onCreateGroup={() => setGroupOpen(true)}
           onOpenAdmin={() => setAdminOpen(true)}
           onOpenTerminal={() => setTermOpen(true)}
           isAdmin={isAdmin}
+          youMode={youMode}
+          onExitYou={onExitYou}
         />
       </div>
 
-      <main className={cn("winchat-page-transition min-w-0 flex-1", active ? "block" : "hidden md:block")}>
+      <main
+        className={cn(
+          "winchat-page-transition you-front min-w-0 flex-1",
+          active ? "block" : "hidden md:block"
+        )}
+      >
         {active ? (
           <ChatView
             key={active.id}
             me={me}
             chat={active}
             onlineIds={onlineIds}
-            onBack={() => setActiveId(null)}
+            onBack={closeChat}
             onActivity={applyIncoming}
             onOpenInfo={() => setInfoOpen(true)}
+            youMode={youMode}
           />
         ) : (
-          <Placeholder />
+          <Placeholder youMode={youMode} />
         )}
       </main>
 
       {settingsOpen && (
         <SettingsModal
           me={me}
-          onClose={() => setSettingsOpen(false)}
+          onClose={() => {
+            setSettingsOpen(false);
+            if (youMode) onYouSettingsClosed?.();
+          }}
           onSaved={onProfileSaved}
           onLogout={onLogout}
           onShowLegacy={onShowLegacy}
           initialTab={initialSettingsTab}
+          youMode={youMode}
         />
       )}
 
@@ -335,6 +422,7 @@ export default function Messenger({ me, onProfileSaved, onLogout, onShowLegacy, 
             setGroupOpen(false);
             await loadChats();
             setActiveId(id);
+            if (youMode) onYouChatRoute?.(id);
           }}
         />
       )}
@@ -348,7 +436,7 @@ export default function Messenger({ me, onProfileSaved, onLogout, onShowLegacy, 
           onUpdated={loadChats}
           onLeft={async () => {
             setInfoOpen(false);
-            setActiveId(null);
+            closeChat();
             await loadChats();
           }}
         />

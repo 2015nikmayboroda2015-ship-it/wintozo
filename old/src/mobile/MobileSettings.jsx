@@ -1,12 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
+import {
+  subscribe, unsubscribe, isSubscribed, isPushSupported, saveSub, removeSub
+} from '../lib/push.js'
 import AvatarPicker from '../components/AvatarPicker.jsx'
 import {
   BackIcon, PaletteIcon, PhoneIcon, ComputerIcon,
-  LogoutIcon, CrownIcon, EditIcon, ChevronRightIcon, TerminalIcon
+  LogoutIcon, CrownIcon, EditIcon, ChevronRightIcon, TerminalIcon,
+  BellIcon, CheckIcon
 } from '../components/Icons.jsx'
 
 const s = {
@@ -32,6 +36,48 @@ export default function MobileSettings() {
   const [showDesc, setShowDesc] = useState(false)
   const [desc, setDesc] = useState(user?.description || '')
   const theme = localStorage.getItem('wintozo_theme') || 'light'
+
+  /* --- Пуш-уведомления --- */
+  const [pushSubscribed, setPushSubscribed] = useState(false)
+  const [pushLoading, setPushLoading] = useState(false)
+  const [pushSupported, setPushSupported] = useState(false)
+  const [pushError, setPushError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const supported = isPushSupported()
+      setPushSupported(supported)
+      if (supported && !cancelled) {
+        try {
+          const sub = await isSubscribed()
+          setPushSubscribed(!!sub)
+        } catch {
+          /* no-op */
+        }
+      }
+      return () => { cancelled = true }
+    })()
+  }, [])
+
+  const togglePush = async () => {
+    setPushLoading(true)
+    setPushError('')
+    try {
+      if (pushSubscribed) {
+        await unsubscribe()
+        setPushSubscribed(false)
+      } else {
+        const sub = await subscribe()
+        await saveSub(sub.endpoint, sub.p256dh, sub.auth)
+        setPushSubscribed(true)
+      }
+    } catch (err) {
+      setPushError(err?.message || 'Не удалось изменить подписку на пуш-уведомления')
+    } finally {
+      setPushLoading(false)
+    }
+  }
 
   const setTheme = (t) => {
     localStorage.setItem('wintozo_theme', t)
@@ -156,6 +202,28 @@ export default function MobileSettings() {
             </div>
             <ChevronRightIcon size={17} />
           </div>
+        </div>
+
+        {/* Пуш-уведомления */}
+        <div className="settings-card" style={{ animationDelay: '0.125s' }}>
+          <div className="settings-row" onClick={togglePush}>
+            <BellIcon size={19} style={{ color: pushSubscribed ? 'var(--success)' : 'var(--text-secondary)' }} />
+            <div className="settings-label">
+              {pushSubscribed ? 'Пуш-уведомления' : 'Пуш-уведомления'}
+              <div className="settings-sub">{pushSubscribed ? 'Включены' : 'Включить уведомления'}</div>
+            </div>
+            {pushLoading ? (
+              <div style={{ width: '16px', height: '16px', border: '2px solid var(--border)', borderTop: '2px solid var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            ) : (
+              pushSubscribed ? <CheckIcon size={17} style={{ color: 'var(--success)' }} /> : <BellIcon size={17} />
+            )}
+          </div>
+          {!pushSupported && (
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+              Пуш-уведомления недоступны в этом браузере
+            </div>
+          )}
+          {pushError && <div style={{ fontSize: '11px', color: 'var(--error)', marginTop: '6px' }}>{pushError}</div>}
         </div>
 
         {/* Админ-терминал — только для аккаунта admin */}

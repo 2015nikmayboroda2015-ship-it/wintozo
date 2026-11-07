@@ -25,6 +25,7 @@ import {
 } from "../lib/supabase";
 import { dateLabel, formatDuration, formatTime, sameDay, uuid } from "../lib/utils";
 import { filesUpload } from "../lib/blobStorage";
+import { showMessageNotificationIfHidden } from "../lib/notify";
 import Avatar from "./Avatar";
 import AudioMessage from "./AudioMessage";
 import VideoMessage from "./VideoMessage";
@@ -40,6 +41,8 @@ interface Props {
   onBack: () => void;
   onActivity: (m: Message) => void;
   onOpenInfo: () => void;
+  /** Режим WinChat You (Material You). */
+  youMode?: boolean;
 }
 
 function TypingLabel({ who }: { who?: string }) {
@@ -62,6 +65,7 @@ export default function ChatView({
   onBack,
   onActivity,
   onOpenInfo,
+  youMode = false,
 }: Props) {
   const chatId = chat.id;
   const [messages, setMessages] = useState<Message[]>([]);
@@ -143,9 +147,30 @@ export default function ChatView({
         { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
         (payload) => {
           const m = payload.new as Message;
+          if (m.sender_id === me.id) {
+            // свои сообщения не шлём себе в уведомления
+            setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
+            setTypingName(null);
+            onActivity(m);
+            return;
+          }
           setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
           setTypingName(null);
           onActivity(m);
+
+          const sender = memberById.get(m.sender_id) ?? chat.other ?? null;
+          const senderName = sender?.nickname || "Собеседник";
+          const chatTitle = chat.isGroup ? chat.title : "";
+          const preview = m.content || m.audio_url ? "Голосовое" : m.image_url ? "Фото" : m.video_url ? "Видео" : "";
+          const body = preview || m.content || "Новое сообщение";
+
+          showMessageNotificationIfHidden({
+            title: chatTitle ? `${chatTitle} · ${senderName}` : senderName,
+            body,
+            tag: `chat-${chatId}`,
+            url: `/chats`,
+            chatId,
+          });
         }
       )
       .on(
@@ -522,7 +547,14 @@ export default function ChatView({
     if (showDate) {
       rows.push(
         <div key={`d-${m.id}`} className="my-5 flex justify-center">
-          <span className="rounded-full bg-black/6 px-3.5 py-1.5 text-[11px] font-bold text-black/50">
+          <span
+            className={cn(
+              "rounded-full px-3.5 py-1.5 text-[11px] font-bold",
+              youMode
+                ? "you-date-chip"
+                : "bg-black/6 text-black/50"
+            )}
+          >
             {dateLabel(m.created_at)}
           </span>
         </div>
@@ -561,14 +593,19 @@ export default function ChatView({
               "overflow-hidden rounded-[20px] text-[15px] leading-relaxed font-medium",
               m.image_url || m.audio_url || m.video_url ? "p-1.5" : "px-4 py-2.5",
               own
-                ? "rounded-br-lg bg-ink text-white"
-                : "rounded-bl-lg bg-white text-ink shadow-sm ring-1 ring-black/8"
+                ? youMode
+                  ? "you-msg-own"
+                  : "rounded-br-lg bg-ink text-white"
+                : youMode
+                  ? "you-msg-other"
+                  : "rounded-bl-lg bg-white text-ink shadow-sm ring-1 ring-black/8"
             )}
           >
             {chat.isGroup && !own && !groupedPrev && (
               <p
                 className={cn(
-                  "mb-0.5 flex items-center gap-1 text-[12px] font-bold text-accent",
+                  "mb-0.5 flex items-center gap-1 text-[12px] font-bold",
+                  youMode ? "text-[var(--you-primary)]" : "text-accent",
                   (m.image_url || m.audio_url || m.video_url) && "px-2.5 pt-1"
                 )}
               >
@@ -663,15 +700,27 @@ export default function ChatView({
   );
 
   return (
-    <div className="flex h-full flex-col bg-paper">
+    <div className={cn("flex h-full flex-col", youMode ? "you-chat" : "bg-paper")}>
       {/* Шапка */}
-      <header className="flex items-center gap-3 border-b border-black/8 bg-white/70 px-4 py-3 backdrop-blur">
+      <header
+        className={cn(
+          "flex items-center gap-3 px-4 py-3 backdrop-blur",
+          youMode
+            ? "you-appbar rounded-b-[24px] border-b"
+            : "border-b border-black/8 bg-white/70"
+        )}
+      >
         <button
           onClick={onBack}
-          className="-ml-1 rounded-full p-2 transition hover:bg-black/5 md:hidden"
+          className={cn(
+            "-ml-1 rounded-full p-2 transition md:hidden",
+            youMode
+              ? "you-fab h-10 w-10 shrink-0"
+              : "hover:bg-black/5"
+          )}
           aria-label="Назад к чатам"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className={youMode ? "h-5 w-5" : "h-5 w-5"} />
         </button>
         <button onClick={onOpenInfo} className="flex min-w-0 flex-1 items-center gap-3 text-left">
           <Avatar
@@ -682,7 +731,7 @@ export default function ChatView({
             online={chat.isGroup ? null : online}
           />
           <div className="min-w-0 flex-1">
-            <p className="flex min-w-0 items-center gap-1 text-[15px] font-extrabold tracking-tight">
+            <p className="flex min-w-0 items-center gap-1 text-[16px] font-extrabold tracking-tight">
               {chat.isGroup && <Users className="mr-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />}
               <span className="truncate">{chat.title}</span>
               {!chat.isGroup && isVerified(chat.other) && <Verified size="sm" level={badgeLevel(chat.other)} />}
@@ -691,9 +740,13 @@ export default function ChatView({
               className={cn(
                 "truncate text-xs font-semibold",
                 typingName !== null
-                  ? "text-accent"
+                  ? youMode
+                    ? "text-[var(--you-primary)]"
+                    : "text-accent"
                   : online && !chat.isGroup
-                    ? "text-emerald-600"
+                    ? youMode
+                      ? "text-[var(--you-on-surface-variant)]"
+                      : "text-emerald-600"
                     : "text-black/40"
               )}
             >
@@ -703,7 +756,12 @@ export default function ChatView({
         </button>
         <button
           onClick={onOpenInfo}
-          className="rounded-full p-2 text-black/40 transition hover:bg-black/5 hover:text-ink"
+          className={cn(
+            "rounded-full p-2 transition",
+            youMode
+              ? "text-[var(--you-on-surface-variant)] hover:bg-[var(--you-secondary-container)] hover:text-[var(--you-on-secondary-container)]"
+              : "text-black/40 hover:bg-black/5 hover:text-ink"
+          )}
           aria-label="Информация о чате"
         >
           <Info className="h-5 w-5" strokeWidth={1.9} />
@@ -714,17 +772,37 @@ export default function ChatView({
       <div ref={boxRef} className="flex-1 overflow-y-auto px-4 py-6 sm:px-8">
         <div className="mx-auto max-w-[820px]">
           {loading ? (
-            <div className="flex items-center justify-center gap-2.5 pt-24 text-sm font-semibold text-black/40">
+            <div
+              className={cn(
+                "flex items-center justify-center gap-2.5 pt-24 text-sm font-semibold",
+                youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/40"
+              )}
+            >
               <Loader2 className="h-4 w-4 animate-spin" />
               Загружаем переписку…
             </div>
           ) : messages.length === 0 ? (
             <div className="animate-fade-in flex flex-col items-center pt-20 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-white shadow-sm ring-1 ring-black/8">
-                <MessageCircle className="h-7 w-7 text-black/30" strokeWidth={1.6} />
+              <div
+                className={cn(
+                  "flex h-20 w-20 items-center justify-center rounded-[26px] shadow-lg",
+                  youMode
+                    ? "you-logo"
+                    : "bg-white shadow-sm ring-1 ring-black/8"
+                )}
+              >
+                <MessageCircle
+                  className={cn("h-8 w-8", youMode ? "text-white" : "text-black/30")}
+                  strokeWidth={1.6}
+                />
               </div>
-              <p className="mt-4 font-bold">Сообщений пока нет</p>
-              <p className="mt-1 max-w-[260px] text-[13px] leading-relaxed font-medium text-black/45">
+              <p className="mt-4 text-[17px] font-extrabold tracking-tight">Сообщений пока нет</p>
+              <p
+                className={cn(
+                  "mt-1 max-w-[280px] text-[13px] leading-relaxed font-medium",
+                  youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/45"
+                )}
+              >
                 {chat.isGroup
                   ? `Начните обсуждение в группе «${chat.title}»`
                   : `Напишите первым — ${chat.title} будет приятно`}
@@ -738,7 +816,14 @@ export default function ChatView({
       </div>
 
       {/* Ввод */}
-      <footer className="border-t border-black/8 bg-white/70 px-4 py-3 backdrop-blur sm:px-8">
+      <footer
+        className={cn(
+          "px-4 py-3 backdrop-blur sm:px-8",
+          youMode
+            ? "you-bottombar rounded-t-[28px] border-t"
+            : "border-t border-black/8 bg-white/70"
+        )}
+      >
         <div className="mx-auto max-w-[820px]">
           {sendError && (
             <p className="animate-fade-in mx-auto mb-2 flex max-w-lg items-start justify-center gap-1.5 text-center text-xs leading-relaxed font-bold text-red-600">
@@ -829,11 +914,23 @@ export default function ChatView({
             </div>
           ) : (
             <div className="flex items-end gap-2">
-              <div className="flex flex-1 items-end gap-1 rounded-[22px] border border-black/10 bg-white px-2 py-1.5 shadow-sm transition focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/10">
+              <div
+                className={cn(
+                  "flex flex-1 items-end gap-1 px-2 py-1.5 transition",
+                  youMode
+                    ? "you-composer"
+                    : "rounded-[22px] border border-black/10 bg-white shadow-sm focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/10"
+                )}
+              >
                 <button
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="rounded-full p-2.5 text-black/40 transition hover:bg-black/5 hover:text-accent disabled:opacity-50"
+                  className={cn(
+                    "rounded-full p-2.5 transition disabled:opacity-50",
+                    youMode
+                      ? "text-[var(--you-on-surface-variant)] hover:text-[var(--you-primary)]"
+                      : "text-black/40 hover:bg-black/5 hover:text-accent"
+                  )}
                   aria-label="Прикрепить фотографию"
                 >
                   {uploading ? (
@@ -875,7 +972,12 @@ export default function ChatView({
                     }
                   }}
                   placeholder="Сообщение"
-                  className="max-h-32 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] font-medium outline-none placeholder:text-black/30"
+                  className={cn(
+                    "max-h-32 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] font-medium outline-none",
+                    youMode
+                      ? "placeholder:text-[var(--you-on-surface-variant)]"
+                      : "placeholder:text-black/30"
+                  )}
                 />
                 <input
                   ref={fileRef}
@@ -894,7 +996,10 @@ export default function ChatView({
                 <button
                   onClick={() => send()}
                   disabled={sending}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-white transition hover:bg-black active:scale-95 disabled:opacity-25"
+                  className={cn(
+                    "flex h-11 w-11 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-25",
+                    youMode ? "you-fab" : "rounded-full bg-ink text-white hover:bg-black"
+                  )}
                   aria-label="Отправить сообщение"
                 >
                   {sending && !uploading ? (
@@ -908,7 +1013,12 @@ export default function ChatView({
                   <button
                     onClick={startVideoRecording}
                     disabled={sending}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-purple-500 text-white transition hover:bg-purple-600 active:scale-95 disabled:opacity-40"
+                    className={cn(
+                      "flex h-11 w-11 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-40",
+                      youMode
+                        ? "you-fab-tonal"
+                        : "rounded-full bg-purple-500 text-white hover:bg-purple-600"
+                    )}
                     aria-label="Записать видеокружок"
                     title="Видеокружок"
                   >
@@ -917,7 +1027,10 @@ export default function ChatView({
                   <button
                     onClick={startRecording}
                     disabled={sending}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink text-white transition hover:bg-black active:scale-95 disabled:opacity-40"
+                    className={cn(
+                      "flex h-11 w-11 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-40",
+                      youMode ? "you-fab" : "rounded-full bg-ink text-white hover:bg-black"
+                    )}
                     aria-label="Записать голосовое сообщение"
                     title="Голосовое сообщение"
                   >

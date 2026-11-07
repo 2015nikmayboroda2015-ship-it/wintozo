@@ -3,6 +3,11 @@
  * Каждая тема задаёт: основной accent, soft-фон, фон чатов, шапку, градиент аватара.
  */
 
+import { applyYouPalette, getYouSeedId } from "./materialYou";
+
+/** id темы Material You — она включает отдельный режим WinChat You. */
+export const YOU_THEME_ID = "material-you";
+
 export const THEMES = [
   {
     id: "ink-blue",
@@ -110,6 +115,23 @@ export const WINPRO_THEMES = [
     otherMsgText: "#2a1a4a",
     otherMsgBorder: "rgba(124,58,237,0.18)",
   },
+  {
+    id: YOU_THEME_ID,
+    name: "Material You",
+    description: "Выразительная палитра WinChat You: насыщенные тона, блобы и крупные формы",
+    accent: "#7c4dff",
+    accentSoft: "#e4d7ff",
+    chatBg: "#efe5ff",
+    headerBg: "rgba(239,229,255,0.82)",
+    border: "rgba(124,77,255,0.14)",
+    gradientFrom: "#7c4dff",
+    gradientTo: "#ff7a6b",
+    ownerMsg: "#7c4dff",
+    ownerMsgText: "#ffffff",
+    otherMsg: "#f7f0ff",
+    otherMsgText: "#1d1233",
+    otherMsgBorder: "rgba(136,115,163,0.18)",
+  },
 ] as const;
 
 export type Theme = (typeof THEMES)[number];
@@ -134,6 +156,11 @@ export function isWinProTheme(id: string): boolean {
   return WINPRO_THEMES.some((t) => t.id === id);
 }
 
+/** Проверить, что включён режим WinChat You (Material You) */
+export function isYouTheme(id: string): boolean {
+  return id === YOU_THEME_ID;
+}
+
 /** Получить текущую тему из localStorage (id сохраняется при выборе) */
 export function getCurrentTheme(): Theme {
   let id = "";
@@ -156,6 +183,19 @@ export function applyTheme(theme: Theme | WinProTheme): void {
   if ("chatBg" in theme) {
     document.documentElement.classList.remove("theme-dark");
     r.setProperty("--color-paper", theme.chatBg);
+  }
+
+  // WinChat You: отдельная тональная схема Material You + «обои» пользователя.
+  if (isYouTheme(theme.id)) {
+    document.documentElement.classList.add("theme-you");
+    applyYouPalette(getYouSeedId());
+  } else {
+    document.documentElement.classList.remove("theme-you");
+    delete document.documentElement.dataset.youSeed;
+    delete document.documentElement.dataset.youScheme;
+    document.documentElement.style.colorScheme = "";
+    r.removeProperty("--color-ink");
+    r.removeProperty("--color-ink-soft");
   }
 
   window.dispatchEvent(new Event("winchat-theme-change"));

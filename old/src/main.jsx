@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { requestNotifyPermission } from './lib/notify.js'
 import './index.css'
 
 /**
@@ -114,6 +115,7 @@ function ErrorFallback() {
 
 try {
   bridgeReady.then(() => {
+    void requestNotifyPermission()
     ReactDOM.createRoot(document.getElementById('root')).render(
       <React.StrictMode>
         <HashRouter>

@@ -3,14 +3,13 @@ import {
   supabase,
   mediaSupabase,
   MEDIA_BUCKETS,
-  registerMediaFile,
-  convertToWebP,
   messageToLegacy,
   idsToUsernames,
   usernameToId,
   ensureDirectChat
 } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
+import { showMessageNotificationIfHidden } from '../lib/notify.js'
 import { useAuth } from '../context/AuthContext.jsx'
 
 /**
@@ -60,6 +59,22 @@ export function useChatTurso() {
             new Date(a.created_at) - new Date(b.created_at)
           )
         })
+
+        // Уведомление о новом сообщении
+        if (fresh.sender_id !== myId) {
+          const senderName = fresh.sender_username || activeChatUser?.nickname || 'Собеседник'
+          const body = fresh.media_type === 'photo' ? 'Фото'
+            : fresh.media_type === 'audio' ? 'Голосовое'
+            : fresh.media_type === 'video' ? 'Видео'
+            : fresh.content || 'Новое сообщение'
+          showMessageNotificationIfHidden({
+            title: activeChatUser?.nickname || 'Wintozo',
+            body: `${senderName}: ${body}`,
+            tag: `chat-${chatId}`,
+            url: '/messenger/phone/chat',
+            chatId,
+          })
+        }
       })
       .subscribe((status) => {
         if (status !== 'SUBSCRIBED') {
@@ -276,12 +291,13 @@ export function useChatTurso() {
     if (!activeChatRef.current || !file || !user) return
 
     try {
-      const webpBlob = await convertToWebP(file, 0.8)
-      const fileName = `photos/${user.username}_${Date.now()}.webp`
+      const chatId = activeChatRef.current
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+      const fileName = `${chatId}/${crypto.randomUUID()}.${ext}`
 
       const { error: uploadError } = await mediaSupabase.storage
         .from(MEDIA_BUCKETS.messageMedia)
-        .upload(fileName, webpBlob, { contentType: 'image/webp' })
+        .upload(fileName, file, { contentType: file.type || 'image/jpeg', upsert: true })
 
       if (uploadError) {
         toast('Ошибка загрузки фото: ' + uploadError.message, 'error')
@@ -292,22 +308,12 @@ export function useChatTurso() {
         .from(MEDIA_BUCKETS.messageMedia)
         .getPublicUrl(fileName)
 
-      await registerMediaFile({
-        bucket: MEDIA_BUCKETS.messageMedia,
-        path: fileName,
-        url: urlData.publicUrl,
-        mime: 'image/webp',
-        size: webpBlob.size,
-        username: user.username,
-        kind: 'photo'
-      }).catch(() => {})
-
       await sendMediaMessage({ type: 'photo', url: urlData.publicUrl, content: null })
     } catch (err) {
       console.error('sendPhoto error:', err)
       toast('Не удалось отправить фото: ' + (err?.message || String(err)), 'error')
     }
-  }, [user, sendMediaMessage])
+  }, [sendMediaMessage])
 
   // ==================== СОЗДАНИЕ ЧАТА ====================
   const startChat = useCallback(async (partnerUsername) => {

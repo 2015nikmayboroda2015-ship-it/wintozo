@@ -545,3 +545,706 @@ body {
     left: 120%;
   }
 }
+
+/* ============================================================
+   WINCHAT YOU — Material You
+   Тональные поверхности, крупные формы и динамическая палитра.
+   Значения --you-* выставляет applyYouPalette() (lib/materialYou.ts).
+   ============================================================ */
+
+:root {
+  /* Фолбэк-палитра (Lavender, baseline Material 3) — чтобы You-экраны
+     выглядели правильно даже до применения темы. */
+  --you-primary: #6750a4;
+  --you-on-primary: #ffffff;
+  --you-primary-container: #eaddff;
+  --you-on-primary-container: #21005d;
+  --you-secondary-container: #e8def8;
+  --you-on-secondary-container: #1d192b;
+  --you-tertiary: #7d5260;
+  --you-surface: #fef7ff;
+  --you-surface-low: #f7f2fa;
+  --you-surface-container: #f3edf7;
+  --you-surface-high: #ece6f0;
+  --you-surface-highest: #e6e0e9;
+  --you-on-surface: #1d1b20;
+  --you-on-surface-variant: #49454f;
+  --you-outline: #79747e;
+  --you-outline-variant: #cac4d0;
+  /* Форма (настраивается в WinChat You) */
+  --you-r: 24px;
+  --you-r-sm: 16px;
+  --you-r-lg: 32px;
+}
+
+.theme-you body {
+  background: var(--you-surface);
+  color: var(--you-on-surface);
+}
+
+/* ---------- Оболочка ---------- */
+.you-shell {
+  background:
+    radial-gradient(
+      ellipse 60% 50% at 100% -10%,
+      color-mix(in srgb, var(--you-primary) 10%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 55% 45% at 0% 110%,
+      color-mix(in srgb, var(--you-tertiary) 12%, transparent),
+      transparent 65%
+    ),
+    var(--you-surface);
+}
+
+.you-sidebar {
+  background: color-mix(in srgb, var(--you-surface-low) 94%, transparent);
+  border-color: var(--you-outline-variant);
+}
+
+.you-chat {
+  background:
+    radial-gradient(
+      ellipse 70% 50% at 85% -10%,
+      color-mix(in srgb, var(--you-primary) 9%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 60% 45% at 0% 100%,
+      color-mix(in srgb, var(--you-tertiary) 10%, transparent),
+      transparent 60%
+    ),
+    var(--you-surface);
+}
+
+.you-appbar {
+  background: color-mix(in srgb, var(--you-surface) 82%, transparent);
+  border-color: color-mix(in srgb, var(--you-outline-variant) 65%, transparent);
+}
+
+.you-bottombar {
+  background: color-mix(in srgb, var(--you-surface) 88%, transparent);
+  border-color: color-mix(in srgb, var(--you-outline-variant) 65%, transparent);
+}
+
+.you-logo {
+  background: linear-gradient(135deg, var(--you-primary), var(--you-primary-strong) 60%, var(--you-secondary));
+  color: var(--you-on-primary);
+  box-shadow: 0 12px 26px -12px color-mix(in srgb, var(--you-primary) 75%, transparent);
+}
+
+.you-chip {
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+}
+
+/* ---------- Поиск ---------- */
+.you-search {
+  background: var(--you-surface-high);
+  border-color: transparent;
+  border-radius: 9999px;
+  color: var(--you-on-surface);
+}
+.you-search::placeholder {
+  color: var(--you-on-surface-variant);
+}
+.you-search:focus {
+  background: var(--you-surface-highest);
+  border-color: transparent;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--you-primary) 18%, transparent);
+}
+
+/* ---------- Строки списка ---------- */
+.you-row-selected {
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+  border-radius: 22px;
+  box-shadow: none;
+}
+.you-row-hover:hover {
+  background: color-mix(in srgb, var(--you-surface-container) 75%, transparent);
+}
+
+/* ---------- Сообщения ---------- */
+.you-msg-own {
+  background: var(--you-primary);
+  color: var(--you-on-primary);
+  border-radius: 24px 24px 8px 24px;
+  box-shadow: 0 3px 12px -6px color-mix(in srgb, var(--you-primary) 55%, transparent);
+}
+.you-msg-other {
+  background: var(--you-surface-high);
+  color: var(--you-on-surface);
+  border-radius: 24px 24px 24px 8px;
+  box-shadow: none;
+}
+.you-date-chip {
+  background: var(--you-surface-container);
+  color: var(--you-on-surface-variant);
+}
+
+/* ---------- Композер ---------- */
+.you-composer {
+  background: var(--you-surface-high);
+  border-color: transparent;
+  border-radius: 28px;
+  box-shadow: none;
+}
+.you-composer:focus-within {
+  background: var(--you-surface-highest);
+  border-color: transparent;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--you-primary) 16%, transparent);
+}
+.you-fab {
+  background: var(--you-primary);
+  color: var(--you-on-primary);
+  border-radius: 9999px;
+  box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--you-primary) 80%, transparent);
+}
+.you-fab:hover {
+  filter: brightness(1.06);
+}
+.you-fab-tonal {
+  background: var(--you-primary-container);
+  color: var(--you-on-primary-container);
+  border-radius: 9999px;
+}
+.you-fab-tonal:hover {
+  filter: brightness(1.03);
+}
+
+/* ---------- Экран-заглушка /themes/you ---------- */
+.you-gate {
+  background: var(--you-surface);
+  color: var(--you-on-surface);
+}
+.you-gate-ambient {
+  position: fixed;
+  inset: -20%;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 45% 40% at 20% 20%,
+      color-mix(in srgb, var(--you-primary) 26%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 45% 40% at 82% 30%,
+      color-mix(in srgb, var(--you-tertiary) 22%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 60% 45% at 50% 100%,
+      color-mix(in srgb, var(--you-secondary-container) 70%, transparent),
+      transparent 70%
+    );
+  filter: blur(18px);
+  animation: you-float 16s ease-in-out infinite alternate;
+}
+.you-gate-card {
+  background: color-mix(in srgb, var(--you-surface-low) 92%, white);
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 70%, transparent);
+}
+.you-gate-shine {
+  position: absolute;
+  top: -35%;
+  left: -10%;
+  right: -10%;
+  height: 55%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    color-mix(in srgb, var(--you-primary) 24%, transparent),
+    transparent 70%
+  );
+  filter: blur(26px);
+  pointer-events: none;
+}
+.you-gate-dot {
+  animation: you-pop 3.2s ease-in-out infinite;
+}
+
+@keyframes you-float {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1) rotate(-2deg);
+  }
+  to {
+    transform: translate3d(4%, 3%, 0) scale(1.08) rotate(2deg);
+  }
+}
+
+@keyframes you-pop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.08);
+  }
+}
+
+/* Плавная смена «обоев» Material You */
+.theme-you body,
+.you-shell,
+.you-chat,
+.you-sidebar,
+.you-appbar,
+.you-bottombar,
+.you-composer,
+.you-msg-other {
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    color 0.35s ease;
+}
+
+/* ============================================================
+   WINCHAT YOU — expressive layer
+   Насыщенные «обои», органические блобы, крупные пилюли.
+   Идёт после базового блока и переопределяет его.
+   ============================================================ */
+
+:root {
+  --you-primary-strong: #5b2ee0;
+  --you-secondary: #ff7a6b;
+  --you-on-secondary: #4a0f08;
+  --you-tertiary-container: #d7f5b0;
+  --you-on-tertiary-container: #1e3700;
+}
+
+/* ---------- Фон с блобами ---------- */
+.you-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.you-blob {
+  position: absolute;
+  display: block;
+  filter: blur(34px);
+  opacity: 0.62;
+  will-change: transform;
+}
+.you-blob-a {
+  width: 68vmax;
+  height: 62vmax;
+  top: -30vmax;
+  right: -22vmax;
+  background: var(--you-secondary);
+  border-radius: 46% 54% 62% 38% / 48% 38% 62% 52%;
+  animation: you-blob-drift 22s ease-in-out infinite alternate;
+}
+.you-blob-b {
+  width: 58vmax;
+  height: 56vmax;
+  left: -26vmax;
+  bottom: -26vmax;
+  background: var(--you-primary);
+  border-radius: 58% 42% 38% 62% / 44% 56% 44% 56%;
+  opacity: 0.42;
+  animation: you-blob-drift 28s ease-in-out infinite alternate-reverse;
+}
+.you-blob-c {
+  width: 34vmax;
+  height: 30vmax;
+  right: 18vmax;
+  bottom: -16vmax;
+  background: var(--you-tertiary);
+  border-radius: 62% 38% 54% 46% / 56% 44% 56% 44%;
+  opacity: 0.4;
+  animation: you-blob-drift 18s ease-in-out infinite alternate;
+}
+.you-blob-d {
+  width: 26vmax;
+  height: 24vmax;
+  left: 28vmax;
+  top: 22vmax;
+  background: var(--you-primary-container);
+  border-radius: 42% 58% 34% 66% / 52% 42% 58% 48%;
+  opacity: 0.55;
+  animation: you-blob-drift 24s ease-in-out infinite alternate-reverse;
+}
+
+/* Цветок-«облако» как в Material 3 Expressive */
+.you-flower {
+  position: absolute;
+  left: -9vmax;
+  top: 42%;
+  width: 40vmax;
+  height: 40vmax;
+  opacity: 0.9;
+  animation: you-flower-spin 60s linear infinite;
+}
+
+.you-squiggle {
+  position: absolute;
+  right: 4vmax;
+  top: 16%;
+  width: 30vmax;
+  height: 30vmax;
+  opacity: 0.25;
+}
+
+@keyframes you-blob-drift {
+  from {
+    transform: translate3d(-2%, -2%, 0) scale(1) rotate(-3deg);
+  }
+  to {
+    transform: translate3d(4%, 3%, 0) scale(1.12) rotate(4deg);
+  }
+}
+
+@keyframes you-flower-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Оболочка и панели ---------- */
+.you-shell {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      ellipse 60% 55% at 90% -10%,
+      color-mix(in srgb, var(--you-secondary) 32%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 55% 50% at 0% 105%,
+      color-mix(in srgb, var(--you-primary) 34%, transparent),
+      transparent 68%
+    ),
+    var(--you-surface);
+}
+.you-shell .you-front {
+  position: relative;
+  z-index: 1;
+}
+
+.you-sidebar {
+  background: color-mix(in srgb, var(--you-surface-low) 74%, transparent);
+  border-color: color-mix(in srgb, var(--you-outline-variant) 75%, transparent);
+  backdrop-filter: blur(26px) saturate(1.15);
+}
+
+.you-chat {
+  background: color-mix(in srgb, var(--you-surface) 84%, transparent);
+  backdrop-filter: blur(22px) saturate(1.08);
+}
+
+.you-appbar {
+  background: color-mix(in srgb, var(--you-surface) 62%, transparent);
+  border-color: transparent;
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+.you-bottombar {
+  background: color-mix(in srgb, var(--you-surface) 70%, transparent);
+  border-color: transparent;
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+.you-logo {
+  background: linear-gradient(140deg, var(--you-primary), var(--you-primary-strong) 60%, var(--you-secondary));
+  color: #fff;
+  box-shadow: 0 12px 26px -12px color-mix(in srgb, var(--you-primary) 90%, transparent);
+}
+
+/* ---------- Поиск: большая белая пилюля ---------- */
+.you-search {
+  background: var(--you-surface-highest);
+  background-color: var(--you-surface-highest);
+  border-color: transparent;
+  border-radius: var(--you-r-lg);
+  color: var(--you-on-surface);
+  caret-color: var(--you-primary);
+  box-shadow: 0 10px 26px -18px color-mix(in srgb, var(--you-primary) 80%, transparent);
+}
+.you-search::placeholder {
+  color: var(--you-on-surface-variant);
+  opacity: 1;
+}
+.you-search:focus {
+  background: var(--you-surface-container);
+  background-color: var(--you-surface-container);
+  border-color: transparent;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--you-primary) 22%, transparent),
+    0 12px 30px -18px color-mix(in srgb, var(--you-primary) 80%, transparent);
+}
+.you-search:-webkit-autofill,
+.you-search:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--you-on-surface);
+  box-shadow: 0 0 0 1000px var(--you-surface-highest) inset;
+}
+
+/* ---------- Строки списка ---------- */
+.you-row-selected {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--you-primary) 20%, white),
+    color-mix(in srgb, var(--you-primary-container) 85%, white)
+  );
+  color: var(--you-on-primary-container);
+  border-radius: var(--you-r);
+  box-shadow: 0 10px 24px -18px color-mix(in srgb, var(--you-primary) 85%, transparent);
+}
+.you-row-hover:hover {
+  background: color-mix(in srgb, var(--you-surface-container) 62%, transparent);
+  border-radius: var(--you-r);
+}
+
+/* ---------- Сообщения ---------- */
+.you-msg-own {
+  background: linear-gradient(135deg, var(--you-primary), var(--you-primary-strong));
+  color: var(--you-on-primary);
+  border-radius: min(var(--you-r-lg), 28px) min(var(--you-r-lg), 28px) 8px min(var(--you-r-lg), 28px);
+  box-shadow: 0 10px 24px -16px color-mix(in srgb, var(--you-primary) 95%, transparent);
+}
+.you-msg-other {
+  background: var(--you-surface-high);
+  color: var(--you-on-surface);
+  border-radius: min(var(--you-r-lg), 28px) min(var(--you-r-lg), 28px) min(var(--you-r-lg), 28px) 8px;
+  box-shadow: none;
+}
+.you-date-chip {
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+  border-radius: var(--you-r);
+}
+
+/* ---------- Композер: «пилюля» поверх тональной поверхности ---------- */
+.you-composer {
+  background: var(--you-surface-highest);
+  border-color: transparent;
+  border-radius: var(--you-r-lg);
+  box-shadow: none;
+}
+.you-composer:focus-within {
+  background: var(--you-surface-container);
+  border-color: transparent;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--you-primary) 18%, transparent),
+    0 14px 34px -22px color-mix(in srgb, var(--you-primary) 75%, transparent);
+}
+.you-fab {
+  background: linear-gradient(135deg, var(--you-primary), var(--you-primary-strong));
+  color: var(--you-on-primary);
+  border-radius: var(--you-r);
+  box-shadow: 0 12px 26px -12px color-mix(in srgb, var(--you-primary) 95%, transparent);
+}
+.you-fab:hover {
+  filter: brightness(1.08);
+}
+.you-fab-tonal {
+  background: var(--you-secondary);
+  color: var(--you-on-secondary);
+  border-radius: var(--you-r);
+  box-shadow: 0 12px 24px -14px color-mix(in srgb, var(--you-secondary) 95%, transparent);
+}
+.you-fab-tonal:hover {
+  filter: brightness(1.05);
+}
+
+/* Крупные «пилюли»-кнопки */
+.you-pill {
+  border-radius: var(--you-r-lg);
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+  font-weight: 800;
+}
+.you-pill-primary {
+  border-radius: var(--you-r-lg);
+  background: linear-gradient(135deg, var(--you-primary), var(--you-primary-strong));
+  color: var(--you-on-primary);
+  font-weight: 800;
+  box-shadow: 0 12px 26px -14px color-mix(in srgb, var(--you-primary) 95%, transparent);
+}
+
+/* ---------- Экран /themes/you ---------- */
+.you-gate {
+  background:
+    radial-gradient(
+      ellipse 60% 55% at 85% 0%,
+      color-mix(in srgb, var(--you-secondary) 38%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 55% 50% at 0% 100%,
+      color-mix(in srgb, var(--you-primary) 40%, transparent),
+      transparent 65%
+    ),
+    var(--you-surface);
+}
+.you-gate-card {
+  background: color-mix(in srgb, var(--you-surface-low) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 60%, transparent);
+  backdrop-filter: blur(30px) saturate(1.15);
+}
+.you-gate-dot {
+  animation: you-pop 3.2s ease-in-out infinite;
+}
+
+/* ---------- Разделители ---------- */
+.you-sidebar .you-divider {
+  border-color: color-mix(in srgb, var(--you-outline-variant) 72%, transparent);
+}
+
+/* ---------- Шрифт Material You: Libre Franklin ---------- */
+.theme-you body,
+.theme-you input,
+.theme-you textarea,
+.theme-you select,
+.theme-you button {
+  font-family: "Libre Franklin", Roboto, ui-sans-serif, system-ui, sans-serif;
+}
+.theme-you .font-mono,
+.theme-you code {
+  font-family: var(--font-mono);
+}
+.theme-you {
+  font-feature-settings: "ss01" on;
+}
+
+/* ---------- Живые анимации Material You ---------- */
+/* Сообщения появляются пружинкой */
+.theme-you .animate-msg-in {
+  animation: you-msg-in 0.42s cubic-bezier(0.22, 1.3, 0.36, 1) both;
+}
+@keyframes you-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Строки списка — плавный подъём */
+.theme-you .winchat-page-transition {
+  animation: you-page-in 0.45s cubic-bezier(0.22, 1.16, 0.4, 1) both;
+}
+@keyframes you-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Тайпинг-точки пульсируют дружелюбнее */
+.theme-you .typing-dot {
+  animation-duration: 0.9s;
+  animation-timing-function: cubic-bezier(0.3, 1.4, 0.4, 1);
+}
+
+
+
+/* ============================================================
+   ������������� WinChat You: �����/��������� �������
+   � ����������� ��� you-������� �������� bg-white/text-black/*.
+   ������������� �� � ��������� �����������, ����� �� ����
+   ������ ����� �� ����� ���� � ������� ������� �� ����� ����.
+   ============================================================ */
+
+.theme-you {
+  color: var(--you-on-surface);
+}
+
+.theme-you .bg-white {
+  background-color: var(--you-surface-low) !important;
+}
+.theme-you .bg-paper,
+.theme-you .bg-\[var\(--color-paper\)\] {
+  background-color: var(--you-surface) !important;
+}
+.theme-you .bg-white\/70 {
+  background-color: color-mix(in srgb, var(--you-surface-low) 70%, transparent) !important;
+}
+.theme-you .bg-white\/60 {
+  background-color: color-mix(in srgb, var(--you-surface-low) 60%, transparent) !important;
+}
+.theme-you .bg-white\/95 {
+  background-color: color-mix(in srgb, var(--you-surface-low) 95%, transparent) !important;
+}
+
+.theme-you .text-ink {
+  color: var(--you-on-surface) !important;
+}
+.theme-you .text-ink-soft,
+.theme-you .text-black\/70,
+.theme-you .text-black\/60 {
+  color: var(--you-on-surface-variant) !important;
+}
+.theme-you .text-black\/50,
+.theme-you .text-black\/45,
+.theme-you .text-black\/40,
+.theme-you .text-black\/35,
+.theme-you .text-black\/30,
+.theme-you .text-black\/25 {
+  color: color-mix(in srgb, var(--you-on-surface-variant) 88%, transparent) !important;
+}
+
+.theme-you .border-black\/8,
+.theme-you .border-black\/10,
+.theme-you .border-black\/5,
+.theme-you .border-black\/15 {
+  border-color: var(--you-outline-variant) !important;
+}
+.theme-you .ring-black\/5,
+.theme-you .ring-black\/8,
+.theme-you .ring-black\/10 {
+  --tw-ring-color: var(--you-outline-variant) !important;
+}
+
+.theme-you .placeholder\:text-black\/35::placeholder,
+.theme-you .placeholder\:text-black\/30::placeholder {
+  color: var(--you-on-surface-variant) !important;
+  opacity: 1;
+}
+
+.theme-you input:not(.you-search),
+.theme-you textarea:not(.you-composer textarea),
+.theme-you select {
+  color: var(--you-on-surface);
+}
+.theme-you input:not(.you-search):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.theme-you textarea,
+.theme-you select {
+  background-color: var(--you-surface-highest);
+  border-color: var(--you-outline-variant);
+}
+.theme-you input::placeholder,
+.theme-you textarea::placeholder {
+  color: var(--you-on-surface-variant);
+  opacity: 1;
+}
+
+.theme-you .shadow-sm.ring-1,
+.theme-you .shadow-sm {
+  --tw-shadow-color: color-mix(in srgb, var(--you-on-surface) 12%, transparent);
+}
+
+.theme-you .hover\:text-ink:hover {
+  color: var(--you-on-surface) !important;
+}
+.theme-you .hover\:bg-black\/5:hover {
+  background-color: var(--you-surface-container) !important;
+}
+.theme-you .hover\:bg-paper\/70:hover,
+.theme-you .hover\:bg-paper:hover {
+  background-color: var(--you-surface-container) !important;
+}
+
+.theme-you .bg-paper {
+  background-color: var(--you-surface-container) !important;
+}

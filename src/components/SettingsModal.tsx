@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Check, CircleAlert, History, Loader2, Lock, LogOut, Palette, Sparkles, ShieldCheck, User, X } from "lucide-react";
+import { Bell, Camera, Check, CircleAlert, History, Loader2, Lock, LogOut, Palette, Sparkles, ShieldCheck, User, X } from "lucide-react";
 import { isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
 import { filesUpload } from "../lib/blobStorage";
 import { normalizeWinpass, validateBio, validateNickname, validatePassword } from "../lib/utils";
@@ -7,9 +7,22 @@ import Avatar from "./Avatar";
 import Crown from "./Crown";
 import Verified from "./Verified";
 import { cn } from "../utils/cn";
-import { ALL_THEMES, applyTheme, saveThemeId, WINPRO_THEMES } from "../lib/themes";
+import { ALL_THEMES, applyTheme, getThemeById, saveThemeId, THEMES, WINPRO_THEMES, YOU_THEME_ID } from "../lib/themes";
+import {
+  YOU_SEEDS,
+  YOU_SHAPES,
+  applyYouPalette,
+  applyYouShape,
+  getYouSeedId,
+  getYouShape,
+  saveYouSeedId,
+  saveYouShape,
+  type YouShape,
+} from "../lib/materialYou";
+import { navigate } from "../lib/router";
 import { hasWinPro, winproDaysLeft, winproExpiresLabel } from "../lib/winpro";
 import { ANIMATIONS, getAnimationId, saveAnimationId } from "../lib/animations";
+import { initPush, savePushSubscription, subscribeWebPush, unsubscribeWebPush, getPlatform } from "../lib/push";
 
 interface Props {
   me: Profile;
@@ -18,6 +31,8 @@ interface Props {
   onLogout: () => void;
   /** Ивент «Память о Wintozo»: показать плашку выбора интерфейса. */
   onShowLegacy?: () => void;
+  /** Режим WinChat You: показывать отдельное окно кастомизации «WinChat You». */
+  youMode?: boolean;
 }
 
 type Tab = "profile" | "customization" | "security" | "winpro";
@@ -29,7 +44,15 @@ const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
   return lvl as Exclude<VerifyLevel, "user">;
 };
 
-export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLegacy, initialTab = "profile" }: Props & { initialTab?: Tab }) {
+export default function SettingsModal({
+  me,
+  onClose,
+  onSaved,
+  onLogout,
+  onShowLegacy,
+  initialTab = "profile",
+  youMode = false,
+}: Props & { initialTab?: Tab }) {
   const [nickname, setNickname] = useState(me.nickname);
   const [bio, setBio] = useState(me.bio ?? "");
   const [saving, setSaving] = useState(false);
@@ -52,10 +75,37 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
   const [animId, setAnimId] = useState<string>(() => getAnimationId());
   const [celebrate, setCelebrate] = useState(false);
 
+  /* --- Пуш-уведомления --- */
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [pushSupported, setPushSupported] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const platform = getPlatform();
+      const supported = platform === "web" && typeof window !== "undefined" && "PushManager" in window && !!import.meta.env.VITE_PUBLIC_VAPID_KEY;
+      setPushSupported(supported);
+      if (supported && !cancelled) {
+        try {
+          const subscribed = await initPush();
+          setPushSubscribed(!!subscribed.subscribed);
+        } catch {
+          /* no-op */
+        }
+      }
+      return () => { cancelled = true; };
+    })();
+  }, []);
+
   /* --- Палитра --- */
   const [currentId, setCurrentId] = useState<string>(
     () => localStorage.getItem("winchat_theme_id") || "ink-blue"
   );
+  /* --- WinChat You --- */
+  const [youSeed, setYouSeed] = useState<string>(() => getYouSeedId());
+  const [youShape, setYouShape] = useState<YouShape>(() => getYouShape());
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -158,7 +208,33 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
     { id: "winpro", label: "WinPro", icon: Sparkles },
   ];
 
-  const showTab = (tab: Tab) => cn(activeTab !== tab && "hidden");
+
+  /* --- Пуш-уведомления: обработчики --- */
+  const togglePush = async () => {
+    if (!pushSupported) {
+      setPushError("Пуш-уведомления недоступны в этом браузере или не задан VITE_PUBLIC_VAPID_KEY");
+      return;
+    }
+    setPushLoading(true);
+    setPushError(null);
+    try {
+      if (pushSubscribed) {
+        await unsubscribeWebPush();
+        setPushSubscribed(false);
+      } else {
+        const sub = await subscribeWebPush();
+        await savePushSubscription(sub.endpoint, sub.p256dh, sub.auth, navigator.userAgent);
+        setPushSubscribed(true);
+      }
+    } catch (err: any) {
+      setPushError(err?.message || "Не удалось изменить подписку на пуш-уведомления");
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const showTab = (t: Tab) => (activeTab === t ? "animate-fade-in" : "hidden");
+  const you = youMode || currentId === YOU_THEME_ID;
 
   return (
     <div className="font-app fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
@@ -167,22 +243,58 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
         onClick={onClose}
         className="animate-fade-in absolute inset-0 bg-ink/40 backdrop-blur-[3px]"
       />
-      <div className="animate-scale-in relative flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-[26px] bg-white shadow-2xl sm:max-h-[90dvh] sm:rounded-[28px]">
+      <div
+        className={cn(
+          "animate-scale-in relative flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden shadow-2xl sm:max-h-[90dvh]",
+          you
+            ? "you-gate-card rounded-t-[28px] sm:rounded-[36px]"
+            : "rounded-t-[26px] bg-white sm:rounded-[28px]"
+        )}
+      >
         {/* Шапка */}
-        <div className="flex shrink-0 items-center justify-between border-b border-black/8 px-5 py-4 sm:border-0 sm:px-8 sm:pt-8 sm:pb-0">
-          <h3 className="text-lg font-extrabold tracking-tight">Настройки</h3>
+        <div
+          className={cn(
+            "flex shrink-0 items-center justify-between border-b px-5 py-4 sm:border-0 sm:px-8 sm:pt-8 sm:pb-0",
+            you ? "border-[var(--you-outline-variant)]" : "border-black/8"
+          )}
+        >
+          <div className="flex items-center gap-2.5">
+            {you && (
+              <span className="you-logo flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[14px]">
+                <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
+              </span>
+            )}
+            <h3
+              className={cn(
+                "text-lg font-extrabold tracking-tight",
+                you ? "text-[var(--you-on-surface)]" : ""
+              )}
+            >
+              Настройки
+            </h3>
+          </div>
           <button
             onClick={onClose}
-            className="rounded-full p-2 text-black/45 transition hover:bg-black/5 hover:text-ink"
+            className={cn(
+              "rounded-full p-2 transition",
+              you
+                ? "text-[var(--you-on-surface-variant)] hover:bg-[var(--you-surface-container)]"
+                : "text-black/45 hover:bg-black/5 hover:text-ink"
+            )}
             aria-label="Закрыть настройки"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Вкладки — sticky на мобильных */}
-        <div className="shrink-0 border-b border-black/5 bg-white/95 px-3 py-2 backdrop-blur sm:border-0 sm:bg-transparent sm:px-8 sm:py-3">
-          <div className="flex gap-1.5 rounded-2xl bg-paper p-1">
+        {/* Вкладки */}
+        <div
+          className={cn(
+            "shrink-0 border-b px-3 py-2 backdrop-blur sm:border-0 sm:px-8 sm:py-3",
+            you ? "border-[var(--you-outline-variant)]" : "border-black/5 bg-white/95 sm:bg-transparent"
+          )}
+        >
+          <div className={cn("flex gap-1.5 rounded-2xl p-1", you ? "bg-[var(--you-surface-container)]" : "bg-paper")}>
             {tabs.map((t) => {
               const Icon = t.icon;
               const active = activeTab === t.id;
@@ -196,7 +308,13 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
                   }}
                   className={cn(
                     "flex flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] font-bold transition",
-                    active ? "bg-white text-ink shadow-sm" : "text-black/45 active:scale-95 hover:text-ink"
+                    active
+                      ? you
+                        ? "bg-[var(--you-surface-highest)] text-[var(--you-on-surface)] shadow-sm"
+                        : "bg-white text-ink shadow-sm"
+                      : you
+                        ? "text-[var(--you-on-surface-variant)] active:scale-95"
+                        : "text-black/45 active:scale-95 hover:text-ink"
                   )}
                 >
                   <Icon className="h-4 w-4" strokeWidth={2} />
@@ -208,7 +326,13 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
         </div>
 
         {/* Скроллируемое содержимое */}
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:px-8 sm:pt-6 sm:pb-8">
+        <div
+          ref={scrollRef}
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:px-8 sm:pt-6 sm:pb-8",
+            you ? "text-[var(--you-on-surface)]" : ""
+          )}
+        >
           
           {/* ===== Профиль ===== */}
           <div className={showTab("profile")}>
@@ -314,7 +438,7 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
           {/* ===== Кастомизация ===== */}
           <div className={showTab("customization")}>
             <div>
-              <span className="mb-3 flex items-center gap-2 font-mono text-[11px] font-semibold tracking-[0.16em] text-black/45 uppercase">
+              <span className={cn("mb-3 flex items-center gap-2 text-[12px] font-bold", you ? "text-[var(--you-on-surface-variant)]" : "text-black/45")}>
                 <Palette className="h-3.5 w-3.5" />
                 Палитра чатов
               </span>
@@ -330,6 +454,7 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
                         saveThemeId(t.id);
                         applyTheme(t);
                         setCurrentId(t.id);
+                        if (youMode) navigate("/chats");
                       }}
                       className={cn(
                         "group relative overflow-hidden rounded-2xl border-2 p-3 text-left transition-all active:scale-[0.97]",
@@ -376,7 +501,7 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
 
               {/* WinPro-темы */}
               <div className="mt-5 flex items-center gap-2">
-                <span className="font-mono text-[11px] font-semibold tracking-[0.16em] text-black/45 uppercase">
+                <span className={cn("text-[12px] font-bold", you ? "text-[var(--you-on-surface-variant)]" : "text-black/45")}>
                   WinPro палитры
                 </span>
                 <Crown size="xs" />
@@ -390,6 +515,7 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
               <div className="mt-3 grid grid-cols-3 gap-3">
                 {WINPRO_THEMES.map((t) => {
                   const active = currentId === t.id;
+                  const isYou = t.id === YOU_THEME_ID;
                   return (
                     <button
                       key={t.id}
@@ -403,6 +529,12 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
                         saveThemeId(t.id);
                         applyTheme(t);
                         setCurrentId(t.id);
+                        if (isYou) {
+                          onClose();
+                          navigate("/themes/you/chat");
+                        } else if (youMode) {
+                          navigate("/chats");
+                        }
                       }}
                       className={cn(
                         "group relative overflow-hidden rounded-2xl border-2 p-3 text-left transition-all active:scale-[0.97]",
@@ -441,6 +573,140 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
                   );
                 })}
               </div>
+
+              {/* ===== Material You — WinChat You ===== */}
+              {(you || currentId === YOU_THEME_ID) && (
+                <div className="mt-5">
+                  <div
+                    className={cn(
+                      "overflow-hidden p-5 shadow-lg",
+                      "bg-gradient-to-br from-[var(--you-primary-container)] via-[var(--you-secondary-container)] to-[var(--you-tertiary-container)]"
+                    )}
+                    style={{ borderRadius: "var(--you-r-lg)" }}
+                  >
+                    <p className="text-[15px] font-extrabold tracking-tight text-[var(--you-on-surface)]">
+                      Палитра
+                    </p>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2.5">
+                      {YOU_SEEDS.map((s, idx) => {
+                        const on = youSeed === s.id;
+                        const layouts = [
+                          <>
+                            <span className="absolute -right-2 -top-3 h-14 w-14 rounded-full opacity-90" style={{ background: s.primary }} />
+                            <span className="absolute bottom-8 left-2 h-5 w-10 rounded-full" style={{ background: s.secondary }} />
+                            <span className="absolute bottom-8 right-2 h-5 w-5 rounded-full" style={{ background: s.tertiary }} />
+                          </>,
+                          <>
+                            <span className="absolute inset-x-2 top-2 h-5 rounded-full" style={{ background: s.primary }} />
+                            <span className="absolute bottom-8 left-2 h-6 w-6 rounded-[10px]" style={{ background: s.secondary }} />
+                            <span className="absolute bottom-8 right-2 h-6 w-10 rounded-full" style={{ background: s.tertiary }} />
+                          </>,
+                          <>
+                            <span className="absolute left-2 top-2 h-4 w-12 rounded-full" style={{ background: s.primary }} />
+                            <span className="absolute left-2 top-7 h-4 w-8 rounded-full" style={{ background: s.secondary }} />
+                            <span className="absolute bottom-8 right-2 h-8 w-8 rounded-full" style={{ background: s.tertiary, opacity: 0.9 }} />
+                          </>,
+                          <>
+                            <span className="absolute -left-2 top-4 h-10 w-16 -rotate-12 rounded-full" style={{ background: s.primary }} />
+                            <span className="absolute bottom-8 right-3 h-5 w-5 rounded-full" style={{ background: s.secondary }} />
+                            <span className="absolute right-2 top-2 h-4 w-8 rounded-full" style={{ background: s.tertiary }} />
+                          </>,
+                        ];
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => {
+                              saveYouSeedId(s.id);
+                              setYouSeed(s.id);
+                              applyYouPalette(s.id);
+                              if (currentId !== YOU_THEME_ID) {
+                                saveThemeId(YOU_THEME_ID);
+                                applyTheme(getThemeById(YOU_THEME_ID) ?? THEMES[0]);
+                                setCurrentId(YOU_THEME_ID);
+                              }
+                            }}
+                            aria-label={s.name}
+                            className={cn(
+                              "relative flex h-[104px] flex-col justify-end overflow-hidden p-2.5 text-left transition active:scale-[0.98]",
+                              on ? "ring-2 ring-[var(--you-on-surface)]" : "ring-1 ring-black/5"
+                            )}
+                            style={{
+                              background: `linear-gradient(160deg, ${s.surfaceLow} 0%, ${s.surface} 55%, ${s.surfaceHigh} 100%)`,
+                              borderRadius: "var(--you-r)",
+                              boxShadow: on
+                                ? "0 12px 26px -14px color-mix(in srgb, var(--you-primary) 70%, transparent)"
+                                : "0 6px 16px -12px rgba(0,0,0,0.25)",
+                            }}
+                          >
+                            <span className="pointer-events-none absolute inset-0">
+                              {layouts[idx % layouts.length]}
+                            </span>
+                            <span className="pointer-events-none absolute bottom-7 right-2 left-2 flex flex-col gap-1">
+                              <span className="ml-auto h-2 w-10 rounded-full" style={{ background: s.primary }} />
+                              <span className="h-2 w-8 rounded-full" style={{ background: s.surfaceHighest, boxShadow: `inset 0 0 0 1px ${s.outlineVariant}` }} />
+                            </span>
+                            <span className="relative">
+                              <span className="block text-[12px] font-extrabold" style={{ color: s.onSurface }}>
+                                {s.name}
+                              </span>
+                              {on && (
+                                <span className="mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ background: s.primaryContainer, color: s.onPrimaryContainer }}>
+                                  выбрано
+                                </span>
+                              )}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-5">
+                      <p className="mb-2 text-[12px] font-bold text-[var(--you-on-surface-variant)]">
+                        Форма
+                      </p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {YOU_SHAPES.map((sh) => {
+                          const on = youShape === sh.id;
+                          return (
+                            <button
+                              key={sh.id}
+                              type="button"
+                              onClick={() => {
+                                saveYouShape(sh.id);
+                                setYouShape(sh.id);
+                                applyYouShape(sh.id);
+                              }}
+                              className={cn(
+                                "flex flex-col items-center gap-2 p-2.5 transition active:scale-95",
+                                on
+                                  ? "bg-[var(--you-surface-highest)] ring-2 ring-[var(--you-on-surface)]"
+                                  : "bg-[var(--you-surface-low)]/70 ring-1 ring-black/5"
+                              )}
+                              style={{ borderRadius: "var(--you-r-sm)" }}
+                            >
+                              <span
+                                className="h-8 w-full"
+                                style={{
+                                  borderRadius: sh.r,
+                                  background: on
+                                    ? "linear-gradient(135deg, var(--you-primary), var(--you-primary-strong))"
+                                    : "var(--you-surface-highest)",
+                                  boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--you-outline-variant) 60%, transparent)",
+                                }}
+                              />
+                              <span className="text-[10px] font-bold text-[var(--you-on-surface)]">
+                                {sh.name}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -629,6 +895,53 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLe
               <p className="mt-1.5 text-[11px] font-medium leading-relaxed text-black/40">
                 Сохраните код — он поможет войти, если вы забудете пароль.
               </p>
+            </div>
+
+            {/* --- Пуш-уведомления --- */}
+            <div className="mt-6">
+              <span className="mb-1.5 flex items-center gap-2 font-mono text-[11px] font-semibold tracking-[0.16em] text-black/45 uppercase">
+                <Bell className="h-3.5 w-3.5" />
+                Пуш-уведомления
+              </span>
+              {!pushSupported ? (
+                <div className="rounded-xl border border-dashed border-black/20 bg-black/5 px-4 py-3 text-[12px] text-black/50">
+                  Пуш-уведомления недоступны: браузер не поддерживает Push API или не задан
+                  VITE_PUBLIC_VAPID_KEY.
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={togglePush}
+                    disabled={pushLoading}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition",
+                      pushSubscribed ? "border-green-400 bg-green-400/5 text-green-700" : "border-black/8 bg-white/60 hover:border-black/15"
+                    )}
+                  >
+                    <span className="flex flex-col">
+                      <span className="text-[12px] font-bold">
+                        {pushSubscribed ? "Пуш включён" : "Включить пуш-уведомления"}
+                      </span>
+                      <span className="text-[10px] font-medium text-black/40">
+                        {pushSubscribed ? "Вы будете получать уведомления о сообщениях" : "Разрешить уведомления о новых сообщениях"}
+                      </span>
+                    </span>
+                    {pushLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      pushSubscribed ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Bell className="h-4 w-4" />
+                      )
+                    )}
+                  </button>
+                  {pushError && (
+                    <p className="mt-1.5 text-[11px] font-medium text-red-600">{pushError}</p>
+                  )}
+                </>
+              )}
             </div>
 
             <button

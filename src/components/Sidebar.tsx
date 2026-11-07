@@ -28,6 +28,10 @@ interface Props {
   onOpenAdmin: () => void;
   onOpenTerminal: () => void;
   isAdmin: boolean;
+  /** Режим WinChat You (Material You). */
+  youMode?: boolean;
+  /** Выйти из WinChat You. */
+  onExitYou?: () => void;
 }
 
 export default function Sidebar({
@@ -43,6 +47,8 @@ export default function Sidebar({
   onOpenAdmin,
   onOpenTerminal,
   isAdmin,
+  youMode = false,
+  onExitYou: _onExitYou,
 }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Profile[]>([]);
@@ -108,8 +114,15 @@ export default function Sidebar({
       key={chat.id}
       onClick={() => onSelect(chat)}
       className={cn(
-        "flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition",
-        activeChatId === chat.id ? "bg-paper shadow-sm ring-1 ring-black/5" : "hover:bg-paper/70"
+        "flex w-full items-center gap-3 px-3 py-3 text-left transition",
+        youMode ? "rounded-[26px]" : "rounded-2xl",
+        activeChatId === chat.id
+          ? youMode
+            ? "you-row-selected"
+            : "bg-paper shadow-sm ring-1 ring-black/5"
+          : youMode
+            ? "you-row-hover"
+            : "hover:bg-paper/70"
       )}
     >
       <Avatar
@@ -129,12 +142,22 @@ export default function Sidebar({
             )}
           </p>
           {chat.lastMessage && (
-            <span className="shrink-0 font-mono text-[10px] font-medium text-black/35">
+            <span
+              className={cn(
+                "shrink-0 font-mono text-[10px] font-medium",
+                youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/35"
+              )}
+            >
               {formatTime(chat.lastMessage.created_at)}
             </span>
           )}
         </div>
-        <p className="mt-0.5 flex items-center gap-1 truncate text-[13px] font-medium text-black/45">
+        <p
+          className={cn(
+            "mt-0.5 flex items-center gap-1 truncate text-[13px] font-medium",
+            youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/45"
+          )}
+        >
           {chat.lastMessage?.audio_url && <Mic className="h-3 w-3 shrink-0" />}
           <span className="truncate">{preview(chat)}</span>
         </p>
@@ -143,21 +166,40 @@ export default function Sidebar({
   );
 
   return (
-    <aside className="flex h-full w-full flex-col border-black/8 bg-white md:border-r">
+    <aside
+      className={cn(
+        "flex h-full w-full flex-col md:border-r",
+        youMode ? "you-sidebar" : "border-black/8 bg-white"
+      )}
+    >
       {/* Шапка */}
       <div className="px-5 pt-5 pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink font-extrabold text-white">
-              W
+            <div
+              className={cn(
+                "flex items-center justify-center overflow-hidden font-extrabold",
+                youMode ? "you-logo h-10 w-10 rounded-[16px]" : "h-9 w-9 rounded-xl bg-ink"
+              )}
+            >
+              {youMode ? (
+                <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
+              ) : (
+                "W"
+              )}
             </div>
-            <p className="text-[17px] font-extrabold tracking-tight">WinChat</p>
+            <div className="min-w-0">
+              <p className="text-[18px] leading-none font-extrabold tracking-tight">WinChat</p>
+            </div>
           </div>
           <div className="flex items-center gap-1.5">
             {isAdmin && (
               <button
                 onClick={onOpenAdmin}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500 text-white transition hover:bg-purple-600 active:scale-95"
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center bg-purple-500 text-white transition hover:bg-purple-600 active:scale-95",
+                  youMode ? "rounded-full" : "rounded-xl"
+                )}
                 aria-label="Админ-панель"
                 title="Админ-панель"
               >
@@ -166,7 +208,12 @@ export default function Sidebar({
             )}
             <button
               onClick={onCreateGroup}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-white transition hover:bg-black active:scale-95"
+              className={cn(
+                "flex items-center justify-center text-white transition active:scale-95",
+                youMode
+                  ? "you-fab h-10 w-10"
+                  : "h-9 w-9 rounded-xl bg-ink hover:bg-black"
+              )}
               aria-label="Создать группу"
               title="Создать группу"
             >
@@ -176,17 +223,32 @@ export default function Sidebar({
         </div>
 
         <div className="relative mt-4">
-          <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-black/35" />
+          <Search
+            className={cn(
+              "absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2",
+              youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/35"
+            )}
+          />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Найти людей, чаты и группы"
-            className="w-full rounded-xl border border-black/10 bg-paper py-2.5 pr-9 pl-10 text-sm font-medium outline-none transition placeholder:text-black/35 focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10"
+            className={cn(
+              "w-full text-sm font-medium outline-none transition",
+              youMode
+                ? "you-search py-3 pr-10 pl-11"
+                : "rounded-xl border border-black/10 bg-paper py-2.5 pr-9 pl-10 placeholder:text-black/35 focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10"
+            )}
           />
           {query && (
             <button
               onClick={() => setQuery("")}
-              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-1.5 text-black/35 transition hover:bg-black/5 hover:text-ink"
+              className={cn(
+                "absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-1.5 transition",
+                youMode
+                  ? "text-[var(--you-on-surface-variant)] hover:bg-[var(--you-surface-high)] hover:text-[var(--you-on-surface)]"
+                  : "text-black/35 hover:bg-black/5 hover:text-ink"
+              )}
               aria-label="Очистить поиск"
             >
               <X className="h-3.5 w-3.5" />
@@ -201,17 +263,32 @@ export default function Sidebar({
           <div className="animate-fade-in">
             {filteredChats.length > 0 && (
               <>
-                <p className="px-3 pt-2 pb-1.5 font-mono text-[10px] font-bold tracking-[0.16em] text-black/35 uppercase">
+                <p
+                  className={cn(
+                    "px-3 pt-2 pb-1.5 text-[11px] font-bold",
+                    youMode ? "text-[var(--you-on-surface-variant)]" : "font-mono tracking-[0.16em] text-black/35 uppercase"
+                  )}
+                >
                   Чаты
                 </p>
                 <div className="space-y-0.5">{filteredChats.map(chatRow)}</div>
               </>
             )}
-            <p className="px-3 pt-4 pb-1.5 font-mono text-[10px] font-bold tracking-[0.16em] text-black/35 uppercase">
+            <p
+              className={cn(
+                "px-3 pt-4 pb-1.5 text-[11px] font-bold",
+                youMode ? "text-[var(--you-on-surface-variant)]" : "font-mono tracking-[0.16em] text-black/35 uppercase"
+              )}
+            >
               Люди
             </p>
             {searching ? (
-              <div className="flex items-center gap-2.5 px-3 py-4 text-sm font-semibold text-black/40">
+              <div
+                className={cn(
+                  "flex items-center gap-2.5 px-3 py-4 text-sm font-semibold",
+                  youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/40"
+                )}
+              >
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Ищем по всей базе…
               </div>
@@ -220,7 +297,10 @@ export default function Sidebar({
                 {results.map((p) => (
                   <div
                     key={p.id}
-                    className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition hover:bg-paper/70"
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 transition",
+                      youMode ? "you-row-hover rounded-[24px]" : "rounded-2xl hover:bg-paper/70"
+                    )}
                   >
                     <button
                       onClick={() => {
@@ -236,7 +316,12 @@ export default function Sidebar({
                             {hasWinPro(p) && <Crown size="xs" />}
                             {isVerified(p) && <Verified size="xs" level={badgeLevel(p)} />}
                           </p>
-                        <p className="mt-0.5 truncate font-mono text-[12px] font-medium text-black/45">
+                        <p
+                          className={cn(
+                            "mt-0.5 truncate font-mono text-[12px] font-medium",
+                            youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/45"
+                          )}
+                        >
                           @{p.username}
                         </p>
                       </div>
@@ -245,7 +330,12 @@ export default function Sidebar({
                 ))}
               </div>
             ) : (
-              <p className="px-3 py-4 text-sm font-medium text-black/40">
+              <p
+                className={cn(
+                  "px-3 py-4 text-sm font-medium",
+                  youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/40"
+                )}
+              >
                 Никого не нашли по запросу «{query.trim()}»
               </p>
             )}
@@ -266,16 +356,36 @@ export default function Sidebar({
           <div className="space-y-0.5 pt-1">{filteredChats.map(chatRow)}</div>
         ) : (
           <div className="animate-fade-in flex flex-col items-center px-6 pt-16 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-paper ring-1 ring-black/8">
-              <MessageCircle className="h-7 w-7 text-black/30" strokeWidth={1.6} />
+            <div
+              className={cn(
+                "flex h-16 w-16 items-center justify-center rounded-[22px]",
+                youMode
+                  ? "bg-[var(--you-secondary-container)] text-[var(--you-on-secondary-container)]"
+                  : "bg-paper ring-1 ring-black/8"
+              )}
+            >
+              <MessageCircle
+                className={cn("h-7 w-7", youMode ? "opacity-80" : "text-black/30")}
+                strokeWidth={1.6}
+              />
             </div>
             <p className="mt-4 font-bold">Пока пусто</p>
-            <p className="mt-1 text-[13px] leading-relaxed font-medium text-black/45">
+            <p
+              className={cn(
+                "mt-1 text-[13px] leading-relaxed font-medium",
+                youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/45"
+              )}
+            >
               Найдите человека через поиск или соберите группу
             </p>
             <button
               onClick={onCreateGroup}
-              className="mt-4 flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-bold text-white transition hover:bg-black active:scale-95"
+              className={cn(
+                "mt-4 flex items-center gap-2 px-5 py-3 text-sm font-bold transition active:scale-95",
+                youMode
+                  ? "you-pill-primary"
+                  : "rounded-xl bg-ink text-white hover:bg-black"
+              )}
             >
               <UsersRound className="h-4 w-4" />
               Создать группу
@@ -285,10 +395,20 @@ export default function Sidebar({
       </div>
 
       {/* Профиль */}
-      <div className="border-t border-black/8 p-3">
+      <div
+        className={cn(
+          "border-t p-3",
+          youMode ? "you-divider" : "border-black/8"
+        )}
+      >
         <button
           onClick={onOpenSettings}
-          className="group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition hover:bg-paper"
+          className={cn(
+            "group flex w-full items-center gap-3 px-3 py-2.5 text-left transition",
+            youMode
+              ? "you-row-hover rounded-[24px]"
+              : "rounded-2xl hover:bg-paper"
+          )}
         >
           <Avatar profile={me} online size="sm" />
           <div className="min-w-0 flex-1">
@@ -296,20 +416,42 @@ export default function Sidebar({
               <span className="truncate">{me.nickname}</span>
               {isVerified(me) && <Verified size="xs" level={badgeLevel(me)} />}
             </p>
-            <p className="truncate font-mono text-[11px] font-medium text-black/40">
+            <p
+              className={cn(
+                "truncate font-mono text-[11px] font-medium",
+                youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/40"
+              )}
+            >
               @{me.username}
             </p>
           </div>
-          <Settings className="h-4 w-4 text-black/30 transition-all duration-300 group-hover:rotate-45 group-hover:text-ink" />
+          <Settings
+            className={cn(
+              "h-4 w-4 transition-all duration-300 group-hover:rotate-45",
+              youMode
+                ? "text-[var(--you-on-surface-variant)] group-hover:text-[var(--you-primary)]"
+                : "text-black/30 group-hover:text-ink"
+            )}
+          />
         </button>
       </div>
 
       {/* Кнопки админа — терминал */}
       {isAdmin && (
-        <div className="border-t border-black/8 p-3">
+        <div
+          className={cn(
+            "border-t p-3",
+            youMode ? "you-divider" : "border-black/8"
+          )}
+        >
           <button
             onClick={onOpenTerminal}
-            className="flex w-full items-center gap-2.5 rounded-2xl bg-emerald-600/90 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600 active:scale-[0.99]"
+            className={cn(
+              "flex w-full items-center justify-center gap-2.5 px-3 py-2.5 text-sm font-bold text-white transition active:scale-[0.99]",
+              youMode
+                ? "you-fab-tonal"
+                : "rounded-2xl bg-emerald-600/90 hover:bg-emerald-600"
+            )}
           >
             <Terminal className="h-4 w-4" />
             Admin Terminal
