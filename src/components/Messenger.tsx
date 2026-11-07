@@ -21,6 +21,12 @@ interface Props {
   me: Profile;
   onProfileSaved: (p: Profile) => void;
   onLogout: () => void;
+  /** Ивент «Память о Wintozo»: показать плашку выбора интерфейса. */
+  onShowLegacy?: () => void;
+  /** Роут /settings — сразу открыть настройки при монтировании. */
+  initialSettingsOpen?: boolean;
+  /** Роут /settings/status/winpro — открыть настройки на вкладке WinPro. */
+  initialSettingsTab?: "profile" | "customization" | "security" | "winpro";
 }
 
 function Placeholder() {
@@ -39,12 +45,12 @@ function Placeholder() {
   );
 }
 
-export default function Messenger({ me, onProfileSaved, onLogout }: Props) {
+export default function Messenger({ me, onProfileSaved, onLogout, onShowLegacy, initialSettingsOpen = false, initialSettingsTab }: Props) {
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [loadingChats, setLoadingChats] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(initialSettingsOpen);
   const [groupOpen, setGroupOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
@@ -316,6 +322,8 @@ export default function Messenger({ me, onProfileSaved, onLogout }: Props) {
           onClose={() => setSettingsOpen(false)}
           onSaved={onProfileSaved}
           onLogout={onLogout}
+          onShowLegacy={onShowLegacy}
+          initialTab={initialSettingsTab}
         />
       )}
 

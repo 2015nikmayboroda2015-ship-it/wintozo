@@ -4,8 +4,35 @@ import { isWinProActive, supabase, type Profile } from "./lib/supabase";
 import { checkBanned } from "./lib/adminApi";
 import { applyTheme, getCurrentTheme, getThemeById, isWinProTheme, saveThemeId, THEMES } from "./lib/themes";
 import { getAnimationId } from "./lib/animations";
+import { applyLegacyGate, declineLegacyUi, isLegacyUi, resetLegacyChoice } from "./lib/checkVersion";
 import Auth from "./components/Auth";
 import Messenger from "./components/Messenger";
+import LegacyScreen from "./components/LegacyScreen";
+
+/* ============================================================
+   Лёгкий роутер (как в старом Wintozo)
+   Новые маршруты:  /login  /registration  /chats  /settings
+                    /settings/status/winpro
+   Старый интерфейс (ивент «Память о Wintozo»):
+                    /events/themes/wintozo/*
+   ============================================================ */
+const LEGACY_PREFIX = "/events/themes/wintozo";
+
+function useRoute(): string {
+  const [path, setPath] = useState(window.location.pathname);
+  useEffect(() => {
+    const onPop = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  return path;
+}
+
+/** Поменять адрес без перезагрузки страницы. */
+export function navigate(path: string): void {
+  window.history.pushState({}, "", path);
+  window.dispatchEvent(new PopStateEvent("popstate"));
+}
 
 function Splash() {
   return (
@@ -23,6 +50,10 @@ export default function App() {
   const [booting, setBooting] = useState(true);
   const [banned, setBanned] = useState(false);
   const [banReason, setBanReason] = useState("");
+  /* Ивент «Память о Wintozo»: показывать ли legacy-экран выбора/старый UI */
+  const [legacyAsk, setLegacyAsk] = useState(false);
+  /* Лёгкий роутер: путь синхронизируется с экранами приложения */
+  const path = useRoute();
 
   useEffect(() => {
     // Применить тему из localStorage при старте
@@ -38,6 +69,18 @@ export default function App() {
     } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => subscription.unsubscribe();
   }, []);
+
+  /* Проверка серверной версии при запуске (ивент «Память о Wintozo») */
+  useEffect(() => {
+    if (!session || banned) return;
+    let alive = true;
+    void applyLegacyGate().then((turnedOn) => {
+      if (alive && (turnedOn || isLegacyUi())) setLegacyAsk(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [session, banned]);
 
   useEffect(() => {
     if (!session) {
@@ -135,7 +178,42 @@ export default function App() {
   }, [profile]);
 
   if (booting || (session && !profile)) return <Splash />;
-  if (!session || !profile) return <Auth />;
+
+  /* ---------- Маршруты старого интерфейса ---------- */
+  if (path.startsWith(LEGACY_PREFIX)) {
+    if (!session || !profile) {
+      // не авторизован — сначала вход
+      window.history.replaceState({}, "", "/login");
+      return <Auth />;
+    }
+    return (
+      <LegacyScreen
+        me={profile}
+        /** Роут ведёт сразу в старый интерфейс, минуя плашку выбора. */
+        skipAsk
+        onStayNew={() => {
+          declineLegacyUi();
+          setLegacyAsk(false);
+          window.history.pushState({}, "", "/chats");
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        }}
+      />
+    );
+  }
+
+  /* ---------- Не авторизован: /login и /registration ---------- */
+  if (!session || !profile) {
+    const route = path === "/registration" ? "register" : "login";
+    // нормализуем адрес, если пользователь открыл корень
+    if (path !== "/login" && path !== "/registration") {
+      window.history.replaceState({}, "", `/${route}`);
+    }
+    return <Auth initialMode={route} />;
+  }
+  /* Авторизован на странице входа — уводим в чаты */
+  if (path === "/login" || path === "/registration") {
+    window.history.replaceState({}, "", "/chats");
+  }
   if (banned)
     return (
       <div className="font-app flex min-h-dvh items-center justify-center bg-paper px-6">
@@ -151,11 +229,41 @@ export default function App() {
         </div>
       </div>
     );
+  if (isLegacyUi())
+    return (
+      <LegacyScreen
+        me={profile}
+        onStayNew={() => {
+          declineLegacyUi();
+          setLegacyAsk(false);
+        }}
+      />
+    );
+  if (legacyAsk)
+    return (
+      <LegacyScreen
+        me={profile}
+        onStayNew={() => {
+          declineLegacyUi();
+          setLegacyAsk(false);
+        }}
+      />
+    );
+  /* ---------- /settings и /settings/status/winpro ---------- */
+  const settingsTab =
+    path === "/settings/status/winpro" ? "winpro" as const : path === "/settings" ? "profile" as const : null;
+
   return (
     <Messenger
       me={profile}
       onProfileSaved={setProfile}
       onLogout={() => supabase.auth.signOut()}
+      onShowLegacy={() => {
+        resetLegacyChoice(); // сбрасываем «user_declined» — плашка снова доступна
+        setLegacyAsk(true);
+      }}
+      initialSettingsOpen={!!settingsTab}
+      initialSettingsTab={settingsTab ?? undefined}
     />
   );
 }

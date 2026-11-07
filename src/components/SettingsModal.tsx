@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Check, CircleAlert, Loader2, Lock, LogOut, Palette, Sparkles, ShieldCheck, User, X } from "lucide-react";
+import { Camera, Check, CircleAlert, History, Loader2, Lock, LogOut, Palette, Sparkles, ShieldCheck, User, X } from "lucide-react";
 import { isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
 import { filesUpload } from "../lib/blobStorage";
 import { normalizeWinpass, validateBio, validateNickname, validatePassword } from "../lib/utils";
@@ -16,6 +16,8 @@ interface Props {
   onClose: () => void;
   onSaved: (p: Profile) => void;
   onLogout: () => void;
+  /** Ивент «Память о Wintozo»: показать плашку выбора интерфейса. */
+  onShowLegacy?: () => void;
 }
 
 type Tab = "profile" | "customization" | "security" | "winpro";
@@ -27,7 +29,7 @@ const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
   return lvl as Exclude<VerifyLevel, "user">;
 };
 
-export default function SettingsModal({ me, onClose, onSaved, onLogout }: Props) {
+export default function SettingsModal({ me, onClose, onSaved, onLogout, onShowLegacy, initialTab = "profile" }: Props & { initialTab?: Tab }) {
   const [nickname, setNickname] = useState(me.nickname);
   const [bio, setBio] = useState(me.bio ?? "");
   const [saving, setSaving] = useState(false);
@@ -37,7 +39,7 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout }: Props)
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [wpCopied, setWpCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
   /* --- Смена пароля --- */
   const [newPw, setNewPw] = useState("");
@@ -636,6 +638,20 @@ export default function SettingsModal({ me, onClose, onSaved, onLogout }: Props)
               <LogOut className="h-4 w-4" />
               Выйти из аккаунта
             </button>
+
+            {/* Ивент «Память о Wintozo» — снова выбрать интерфейс */}
+            {onShowLegacy && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onShowLegacy();
+                }}
+                className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/35 bg-gradient-to-r from-amber-50 to-orange-50 py-3 text-sm font-bold text-amber-700 transition hover:brightness-105 active:scale-[0.99]"
+              >
+                <History className="h-4 w-4" />
+                Память о Wintozo — сменить интерфейс
+              </button>
+            )}
           </div>
         </div>
       </div>

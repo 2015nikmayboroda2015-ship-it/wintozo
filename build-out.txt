@@ -1,0 +1,418 @@
+﻿node : ▲ [WARNING] "import.meta" is not available with the "iife" output format and will be empty [empty-import-meta]
+строка:1 знак:200
++ ... rst 3 Line; node scripts/build-legacy.mjs > build-out.txt 2>&1; Get-C ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (▲ [WARNING] "im...ty-import-meta]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+    old/src/lib/appwrite.js:6:15:
+      6 │   .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://f...
+        ╵                ~~~~~~~~~~~
+
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+
+▲ [WARNING] "import.meta" is not available with the "iife" output format and will be empty [empty-import-meta]
+
+    old/src/lib/appwrite.js:7:14:
+      7 │   .setProject(import.meta.env.VITE_APPWRITE_PROJECT || '6a79d21c002...
+        ╵               ~~~~~~~~~~~
+
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+
+▲ [WARNING] "import.meta" is not available with the "iife" output format and will be empty [empty-import-meta]
+
+    old/src/lib/appwrite.js:8:13:
+      8 │   .setDevKey(import.meta.env.VITE_APPWRITE_API_KEY || '')
+        ╵              ~~~~~~~~~~~
+
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/appwrite/dist/cjs/sdk.js:15733:56:
+      15733 │ ...ansport = Promise.all([import('mqtt'), import('buffer')]).then(
+            ╵                                                  ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: stream (set a namespace if this is not a file path)
+
+    node_modules/readable-stream/readable.js:1:21:
+      1 │ var Stream = require('stream');
+        ╵                      ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: url (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/connect/index.js:8:38:
+      8 │ const url_1 = __importDefault(require("url"));
+        ╵                                       ~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: net (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/connect/tcp.js:6:38:
+      6 │ const net_1 = __importDefault(require("net"));
+        ╵                                       ~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/connect/ali.js:3:25:
+      3 │ const buffer_1 = require("buffer");
+        ╵                          ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/connect/wx.js:3:25:
+      3 │ const buffer_1 = require("buffer");
+        ╵                          ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/connect/ws.js:7:25:
+      7 │ const buffer_1 = require("buffer");
+        ╵                          ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: tls (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/connect/tls.js:6:22:
+      6 │ const tls_1 = require("tls");
+        ╵                       ~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: events (set a namespace if this is not a file path)
+
+    node_modules/readable-stream/lib/_stream_readable.js:33:17:
+      33 │ var EE = require('events').EventEmitter;
+         ╵                  ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: util (set a namespace if this is not a file path)
+
+    node_modules/inherits/inherits.js:2:21:
+      2 │   var util = require('util');
+        ╵                      ~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: net (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/connect/tls.js:7:38:
+      7 │ const net_1 = __importDefault(require("net"));
+        ╵                                       ~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: tty (set a namespace if this is not a file path)
+
+    node_modules/debug/src/node.js:5:20:
+      5 │ const tty = require('tty');
+        ╵                     ~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/readable-stream/lib/_stream_writable.js:66:21:
+      66 │ var Buffer = require('buffer').Buffer;
+         ╵                      ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: util (set a namespace if this is not a file path)
+
+    node_modules/debug/src/node.js:6:21:
+      6 │ const util = require('util');
+        ╵                      ~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/readable-stream/lib/_stream_readable.js:43:21:
+      43 │ var Buffer = require('buffer').Buffer;
+         ╵                      ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: stream (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/connect/socks.js:41:25:
+      41 │ const stream_1 = require("stream");
+         ╵                          ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/BufferedDuplex.js:6:25:
+      6 │ const buffer_1 = require("buffer");
+        ╵                          ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: util (set a namespace if this is not a file path)
+
+    node_modules/readable-stream/lib/_stream_readable.js:53:24:
+      53 │ var debugUtil = require('util');
+         ╵                         ~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: events (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/TypedEmitter.js:7:41:
+      7 │ const events_1 = __importDefault(require("events"));
+        ╵                                          ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: dns (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/connect/socks.js:43:33:
+      43 │ const dns = __importStar(require("dns"));
+         ╵                                  ~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: os (set a namespace if this is not a file path)
+
+    node_modules/supports-color/index.js:2:19:
+      2 │ const os = require('os');
+        ╵                    ~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: util (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/connect/socks.js:44:23:
+      44 │ const util_1 = require("util");
+         ╵                        ~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: tty (set a namespace if this is not a file path)
+
+    node_modules/supports-color/index.js:3:20:
+      3 │ const tty = require('tty');
+        ╵                     ~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: assert (set a namespace if this is not a file path)
+
+    node_modules/mqtt/build/lib/connect/socks.js:45:41:
+      45 │ const assert_1 = __importDefault(require("assert"));
+         ╵                                          ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: stream (set a namespace if this is not a file path)
+
+    node_modules/readable-stream/lib/internal/streams/stream.js:1:25:
+      1 │ module.exports = require('stream');
+        ╵                          ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: util (set a namespace if this is not a file path)
+
+    node_modules/util-deprecate/node.js:6:25:
+      6 │ module.exports = require('util').deprecate;
+        ╵                          ~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: events (set a namespace if this is not a file path)
+
+    node_modules/mqtt-packet/parser.js:2:33:
+      2 │ const { EventEmitter } = require('events')
+        ╵                                  ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/mqtt-packet/writeToStream.js:2:27:
+      2 │ const { Buffer } = require('buffer')
+        ╵                            ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: events (set a namespace if this is not a file path)
+
+    node_modules/mqtt-packet/generate.js:2:33:
+      2 │ const { EventEmitter } = require('events')
+        ╵                                  ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/mqtt-packet/generate.js:3:27:
+      3 │ const { Buffer } = require('buffer')
+        ╵                            ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: events (set a namespace if this is not a file path)
+
+    node_modules/socks/build/client/socksclient.js:13:25:
+      13 │ const events_1 = require("events");
+         ╵                          ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: net (set a namespace if this is not a file path)
+
+    node_modules/socks/build/client/socksclient.js:14:20:
+      14 │ const net = require("net");
+         ╵                     ~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/mqtt-packet/numbers.js:1:27:
+      1 │ const { Buffer } = require('buffer')
+        ╵                            ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/mqtt-packet/constants.js:3:27:
+      3 │ const { Buffer } = require('buffer')
+        ╵                            ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/readable-stream/lib/internal/streams/buffer_list.js:11:23:
+      11 │ var _require = require('buffer'),
+         ╵                        ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: events (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket-server.js:5:29:
+      5 │ const EventEmitter = require('events');
+        ╵                              ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: util (set a namespace if this is not a file path)
+
+    node_modules/readable-stream/lib/internal/streams/buffer_list.js:13:24:
+      13 │ var _require2 = require('util'),
+         ╵                         ~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: stream (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/sender.js:5:27:
+      5 │ const { Duplex } = require('stream');
+        ╵                            ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/safe-buffer/index.js:3:21:
+      3 │ var buffer = require('buffer')
+        ╵                      ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: zlib (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/permessage-deflate.js:3:21:
+      3 │ const zlib = require('zlib');
+        ╵                      ~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: stream (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/receiver.js:3:29:
+      3 │ const { Writable } = require('stream');
+        ╵                              ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: events (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket.js:5:29:
+      5 │ const EventEmitter = require('events');
+        ╵                              ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: stream (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/stream.js:5:27:
+      5 │ const { Duplex } = require('stream');
+        ╵                            ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: http (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket-server.js:6:21:
+      6 │ const http = require('http');
+        ╵                      ~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: crypto (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/sender.js:6:35:
+      6 │ const { randomFillSync } = require('crypto');
+        ╵                                    ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: https (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket.js:6:22:
+      6 │ const https = require('https');
+        ╵                       ~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/validation.js:3:27:
+      3 │ const { isUtf8 } = require('buffer');
+        ╵                            ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: stream (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket-server.js:7:27:
+      7 │ const { Duplex } = require('stream');
+        ╵                            ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: util (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/sender.js:9:12:
+      9 │ } = require('util');
+        ╵             ~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/bl/BufferList.js:3:27:
+      3 │ const { Buffer } = require('buffer')
+        ╵                            ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: http (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket.js:7:21:
+      7 │ const http = require('http');
+        ╵                      ~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: crypto (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket-server.js:8:31:
+      8 │ const { createHash } = require('crypto');
+        ╵                                ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: net (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket.js:8:20:
+      8 │ const net = require('net');
+        ╵                     ~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: tls (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket.js:9:20:
+      9 │ const tls = require('tls');
+        ╵                     ~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: crypto (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket.js:10:44:
+      10 │ const { randomBytes, createHash } = require('crypto');
+         ╵                                             ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: stream (set a namespace if this is not a file path)
+
+    node_modules/socks/build/common/helpers.js:10:23:
+      10 │ const stream = require("stream");
+         ╵                        ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: stream (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket.js:11:37:
+      11 │ const { Duplex, Readable } = require('stream');
+         ╵                                      ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: url (set a namespace if this is not a file path)
+
+    node_modules/ws/lib/websocket.js:12:24:
+      12 │ const { URL } = require('url');
+         ╵                         ~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: buffer (set a namespace if this is not a file path)
+
+    node_modules/smart-buffer/build/utils.js:3:25:
+      3 │ const buffer_1 = require("buffer");
+        ╵                          ~~~~~~~~
+
+X [ERROR] Plugin "legacy-transform" returned a non-absolute path: net (set a namespace if this is not a file path)
+
+    node_modules/socks/build/common/helpers.js:12:20:
+      12 │ const net = require("net");
+         ╵                     ~~~~~
+
+Error: Build failed with 60 errors:
+node_modules/appwrite/dist/cjs/sdk.js:15733:56: ERROR: Plugin "legacy-transform" returned a non-absolute path: buffer (
+set a namespace if this is not a file path)
+node_modules/bl/BufferList.js:3:27: ERROR: Plugin "legacy-transform" returned a non-absolute path: buffer (set a namesp
+ace if this is not a file path)
+node_modules/debug/src/node.js:5:20: ERROR: Plugin "legacy-transform" returned a non-absolute path: tty (set a namespac
+e if this is not a file path)
+node_modules/debug/src/node.js:6:21: ERROR: Plugin "legacy-transform" returned a non-absolute path: util (set a namespa
+ce if this is not a file path)
+node_modules/inherits/inherits.js:2:21: ERROR: Plugin "legacy-transform" returned a non-absolute path: util (set a name
+space if this is not a file path)
+...
+    at failureErrorWithLog (D:\Никита\wintozo\node_modules\esbuild\lib\main.js:1752:15)
+    at D:\Никита\wintozo\node_modules\esbuild\lib\main.js:1211:25
+    at runOnEndCallbacks (D:\Никита\wintozo\node_modules\esbuild\lib\main.js:1592:45)
+    at buildResponseToResult (D:\Никита\wintozo\node_modules\esbuild\lib\main.js:1209:7)
+    at D:\Никита\wintozo\node_modules\esbuild\lib\main.js:1236:16
+    at responseCallbacks.<computed> (D:\Никита\wintozo\node_modules\esbuild\lib\main.js:886:9)
+    at handleIncomingPacket (D:\Никита\wintozo\node_modules\esbuild\lib\main.js:941:12)
+    at Socket.readFromStdout (D:\Никита\wintozo\node_modules\esbuild\lib\main.js:864:7)
+    at Socket.emit (node:events:507:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}

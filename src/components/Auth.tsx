@@ -15,6 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { emailFor, loginByWinpass, supabase } from "../lib/supabase";
+import { rememberLegacyPassword } from "./LegacyScreen";
 import { normalizeWinpass, validateNickname, validatePassword, validateUsername } from "../lib/utils";
 void normalizeWinpass; // канонизация в supabase.loginByWinpass
 import { cn } from "../utils/cn";
@@ -84,8 +85,8 @@ function mapAuthError(err: unknown): string {
   return "Сервер вернул пустой ответ об ошибке. Проверьте: 1) SQL из winchat_setup.sql выполнен целиком; 2) включён провайдер Email; 3) отключено «Confirm email». Подробности — в консоли браузера.";
 }
 
-export default function Auth() {
-  const [mode, setMode] = useState<"login" | "register" | "winpass">("login");
+export default function Auth({ initialMode }: { initialMode?: "login" | "register" } = {}) {
+  const [mode, setMode] = useState<"login" | "register" | "winpass">(initialMode ?? "login");
   const [nickname, setNickname] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -144,6 +145,9 @@ export default function Auth() {
           },
         });
         if (upErr) return setError(mapAuthError(upErr));
+
+        /* Пароль нужен для моста «Память о Wintozo» — запоминаем его */
+        void rememberLegacyPassword(password);
 
         /* При включённом «Confirm email» gotrue не выдаёт сессию */
         if (data.user && !data.session) {
