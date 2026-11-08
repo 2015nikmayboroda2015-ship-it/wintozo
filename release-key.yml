@@ -1,0 +1,13 @@
+- name: Generate and Upload Keystore
+  run: |
+    keytool -genkey -v -keystore my-release-key.jks \
+      -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000 \
+      -storepass YOUR_PASSWORD -keypass YOUR_PASSWORD \
+      -dname "CN=Your Name, OU=Your Org, O=Your Org, L=City, ST=State, C=US"
+  # Обратите внимание: пароль и alias лучше передавать через секреты, здесь для наглядности записаны явно
+
+- name: Upload Keystore Artifact
+  uses: actions/upload-artifact@v4
+  with:
+    name: release-keystore
+    path: my-release-key.jks
