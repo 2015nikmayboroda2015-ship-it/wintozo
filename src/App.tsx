@@ -14,6 +14,7 @@ import {
 import { getAnimationId } from "./lib/animations";
 import { requestNotifyPermission } from "./lib/notify";
 import { applyLegacyGate, declineLegacyUi, isLegacyUi, resetLegacyChoice } from "./lib/checkVersion";
+import { reportDeviceStatus } from "./lib/ota";
 import { navigate } from "./lib/router";
 import Auth from "./components/Auth";
 import Messenger from "./components/Messenger";
@@ -81,6 +82,10 @@ export default function App() {
     const theme = getCurrentTheme();
     applyTheme(theme);
 
+    // OTA: отправить статус устройства (is_wintozo_web_true / _no).
+    // Сам поиск OTA делает CheckVersion после входа (см. lib/ota.ts).
+    void reportDeviceStatus();
+
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setBooting(false);
@@ -103,6 +108,13 @@ export default function App() {
       alive = false;
     };
   }, [session, banned]);
+
+  /* OTA: после входа привязываем устройство к аккаунту (для цели @username) */
+  useEffect(() => {
+    if (!session) return;
+    void reportDeviceStatus(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user.id]);
 
   useEffect(() => {
     if (!session) {

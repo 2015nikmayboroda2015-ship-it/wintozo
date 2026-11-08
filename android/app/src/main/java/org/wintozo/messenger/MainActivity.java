@@ -18,6 +18,8 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Локальный плагин OTA (скачивание APK + системный установщик).
+        registerPlugin(WinChatOtaPlugin.class);
         super.onCreate(savedInstanceState);
         checkAndRequestPermissions();
     }

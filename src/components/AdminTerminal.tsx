@@ -69,6 +69,10 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             { type: "info", text: "/delete wintozopro @username — Удалить WinPro" },
             { type: "info", text: "/set version <X.Y.Z>        — Установить версию приложения" },
             { type: "info", text: "/get version                — Текущая версия приложения" },
+            { type: "info", text: "/set ota \"<ссылка>\" [версия] [@username|device|*] — OTA для Android" },
+            { type: "info", text: "/set ota off                — Отключить OTA" },
+            { type: "info", text: "/get ota                    — Текущая OTA-настройка" },
+            { type: "info", text: "/get devices                — Устройства, которые запускали приложение" },
             { type: "info", text: "/help                       — Эта справка" },
           ]);
           break;
@@ -231,10 +235,107 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
 
         case "/set": {
           const what = parts[1];
+
+          if (what === "ota") {
+            // Всё после "/set ota" — исходная строка (URL чувствителен к регистру).
+            const after = trimmed.replace(/^\/set\s+ota\s*/i, "").trim();
+            if (!after) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: 'Использование: /set ota "<ссылка>" [версия] [@username|device|*]' },
+              ]);
+              break;
+            }
+
+            // Отключение OTA
+            if (/^(off|clear|remove|delete|disable)$/i.test(after)) {
+              const { data, error } = await supabase.rpc("set_winchat_ota", {
+                _admin_id: me.id,
+                _url: "",
+                _version: null,
+                _target: null,
+              });
+              if (error) {
+                setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+                break;
+              }
+              const res = data as { ok: boolean; message?: string; error?: string };
+              setHistory((prev) => [
+                ...prev,
+                res.ok
+                  ? { type: "success", text: `✓ ${res.message}` }
+                  : { type: "error", text: `✗ ${res.error}` },
+              ]);
+              break;
+            }
+
+            // URL: в кавычках или первым токеном
+            let rest = after;
+            let url = "";
+            if (rest.startsWith('"') || rest.startsWith("'")) {
+              const quote = rest[0];
+              const end = rest.indexOf(quote, 1);
+              if (end < 0) {
+                setHistory((prev) => [...prev, { type: "error", text: "Не закрыта кавычка в ссылке" }]);
+                break;
+              }
+              url = rest.slice(1, end).trim();
+              rest = rest.slice(end + 1).trim();
+            } else {
+              const m = rest.match(/^(\S+)(?:\s+|$)/);
+              url = m ? m[1] : "";
+              rest = m ? rest.slice(m[0].length).trim() : "";
+            }
+
+            // Необязательные аргументы: версия и цель
+            let version: string | null = null;
+            let target: string | null = null;
+            for (const token of rest.split(/\s+/).filter(Boolean)) {
+              const clean = token.replace(/^["']|["']$/g, "");
+              if (!version && /^\d+\.\d+(\.\d+)?$/.test(clean)) {
+                version = clean;
+              } else if (!target) {
+                target = clean;
+              }
+            }
+
+            const { data, error } = await supabase.rpc("set_winchat_ota", {
+              _admin_id: me.id,
+              _url: url,
+              _version: version,
+              _target: target,
+            });
+
+            if (error) {
+              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+              break;
+            }
+
+            const res = data as {
+              ok: boolean;
+              message?: string;
+              error?: string;
+              version?: string | null;
+              target?: string;
+            };
+            if (!res.ok) {
+              setHistory((prev) => [...prev, { type: "error", text: `✗ ${res.error}` }]);
+              break;
+            }
+
+            setHistory((prev) => [
+              ...prev,
+              { type: "success", text: `✓ ${res.message}` },
+              { type: "info", text: `URL: ${url}` },
+              { type: "info", text: `Версия: ${res.version ?? "не указана"} · Цель: ${res.target ?? "*"}` },
+            ]);
+            break;
+          }
+
           if (what !== "version") {
             setHistory((prev) => [
               ...prev,
-              { type: "error", text: "Использование: /set version <X.Y.Z>" },
+              { type: "error", text: 'Использование: /set version <X.Y.Z> | /set ota "<ссылка>"' },
             ]);
             return;
           }
@@ -353,9 +454,93 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             break;
           }
 
+          if (what === "ota") {
+            const { data, error } = await supabase.rpc("get_winchat_ota", {
+              _admin_id: me.id,
+            });
+            if (error) {
+              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+              break;
+            }
+            const res = data as {
+              ok: boolean;
+              error?: string;
+              url?: string | null;
+              version?: string | null;
+              target?: string;
+            };
+            if (!res.ok) {
+              setHistory((prev) => [...prev, { type: "error", text: `✗ ${res.error}` }]);
+              break;
+            }
+            if (!res.url) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "info", text: 'OTA не настроена. Используйте /set ota "<ссылка>"' },
+              ]);
+              break;
+            }
+            setHistory((prev) => [
+              ...prev,
+              { type: "info", text: `OTA URL: ${res.url}` },
+              { type: "info", text: `Версия: ${res.version ?? "не указана"}` },
+              { type: "info", text: `Цель: ${res.target ?? "*"}` },
+            ]);
+            break;
+          }
+
+          if (what === "devices") {
+            const { data, error } = await supabase.rpc("get_winchat_ota_devices", {
+              _admin_id: me.id,
+              _limit: 20,
+            });
+            if (error) {
+              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+              break;
+            }
+            const res = data as {
+              ok: boolean;
+              error?: string;
+              devices?: Array<{
+                device_id: string;
+                is_wintozo_web: boolean;
+                status: string | null;
+                platform: string | null;
+                app_version: string | null;
+                model: string | null;
+                manufacturer: string | null;
+                os_version: string | null;
+                username: string | null;
+              }>;
+            };
+            if (!res.ok) {
+              setHistory((prev) => [...prev, { type: "error", text: `✗ ${res.error}` }]);
+              break;
+            }
+            const devices = res.devices ?? [];
+            if (!devices.length) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "info", text: "Устройства пока не регистрировались" },
+              ]);
+              break;
+            }
+            setHistory((prev) => [
+              ...prev,
+              { type: "info", text: `═══ Устройства (${devices.length}) ═══` },
+              ...devices.map((d) => ({
+                type: "info" as const,
+                text: `${d.username ? `@${d.username}` : "—"} · ${[d.manufacturer, d.model].filter(Boolean).join(" ") || d.platform || "устройство"} · ${
+                  d.status ?? (d.is_wintozo_web ? "is_wintozo_web_true" : "is_wintozo_web_no")
+                } · v${d.app_version ?? "?"} · ${d.device_id}`,
+              })),
+            ]);
+            break;
+          }
+
           setHistory((prev) => [
             ...prev,
-            { type: "error", text: "Использование: /get winpass @username | /get version" },
+            { type: "error", text: "Использование: /get winpass @username | /get version | /get ota | /get devices" },
           ]);
           break;
         }

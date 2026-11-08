@@ -123,7 +123,14 @@ export function setCachedServerVersion(v: string): void {
 /** Запросить актуальную версию с сервера. null при ошибке сети. */
 export async function fetchLatestVersion(): Promise<string | null> {
   try {
-    const { data, error } = await supabase.rpc("get_wintozo_version");
+    // Новый RPC check_version (см. winchat_update_10_ota.sql).
+    // Если миграция ещё не применена — откатываемся на прежнюю функцию.
+    let { data, error } = await supabase.rpc("check_version");
+    if (error) {
+      const fallback = await supabase.rpc("get_wintozo_version");
+      data = fallback.data;
+      error = fallback.error;
+    }
     if (error || !data) return null;
     const v = String(data);
     setCachedServerVersion(v);
