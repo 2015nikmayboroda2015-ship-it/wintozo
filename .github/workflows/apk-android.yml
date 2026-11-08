@@ -44,7 +44,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # ── 4. Android SDK + лицензии (без setup-android, кот. зависает) ──
+      # ── Android SDK + лицензии ──
       - name: Setup Android SDK
         run: |
           export ANDROID_HOME=/usr/local/lib/android/sdk
@@ -62,16 +62,18 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
+      # ── Декодируем keystore из секрета (сохраняем В КОРЕНЬ) ──
       - name: Decode keystore
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
           ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
         run: |
           if [ -n "$ANDROID_KEYSTORE" ]; then
-            echo "$ANDROID_KEYSTORE" | base64 -d > android/app/keystore.jks
+            echo "$ANDROID_KEYSTORE" | base64 -d > keystore.jks
             echo "KEYSTORE_SAVED=true" >> $GITHUB_ENV
           else
             echo "KEYSTORE_SAVED=false" >> $GITHUB_ENV
+            echo "::warning::ANDROID_KEYSTORE secret is not set — release APK will NOT be built"
           fi
 
       - name: Build debug APK
@@ -80,12 +82,14 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
+      # ── Release-сборка с подписью (абсолютный путь к keystore в корне) ──
       - name: Build release APK (signed)
         if: env.KEYSTORE_SAVED == 'true'
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleRelease --no-daemon \
-            -Pandroid.injected.signing.store.file=keystore.jks \
+            -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/keystore.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
