@@ -17,6 +17,31 @@ import AdminTerminal from "./AdminTerminal";
 import CheckVersion from "./CheckVersion";
 import YouBackdrop from "./YouBackdrop";
 import { cn } from "../utils/cn";
+import { loadSavedNotes, SAVED_CHAT_ID } from "../lib/savedNotes";
+
+/** «Избранное» всегда закреплено сверху, остальные — по времени. */
+const bySavedThenDate = (a: ChatItem, b: ChatItem) =>
+  Number(!!b.isSaved) - Number(!!a.isSaved) ||
+  (b.updatedAt || "").localeCompare(a.updatedAt || "");
+
+/** Локальный чат «Избранное»: в Supabase его нет, заметки лежат на устройстве. */
+function buildSavedChat(userId: string): ChatItem {
+  const notes = loadSavedNotes(userId);
+  const last = notes.length ? notes[notes.length - 1] : null;
+  return {
+    id: SAVED_CHAT_ID,
+    isGroup: false,
+    title: "Избранное",
+    description: "Личные заметки — хранятся на этом устройстве",
+    avatarUrl: null,
+    other: null,
+    members: [],
+    ownerId: userId,
+    lastMessage: last,
+    updatedAt: last?.created_at || "",
+    isSaved: true,
+  };
+}
 
 interface Props {
   me: Profile;
@@ -140,13 +165,16 @@ export default function Messenger({
   }, [me.id]);
 
   const loadChatsForUser = useCallback(async (userId: string) => {
+    // «Избранное» — локальный чат, он не хранится в Supabase.
+    const savedItem = buildSavedChat(userId);
+
     const { data: mine } = await supabase
       .from("chat_members")
       .select("chat_id")
       .eq("user_id", userId);
     const ids = ((mine as { chat_id: string }[]) || []).map((r) => r.chat_id);
     if (!ids.length) {
-      setChats([]);
+      setChats([savedItem]);
       setLoadingChats(false);
       return;
     }
@@ -177,7 +205,7 @@ export default function Messenger({
       if (!lastByChat.has(m.chat_id)) lastByChat.set(m.chat_id, m);
     });
 
-    const items: ChatItem[] = ((chatRows as ChatRow[]) || [])
+    const serverItems: ChatItem[] = ((chatRows as ChatRow[]) || [])
       .map((c) => {
         const members = membersByChat.get(c.id) || [];
         const other = c.is_group ? null : (members.find((p) => p.id !== userId) ?? null);
@@ -196,10 +224,9 @@ export default function Messenger({
           updatedAt: last?.created_at || c.updated_at || "",
         } as ChatItem;
       })
-      .filter((x): x is ChatItem => x !== null)
-      .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+      .filter((x): x is ChatItem => x !== null);
 
-    setChats(items);
+    setChats([savedItem, ...serverItems].sort(bySavedThenDate));
     setLoadingChats(false);
   }, []);
 
@@ -214,7 +241,7 @@ export default function Messenger({
       if (idx === -1) return prev;
       const next = [...prev];
       next[idx] = { ...next[idx], lastMessage: m, updatedAt: m.created_at };
-      return next.sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+      return next.sort(bySavedThenDate);
     });
   }, []);
 

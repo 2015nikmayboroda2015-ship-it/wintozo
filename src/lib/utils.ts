@@ -134,6 +134,17 @@ export function directKey(a: string, b: string): string {
 }
 
 /**
+ * Видео — кружок или обычный загруженный файл?
+ * Кружки лежат в `.../video/circle/...` (старые — просто `.../video/...`),
+ * загруженные видео — в `.../video/file/...`.
+ */
+export function isCircleVideoUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const path = url.split("?")[0];
+  return path.includes("/video/") && !path.includes("/video/file/");
+}
+
+/**
  * Сгенерировать WinPass — код восстановления аккаунта.
  * Формат: 33b42-XXXXXXXXXXXX (12 строчных hex-символов).
  * Используется как фолбэк, если триггер на сервере не сработал.

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, MessageCircle, Mic, Search, Settings, ShieldCheck, Terminal, UsersRound, X } from "lucide-react";
+import { Loader2, MessageCircle, Mic, Search, Settings, ShieldCheck, Star, Terminal, UsersRound, X } from "lucide-react";
 import {
   chatSeed,
   isVerified,
@@ -97,7 +97,7 @@ export default function Sidebar({
 
   function preview(chat: ChatItem): string {
     const m = chat.lastMessage;
-    if (!m) return chat.isGroup ? "Группа создана" : "Начните диалог первым";
+    if (!m) return chat.isSaved ? "Личные заметки — хранятся на этом устройстве" : chat.isGroup ? "Группа создана" : "Начните диалог первым";
     let who = "";
     if (m.sender_id === me.id) who = "Вы: ";
     else if (chat.isGroup) {
@@ -105,6 +105,7 @@ export default function Sidebar({
       if (sender) who = `${sender.nickname}: `;
     }
     if (m.audio_url) return `${who}Голосовое сообщение`;
+    if (m.video_url) return `${who}Видео`;
     if (m.image_url) return who + (m.content ? `Фото — ${m.content}` : "Фотография");
     return who + (m.content || "");
   }
@@ -135,9 +136,19 @@ export default function Sidebar({
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
           <p className="flex min-w-0 items-center gap-1 text-[15px] font-bold tracking-tight">
+            {chat.isSaved && (
+              <Star
+                className={cn(
+                  "mr-0.5 h-3.5 w-3.5 shrink-0",
+                  youMode ? "text-[var(--you-primary)]" : "text-amber-500"
+                )}
+                fill="currentColor"
+                strokeWidth={1.8}
+              />
+            )}
             {chat.isGroup && <UsersRound className="mr-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />}
             <span className="truncate">{chat.title}</span>
-            {!chat.isGroup && isVerified(chat.other) && (
+            {!chat.isGroup && !chat.isSaved && isVerified(chat.other) && (
               <Verified size="xs" level={badgeLevel(chat.other)} />
             )}
           </p>

@@ -9,6 +9,7 @@ import {
   Loader2,
   MessageCircle,
   Mic,
+  Star,
   Trash2,
   Users,
   Video,
@@ -23,11 +24,14 @@ import {
   type Profile,
   type VerifyLevel,
 } from "../lib/supabase";
-import { dateLabel, formatDuration, formatTime, sameDay, uuid } from "../lib/utils";
+import { dateLabel, formatDuration, formatTime, isCircleVideoUrl, sameDay, uuid } from "../lib/utils";
 import { filesUpload } from "../lib/blobStorage";
+import { compressVideo } from "../lib/videoCompress";
+import { loadSavedNotes, notifySavedNotesChanged, persistSavedNotes } from "../lib/savedNotes";
 import { showMessageNotificationIfHidden } from "../lib/notify";
 import Avatar from "./Avatar";
 import AudioMessage from "./AudioMessage";
+import VideoCircle from "./VideoCircle";
 import VideoMessage from "./VideoMessage";
 import Verified from "./Verified";
 import { cn } from "../utils/cn";
@@ -72,12 +76,16 @@ export default function ChatView({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
+  const [compressPct, setCompressPct] = useState(0);
   const [typingName, setTypingName] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [hasText, setHasText] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const uncontrolledText = useRef("");
+  /** Актуальный список сообщений — для синхронного сохранения локальных заметок. */
+  const messagesRef = useRef<Message[]>([]);
 
   // Запись голоса
   const [recording, setRecording] = useState(false);
@@ -126,6 +134,29 @@ export default function ChatView({
     setLoading(true);
     setMessages([]);
     firstScroll.current = true;
+
+    // «Избранное» — локальные заметки, без Supabase и realtime.
+    if (chat.isSaved) {
+      const sync = () => {
+        if (cancelled) return;
+        const notes = loadSavedNotes(me.id);
+        messagesRef.current = notes;
+        setMessages(notes);
+      };
+      sync();
+      setLoading(false);
+      const onSaved = (e: Event) => {
+        const detail = (e as CustomEvent<{ userId?: string }>).detail;
+        if (!detail?.userId || detail.userId === me.id) sync();
+      };
+      window.addEventListener("storage", sync);
+      window.addEventListener("winchat:saved-notes", onSaved);
+      return () => {
+        cancelled = true;
+        window.removeEventListener("storage", sync);
+        window.removeEventListener("winchat:saved-notes", onSaved);
+      };
+    }
 
     supabase
       .from("messages")
@@ -196,9 +227,13 @@ export default function ChatView({
       channelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [chatId, me.id, onActivity]);
+  }, [chatId, me.id, chat.isSaved, onActivity]);
 
   /* ---------- автоскролл ---------- */
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
   useEffect(() => {
     if (loading) return;
     if (firstScroll.current) {
@@ -232,7 +267,17 @@ export default function ChatView({
   }
 
   /* ---------- отправка ---------- */
-  async function send(opts?: { image?: File; audio?: Blob; seconds?: number; video?: Blob; videoSeconds?: number }) {
+  async function send(opts?: {
+    image?: File;
+    audio?: Blob;
+    seconds?: number;
+    video?: Blob;
+    videoSeconds?: number;
+    videoMime?: string;
+    videoExt?: string;
+    /** true — видеокружок (круглый), false — обычное видео из галереи. */
+    videoCircle?: boolean;
+  }) {
     const ta = textRef.current;
     // Читаем актуальное значение из DOM — на мобильных Android при IME-вводе
     // uncontrolledText может быть устаревшим, пока не сработает compositionend.
@@ -246,26 +291,63 @@ export default function ChatView({
       let audio_duration: number | null = null;
       let video_url: string | null = null;
       let video_duration: number | null = null;
+      const storageBase = chat.isSaved ? `saved/${me.id}` : chatId;
 
       if (opts?.image) {
         setUploading(true);
         const ext = (opts.image.name.split(".").pop() || "jpg").toLowerCase();
-        const path = `${chatId}/${uuid()}.${ext}`;
+        const path = `${storageBase}/${uuid()}.${ext}`;
         image_url = await filesUpload("attachments", path, opts.image, opts.image.type || "image/jpeg");
       }
 
       if (opts?.audio) {
         setUploading(true);
-        const path = `${chatId}/voice/${uuid()}.webm`;
+        const path = `${storageBase}/voice/${uuid()}.webm`;
         audio_url = await filesUpload("attachments", path, opts.audio, "audio/webm");
         audio_duration = opts.seconds ?? 0;
       }
 
       if (opts?.video) {
         setUploading(true);
-        const path = `${chatId}/video/${uuid()}.webm`;
-        video_url = await filesUpload("video-attachments", path, opts.video, "video/webm");
-        video_duration = opts.videoSeconds ?? 0;
+        const mime = opts.videoMime || opts.video.type || "video/webm";
+        const ext = opts.videoExt || (mime.includes("mp4") ? "mp4" : "webm");
+        const path = `${storageBase}/video/${opts.videoCircle ? "circle" : "file"}/${uuid()}.${ext}`;
+        video_url = await filesUpload("video-attachments", path, opts.video, mime);
+        video_duration = Math.round(opts.videoSeconds ?? 0);
+      }
+
+      // Локальные заметки не пишем в базу — только в localStorage.
+      if (chat.isSaved) {
+        const m: Message = {
+          id: uuid(),
+          chat_id: chatId,
+          sender_id: me.id,
+          content: content || null,
+          image_url,
+          audio_url,
+          audio_duration,
+          video_url,
+          video_duration,
+          created_at: new Date().toISOString(),
+        };
+        // Сохраняем синхронно и сразу показываем — иначе событие синхронизации
+        // успевало прочитать старый localStorage и откатить сообщение.
+        const next = [...messagesRef.current, m];
+        messagesRef.current = next;
+        persistSavedNotes(me.id, next);
+        setMessages(next);
+        notifySavedNotesChanged(me.id);
+        onActivity(m);
+        if (!opts?.audio && !opts?.video) {
+          uncontrolledText.current = "";
+          setHasText(false);
+          if (ta) {
+            ta.value = "";
+            ta.style.height = "auto";
+          }
+          autoResize();
+        }
+        return;
       }
 
       const { data, error } = await supabase
@@ -299,7 +381,7 @@ export default function ChatView({
     } catch {
       flashError(
         opts?.video
-          ? "Не удалось отправить видеокружок"
+          ? "Не удалось отправить видео"
           : opts?.audio
             ? "Не удалось отправить голосовое"
             : opts?.image
@@ -309,6 +391,35 @@ export default function ChatView({
     } finally {
       setSending(false);
       setUploading(false);
+    }
+  }
+
+  /* ---------- видео из галереи: сжимаем перед отправкой ---------- */
+  async function sendVideoFile(file: File) {
+    if (sending || compressing) return;
+    if (file.size > 250 * 1024 * 1024) {
+      return flashError("Видео больше 250 МБ — выберите файл поменьше", 6000);
+    }
+    setCompressing(true);
+    setCompressPct(0);
+    try {
+      const result = await compressVideo(file, (p) => setCompressPct(p));
+      await send({
+        video: result.blob,
+        videoSeconds: result.duration,
+        videoMime: result.mime,
+        videoExt: result.ext,
+      });
+    } catch (err) {
+      flashError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Не удалось обработать видео — попробуйте другой файл",
+        6000
+      );
+    } finally {
+      setCompressing(false);
+      setCompressPct(0);
     }
   }
 
@@ -461,7 +572,7 @@ export default function ChatView({
         if (videoCancelledRec.current) return;
         if (seconds < 1) return flashError("Слишком короткое сообщение");
         const blob = new Blob(videoChunksRef.current, { type: "video/webm" });
-        send({ video: blob, videoSeconds: seconds });
+        send({ video: blob, videoSeconds: seconds, videoCircle: true });
       };
 
       videoRecorderRef.current = rec;
@@ -499,6 +610,14 @@ export default function ChatView({
   }
 
   function removeMessage(id: string) {
+    if (chat.isSaved) {
+      const next = messagesRef.current.filter((x) => x.id !== id);
+      messagesRef.current = next;
+      persistSavedNotes(me.id, next);
+      setMessages(next);
+      notifySavedNotesChanged(me.id);
+      return;
+    }
     setMessages((prev) => prev.filter((x) => x.id !== id));
     supabase
       .from("messages")
@@ -508,6 +627,7 @@ export default function ChatView({
   }
 
   function notifyTyping() {
+    if (chat.isSaved) return;
     const now = Date.now();
     if (now - lastTypingSent.current < 1500) return;
     lastTypingSent.current = now;
@@ -627,11 +747,19 @@ export default function ChatView({
 
             {m.video_url && (
               <div className="px-1.5">
-                <VideoMessage
-                  src={m.video_url}
-                  duration={m.video_duration}
-                  own={own}
-                />
+                {isCircleVideoUrl(m.video_url) ? (
+                  <VideoCircle
+                    src={m.video_url}
+                    duration={m.video_duration}
+                    own={own}
+                  />
+                ) : (
+                  <VideoMessage
+                    src={m.video_url}
+                    duration={m.video_duration}
+                    own={own}
+                  />
+                )}
               </div>
             )}
 
@@ -689,7 +817,9 @@ export default function ChatView({
     );
   });
 
-  const statusLine = typingName ? (
+  const statusLine = chat.isSaved ? (
+    "Личные заметки — хранятся на этом устройстве"
+  ) : typingName ? (
     <TypingLabel who={chat.isGroup ? typingName || undefined : undefined} />
   ) : chat.isGroup ? (
     `${chat.members.length} участников`
@@ -722,19 +852,32 @@ export default function ChatView({
         >
           <ArrowLeft className={youMode ? "h-5 w-5" : "h-5 w-5"} />
         </button>
-        <button onClick={onOpenInfo} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+        <button
+          onClick={onOpenInfo}
+          disabled={chat.isSaved}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:cursor-default"
+        >
           <Avatar
             name={chat.title}
             avatarUrl={chat.avatarUrl}
             seed={chatSeed(chat)}
             group={chat.isGroup}
-            online={chat.isGroup ? null : online}
+            online={chat.isGroup || chat.isSaved ? null : online}
           />
           <div className="min-w-0 flex-1">
             <p className="flex min-w-0 items-center gap-1 text-[16px] font-extrabold tracking-tight">
+              {chat.isSaved && (
+                <Star
+                  className="mr-0.5 h-4 w-4 shrink-0 text-amber-500"
+                  fill="currentColor"
+                  strokeWidth={1.8}
+                />
+              )}
               {chat.isGroup && <Users className="mr-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />}
               <span className="truncate">{chat.title}</span>
-              {!chat.isGroup && isVerified(chat.other) && <Verified size="sm" level={badgeLevel(chat.other)} />}
+              {!chat.isGroup && !chat.isSaved && isVerified(chat.other) && (
+                <Verified size="sm" level={badgeLevel(chat.other)} />
+              )}
             </p>
             <p
               className={cn(
@@ -754,18 +897,28 @@ export default function ChatView({
             </p>
           </div>
         </button>
-        <button
-          onClick={onOpenInfo}
-          className={cn(
-            "rounded-full p-2 transition",
-            youMode
-              ? "text-[var(--you-on-surface-variant)] hover:bg-[var(--you-secondary-container)] hover:text-[var(--you-on-secondary-container)]"
-              : "text-black/40 hover:bg-black/5 hover:text-ink"
-          )}
-          aria-label="Информация о чате"
-        >
-          <Info className="h-5 w-5" strokeWidth={1.9} />
-        </button>
+        {chat.isSaved ? (
+          <span
+            className="rounded-full p-2 text-amber-500"
+            title="Заметки хранятся только на этом устройстве"
+            aria-label="Локальные заметки"
+          >
+            <Star className="h-5 w-5" fill="currentColor" strokeWidth={1.8} />
+          </span>
+        ) : (
+          <button
+            onClick={onOpenInfo}
+            className={cn(
+              "rounded-full p-2 transition",
+              youMode
+                ? "text-[var(--you-on-surface-variant)] hover:bg-[var(--you-secondary-container)] hover:text-[var(--you-on-secondary-container)]"
+                : "text-black/40 hover:bg-black/5 hover:text-ink"
+            )}
+            aria-label="Информация о чате"
+          >
+            <Info className="h-5 w-5" strokeWidth={1.9} />
+          </button>
+        )}
       </header>
 
       {/* Лента */}
@@ -796,16 +949,20 @@ export default function ChatView({
                   strokeWidth={1.6}
                 />
               </div>
-              <p className="mt-4 text-[17px] font-extrabold tracking-tight">Сообщений пока нет</p>
+              <p className="mt-4 text-[17px] font-extrabold tracking-tight">
+                {chat.isSaved ? "Заметок пока нет" : "Сообщений пока нет"}
+              </p>
               <p
                 className={cn(
                   "mt-1 max-w-[280px] text-[13px] leading-relaxed font-medium",
                   youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/45"
                 )}
               >
-                {chat.isGroup
-                  ? `Начните обсуждение в группе «${chat.title}»`
-                  : `Напишите первым — ${chat.title} будет приятно`}
+                {chat.isSaved
+                  ? "Пишите сюда всё, что не хотите потерять. Заметки хранятся только на этом устройстве."
+                  : chat.isGroup
+                    ? `Начните обсуждение в группе «${chat.title}»`
+                    : `Напишите первым — ${chat.title} будет приятно`}
               </p>
             </div>
           ) : (
@@ -924,16 +1081,17 @@ export default function ChatView({
               >
                 <button
                   onClick={() => fileRef.current?.click()}
-                  disabled={uploading}
+                  disabled={uploading || compressing || sending}
                   className={cn(
                     "rounded-full p-2.5 transition disabled:opacity-50",
                     youMode
                       ? "text-[var(--you-on-surface-variant)] hover:text-[var(--you-primary)]"
                       : "text-black/40 hover:bg-black/5 hover:text-accent"
                   )}
-                  aria-label="Прикрепить фотографию"
+                  aria-label="Прикрепить фото или видео"
+                  title="Фото или видео"
                 >
-                  {uploading ? (
+                  {uploading || compressing ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <ImagePlus className="h-5 w-5" strokeWidth={1.8} />
@@ -971,7 +1129,7 @@ export default function ChatView({
                       send();
                     }
                   }}
-                  placeholder="Сообщение"
+                  placeholder={chat.isSaved ? "Заметка" : "Сообщение"}
                   className={cn(
                     "max-h-32 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] font-medium outline-none",
                     youMode
@@ -982,11 +1140,14 @@ export default function ChatView({
                 <input
                   ref={fileRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   hidden
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    if (f) send({ image: f });
+                    if (f) {
+                      if (f.type.startsWith("video/")) sendVideoFile(f);
+                      else send({ image: f });
+                    }
                     e.target.value = "";
                   }}
                 />
@@ -995,7 +1156,7 @@ export default function ChatView({
               {hasText ? (
                 <button
                   onClick={() => send()}
-                  disabled={sending}
+                  disabled={sending || compressing}
                   className={cn(
                     "flex h-11 w-11 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-25",
                     youMode ? "you-fab" : "rounded-full bg-ink text-white hover:bg-black"
@@ -1012,7 +1173,7 @@ export default function ChatView({
                 <>
                   <button
                     onClick={startVideoRecording}
-                    disabled={sending}
+                    disabled={sending || compressing}
                     className={cn(
                       "flex h-11 w-11 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-40",
                       youMode
@@ -1026,7 +1187,7 @@ export default function ChatView({
                   </button>
                   <button
                     onClick={startRecording}
-                    disabled={sending}
+                    disabled={sending || compressing}
                     className={cn(
                       "flex h-11 w-11 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-40",
                       youMode ? "you-fab" : "rounded-full bg-ink text-white hover:bg-black"
@@ -1046,11 +1207,15 @@ export default function ChatView({
           )}
 
           <p className="mt-2 text-center font-mono text-[10px] tracking-wide text-black/30">
-            {uploading
-              ? "загрузка вложения…"
-              : recording
-                ? "идёт запись — нажмите стрелку, чтобы отправить"
-                : "Enter — отправить · микрофон — голосовое"}
+            {compressing
+              ? `сжимаем видео… ${Math.round(compressPct * 100)}%`
+              : uploading
+                ? "загрузка вложения…"
+                : recording
+                  ? "идёт запись — нажмите стрелку, чтобы отправить"
+                  : chat.isSaved
+                    ? "Заметки видны только вам и хранятся на этом устройстве"
+                    : "Enter — отправить · микрофон — голосовое"}
           </p>
         </div>
       </footer>

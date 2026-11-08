@@ -85,10 +85,13 @@ export interface ChatItem {
   ownerId: string | null;
   lastMessage: Message | null;
   updatedAt: string;
+  /** Личный чат «Избранное» — заметки, которые видит только владелец. */
+  isSaved?: boolean;
 }
 
 /** Ключ для градиента аватара */
-export const chatSeed = (c: ChatItem) => (c.isGroup ? `group-${c.id}` : c.other?.username || c.id);
+export const chatSeed = (c: ChatItem) =>
+  c.isSaved ? `saved-${c.id}` : c.isGroup ? `group-${c.id}` : c.other?.username || c.id;
 
 /* ============================================================ */
 /*  Admin types and helpers                                      */
