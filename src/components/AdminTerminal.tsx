@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Terminal, X } from "lucide-react";
 import { supabase, type Profile } from "../lib/supabase";
+import { BADGE_LABELS } from "../lib/badges";
 
 interface Props {
   me: Profile;
@@ -67,7 +68,15 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             { type: "info", text: "/get winpass @username      — WinPass аккаунта (восстановление)" },
             { type: "info", text: "/give wintozopro @username X — Выдать WinPro на X дней" },
             { type: "info", text: "/delete wintozopro @username — Удалить WinPro" },
-            { type: "info", text: "/set version <X.Y.Z>        — Установить версию приложения" },
+            { type: "info", text: "/give badge @username <1|2|3> — Выдать бейдж (1 — Дизайнер, 2 — Тестер, 3 — Олд)" },
+            { type: "info", text: "/get badges @username — Получить бейджи пользователя" },
+            { type: "info", text: "/channel list — Список каналов (id, название, подписчики)" },
+            { type: "info", text: "/channel verify <id|название> — Выдать синюю галочку каналу" },
+            { type: "info", text: "/channel unverify <id|название> — Снять галочку канала" },
+            { type: "info", text: "/channel official <id|название> — Сделать канал официальным" },
+            { type: "info", text: "/channel unofficial <id|название> — Снять статус официального" },
+            { type: "info", text: "/channel delete <id|название> — Удалить канал" },
+            { type: "info", text: "/set version <X.Y.Z>        — Установить версию (можно 4.0.0-beta)" },
             { type: "info", text: "/get version                — Текущая версия приложения" },
             { type: "info", text: "/set ota \"<ссылка>\" [версия] [@username|device|*] — OTA для Android" },
             { type: "info", text: "/set ota off                — Отключить OTA" },
@@ -292,7 +301,7 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             let target: string | null = null;
             for (const token of rest.split(/\s+/).filter(Boolean)) {
               const clean = token.replace(/^["']|["']$/g, "");
-              if (!version && /^\d+\.\d+(\.\d+)?$/.test(clean)) {
+              if (!version && /^\d+\.\d+(\.\d+)?(-[0-9a-z][0-9a-z.\-]*(\+[0-9a-z.\-]+)?)?$/i.test(clean)) {
                 version = clean;
               } else if (!target) {
                 target = clean;
@@ -335,17 +344,17 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
           if (what !== "version") {
             setHistory((prev) => [
               ...prev,
-              { type: "error", text: 'Использование: /set version <X.Y.Z> | /set ota "<ссылка>"' },
+              { type: "error", text: 'Использование: /set version <X.Y.Z[-beta]> | /set ota "<ссылка>"' },
             ]);
             return;
           }
           // Версия берётся из исходной строки — toLowerCase() не нужен,
           // но и не вредит: цифры и точки регистронезависимы.
           const rawVersion = trimmed.split(/\s+/).slice(2).join("").trim();
-          if (!rawVersion || !/^\d+\.\d+(\.\d+)?$/.test(rawVersion)) {
+          if (!rawVersion || !/^\d+\.\d+(\.\d+)?(-[0-9a-z][0-9a-z.\-]*(\+[0-9a-z.\-]+)?)?$/i.test(rawVersion)) {
             setHistory((prev) => [
               ...prev,
-              { type: "error", text: "Неверный формат версии. Пример: /set version 3.0.1" },
+              { type: "error", text: "Неверный формат версии. Пример: /set version 4.0.0-beta" },
             ]);
             return;
           }
@@ -538,9 +547,41 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             break;
           }
 
+          if (what === "badges") {
+            const username = parts[2]?.replace("@", "");
+            if (!username) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: "Использование: /get badges @username" },
+              ]);
+              break;
+            }
+
+            const { data, error } = await supabase.rpc("get_user_badges", {
+              _target_username: username,
+            });
+
+            if (error) {
+              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+              break;
+            }
+
+            const res = data as { ok: boolean; codes?: number[] };
+            if (!res.ok) {
+              setHistory((prev) => [...prev, { type: "error", text: "✗ Не удалось получить бейджи" }]);
+              break;
+            }
+            const labels = (res.codes ?? []).map((c) => BADGE_LABELS[c]).filter(Boolean);
+            setHistory((prev) => [
+              ...prev,
+              { type: "info", text: labels.length ? `Бейджи @${username}: ${labels.join(", ")}` : `У @${username} бейджей пока нет` },
+            ]);
+            break;
+          }
+
           setHistory((prev) => [
             ...prev,
-            { type: "error", text: "Использование: /get winpass @username | /get version | /get ota | /get devices" },
+            { type: "error", text: "Использование: /get winpass @username | /get version | /get ota | /get devices | /get badges @username" },
           ]);
           break;
         }
@@ -552,6 +593,39 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
 
         case "/give": {
           const feature = parts[1];
+          if (feature === "badge") {
+            const badgeUsername = parts[2]?.replace("@", "");
+            const badgeCode = parseInt(parts[3] || "0", 10);
+            const badgeLabel = BADGE_LABELS[badgeCode];
+            if (!badgeUsername || !badgeLabel) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: "Использование: /give badge @username <1|2|3>" },
+              ]);
+              break;
+            }
+            const { data, error } = await supabase.rpc("give_badge", {
+              _admin_id: me.id,
+              _target_username: badgeUsername,
+              _code: badgeCode,
+            });
+            if (error) {
+              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+              break;
+            }
+            const badgeRes = data as { ok: boolean; message?: string; error?: string; code?: number };
+            if (badgeRes.ok) {
+              const badgeResCode = badgeRes.code ?? badgeCode;
+              setHistory((prev) => [
+                ...prev,
+                { type: "success", text: `✓ Бейдж ${badgeResCode} (@${badgeUsername}) выдан — ${BADGE_LABELS[badgeResCode] ?? ""}` },
+              ]);
+              onProfileUpdated();
+            } else {
+              setHistory((prev) => [...prev, { type: "error", text: `✗ ${badgeRes.error}` }]);
+            }
+            break;
+          }
           if (feature !== "wintozopro") {
             setHistory((prev) => [
               ...prev,
@@ -624,6 +698,135 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             onProfileUpdated();
           } else {
             setHistory((prev) => [...prev, { type: "error", text: `✗ ${res.error}` }]);
+          }
+          break;
+        }
+
+        case "/channel": {
+          const action = parts[1];
+          const allowed = ["list", "verify", "unverify", "official", "unofficial", "delete"];
+          if (!action || !allowed.includes(action)) {
+            setHistory((prev) => [
+              ...prev,
+              { type: "error", text: "Использование: /channel list | verify | unverify | official | unofficial | delete <id|название>" },
+            ]);
+            break;
+          }
+
+          const { data: listData, error: listErr } = await supabase.rpc("list_winchat_channels", {
+            _user_id: me.id,
+          });
+          if (listErr) {
+            setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${listErr.message}` }]);
+            break;
+          }
+          const listRes = listData as {
+            ok: boolean;
+            error?: string;
+            channels?: Array<{
+              id: string;
+              title: string | null;
+              verified: boolean;
+              is_official: boolean;
+              subscribers: number;
+            }>;
+          };
+          if (!listRes.ok) {
+            setHistory((prev) => [...prev, { type: "error", text: `✗ ${listRes.error}` }]);
+            break;
+          }
+          const channels = listRes.channels || [];
+
+          if (action === "list") {
+            if (!channels.length) {
+              setHistory((prev) => [...prev, { type: "info", text: "Каналов пока нет" }]);
+              break;
+            }
+            setHistory((prev) => [
+              ...prev,
+              { type: "info", text: `═══ Каналы (${channels.length}) ═══` },
+              ...channels.map((c) => ({
+                type: "info" as const,
+                text: `${c.is_official ? "★ " : ""}${c.title || "Без названия"} — ${c.id} · ${c.subscribers} подписчиков${c.verified ? " · ✓ синяя" : ""}`,
+              })),
+            ]);
+            break;
+          }
+
+          const target = parts.slice(2).join(" ");
+          if (!target) {
+            setHistory((prev) => [
+              ...prev,
+              { type: "error", text: "Укажите id или название канала" },
+            ]);
+            break;
+          }
+
+          const found = channels.find(
+            (c) => c.id === target || (c.title || "").toLowerCase() === target
+          );
+          if (!found) {
+            setHistory((prev) => [
+              ...prev,
+              { type: "error", text: `Канал не найден: ${target}. Используйте /channel list` },
+            ]);
+            break;
+          }
+
+          if (action === "delete") {
+            const { data: delData, error: delErr } = await supabase.rpc("delete_winchat_ch", {
+              _user_id: me.id,
+              _chat_id: found.id,
+            });
+            if (delErr) {
+              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${delErr.message}` }]);
+              break;
+            }
+            const delRes = delData as { ok: boolean; error?: string };
+            if (delRes.ok) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "success", text: `✓ Канал «${found.title}» удалён` },
+              ]);
+              onProfileUpdated();
+            } else {
+              setHistory((prev) => [...prev, { type: "error", text: `✗ ${delRes.error}` }]);
+            }
+            break;
+          }
+
+          const verifyArg = action === "verify" ? true : action === "unverify" ? false : null;
+          const officialArg =
+            action === "official" ? true : action === "unofficial" ? false : null;
+
+          const { data: editData, error: editErr } = await supabase.rpc("edit_wintozo_channel", {
+            _user_id: me.id,
+            _chat_id: found.id,
+            _title: null,
+            _description: null,
+            _avatar_url: null,
+            _verified: verifyArg,
+            _is_official: officialArg,
+          });
+          if (editErr) {
+            setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${editErr.message}` }]);
+            break;
+          }
+          const editRes = editData as { ok: boolean; error?: string };
+          if (editRes.ok) {
+            const labels: Record<string, string> = {
+              verify: "выдана синяя галочка",
+              unverify: "галочка снята",
+              official: "канал стал официальным",
+              unofficial: "статус официального снят",
+            };
+            setHistory((prev) => [
+              ...prev,
+              { type: "success", text: `✓ «${found.title}»: ${labels[action]}` },
+            ]);
+            onProfileUpdated();
+          } else {
+            setHistory((prev) => [...prev, { type: "error", text: `✗ ${editRes.error}` }]);
           }
           break;
         }

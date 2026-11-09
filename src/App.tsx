@@ -223,6 +223,7 @@ export default function App() {
     if (!profile) return;
     const winPro = isWinProActive(profile);
     const active = youMode && winPro;
+    const savedId = (getCurrentTheme() as { id?: string }).id ?? THEMES[0].id;
 
     if (active) {
       if (!wasYou.current) {
@@ -243,21 +244,40 @@ export default function App() {
       return;
     }
 
-    // Вышли из /themes/you/* или остались с «висящей» темой You после перезапуска.
-    if (wasYou.current || (getCurrentTheme() as { id: string }).id === YOU_THEME_ID) {
-      wasYou.current = false;
-      let prev: string = THEMES[0].id;
-      try {
-        prev = localStorage.getItem(YOU_PREV_THEME_KEY) || THEMES[0].id;
-      } catch {
-        /* no-op */
-      }
-      if (isWinProTheme(prev) && !winPro) prev = THEMES[0].id;
-      saveThemeId(prev);
-      applyTheme(getThemeById(prev) ?? THEMES[0]);
-      document.title = "WinChat";
+    const leavingYou = wasYou.current;
+    wasYou.current = false;
+
+    // После перезагрузки адрес может снова стать /chats (или /), но тема
+    // WinChat You уже выбрана — не сбрасываем её, а возвращаем в You.
+    if (
+      savedId === YOU_THEME_ID &&
+      winPro &&
+      !leavingYou &&
+      (path === "/chats" || path === "/" || path === "")
+    ) {
+      window.history.replaceState({}, "", `${YOU_PREFIX}/chat`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      return;
     }
-  }, [profile, youMode]);
+
+    // Пользователь уже выбрал другую тему — не перетираем его выбор.
+    if (savedId !== YOU_THEME_ID) {
+      document.title = "WinChat";
+      return;
+    }
+
+    // Вышли из /themes/you/* — возвращаем тему, которая была до You.
+    let prev: string = THEMES[0].id;
+    try {
+      prev = localStorage.getItem(YOU_PREV_THEME_KEY) || THEMES[0].id;
+    } catch {
+      /* no-op */
+    }
+    if (isWinProTheme(prev) && !winPro) prev = THEMES[0].id;
+    saveThemeId(prev);
+    applyTheme(getThemeById(prev) ?? THEMES[0]);
+    document.title = "WinChat";
+  }, [profile, youMode, path]);
 
   if (booting || (session && !profile)) return <Splash />;
 

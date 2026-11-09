@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, MessageCircle, Mic, Search, Settings, ShieldCheck, Star, Terminal, UsersRound, X } from "lucide-react";
+import { Loader2, Megaphone, MessageCircle, Mic, Search, Settings, ShieldCheck, Star, Terminal, UsersRound, X } from "lucide-react";
 import {
   chatSeed,
   isVerified,
@@ -13,6 +13,7 @@ import { hasWinPro } from "../lib/winpro";
 import Avatar from "./Avatar";
 import Crown from "./Crown";
 import Verified from "./Verified";
+import { getChatThemeColors } from "../lib/themes";
 import { cn } from "../utils/cn";
 
 interface Props {
@@ -25,6 +26,7 @@ interface Props {
   onOpenChatWith: (p: Profile) => void;
   onOpenSettings: () => void;
   onCreateGroup: () => void;
+  onCreateChannel: () => void;
   onOpenAdmin: () => void;
   onOpenTerminal: () => void;
   isAdmin: boolean;
@@ -33,6 +35,17 @@ interface Props {
   /** Выйти из WinChat You. */
   onExitYou?: () => void;
 }
+
+type ChatThemeColors = {
+  accent: string;
+  accentSoft: string;
+  chatBg: string;
+  headerBg: string;
+  border: string;
+  title: string;
+  subtitle: string;
+  activeBg: string;
+};
 
 export default function Sidebar({
   me,
@@ -44,6 +57,7 @@ export default function Sidebar({
   onOpenChatWith,
   onOpenSettings,
   onCreateGroup,
+  onCreateChannel,
   onOpenAdmin,
   onOpenTerminal,
   isAdmin,
@@ -54,6 +68,14 @@ export default function Sidebar({
   const [results, setResults] = useState<Profile[]>([]);
   const [searching, setSearching] = useState(false);
   const debounce = useRef<number | undefined>(undefined);
+  /* Цвета строк под тему (не Material You). */
+  const [colors, setColors] = useState<ChatThemeColors>(() => getChatThemeColors());
+
+  useEffect(() => {
+    const sync = () => setColors(getChatThemeColors());
+    window.addEventListener("winchat-theme-change", sync);
+    return () => window.removeEventListener("winchat-theme-change", sync);
+  }, []);
 
   useEffect(() => {
     const q = query.trim();
@@ -97,7 +119,7 @@ export default function Sidebar({
 
   function preview(chat: ChatItem): string {
     const m = chat.lastMessage;
-    if (!m) return chat.isSaved ? "Личные заметки — хранятся на этом устройстве" : chat.isGroup ? "Группа создана" : "Начните диалог первым";
+    if (!m) return chat.isSaved ? "Личные заметки — хранятся на этом устройстве" : chat.isChannel ? "Канал создан" : chat.isGroup ? "Группа создана" : "Начните диалог первым";
     let who = "";
     if (m.sender_id === me.id) who = "Вы: ";
     else if (chat.isGroup) {
@@ -120,17 +142,28 @@ export default function Sidebar({
         activeChatId === chat.id
           ? youMode
             ? "you-row-selected"
-            : "bg-paper shadow-sm ring-1 ring-black/5"
+            : "shadow-sm ring-1"
           : youMode
             ? "you-row-hover"
-            : "hover:bg-paper/70"
+            : "hover:bg-paper/60"
       )}
+      style={
+        youMode
+          ? undefined
+          : activeChatId === chat.id
+            ? ({
+                background: colors.activeBg,
+                "--tw-ring-color": colors.border,
+              } as React.CSSProperties)
+            : undefined
+      }
     >
       <Avatar
         name={chat.title}
         avatarUrl={chat.avatarUrl}
         seed={chatSeed(chat)}
         group={chat.isGroup}
+        channel={chat.isChannel}
         online={chat.isGroup ? null : onlineIds.has(chat.other?.id ?? "")}
       />
       <div className="min-w-0 flex-1">
@@ -146,28 +179,39 @@ export default function Sidebar({
                 strokeWidth={1.8}
               />
             )}
-            {chat.isGroup && <UsersRound className="mr-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />}
-            <span className="truncate">{chat.title}</span>
+            {chat.isGroup && (
+              chat.isChannel ? (
+                <Megaphone
+                  className="mr-0.5 h-3.5 w-3.5 shrink-0"
+                  style={youMode ? undefined : { color: colors.subtitle }}
+                />
+              ) : (
+                <UsersRound
+                  className="mr-0.5 h-3.5 w-3.5 shrink-0"
+                  style={youMode ? undefined : { color: colors.subtitle }}
+                />
+              )
+            )}
+            <span className="truncate" style={youMode ? undefined : { color: colors.title }}>
+              {chat.title}
+            </span>
+            {chat.verified && <Verified size="xs" level="full" />}
             {!chat.isGroup && !chat.isSaved && isVerified(chat.other) && (
               <Verified size="xs" level={badgeLevel(chat.other)} />
             )}
           </p>
           {chat.lastMessage && (
             <span
-              className={cn(
-                "shrink-0 font-mono text-[10px] font-medium",
-                youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/35"
-              )}
+              className="shrink-0 font-mono text-[10px] font-medium"
+              style={youMode ? undefined : { color: colors.subtitle }}
             >
               {formatTime(chat.lastMessage.created_at)}
             </span>
           )}
         </div>
         <p
-          className={cn(
-            "mt-0.5 flex items-center gap-1 truncate text-[13px] font-medium",
-            youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/45"
-          )}
+          className="mt-0.5 flex items-center gap-1 truncate text-[13px] font-medium"
+          style={youMode ? undefined : { color: colors.subtitle }}
         >
           {chat.lastMessage?.audio_url && <Mic className="h-3 w-3 shrink-0" />}
           <span className="truncate">{preview(chat)}</span>
@@ -180,8 +224,9 @@ export default function Sidebar({
     <aside
       className={cn(
         "flex h-full w-full flex-col md:border-r",
-        youMode ? "you-sidebar" : "border-black/8 bg-white"
+        youMode ? "you-sidebar" : "border-black/8"
       )}
+      style={youMode ? undefined : { background: colors.headerBg, borderColor: colors.border }}
     >
       {/* Шапка */}
       <div className="px-5 pt-5 pb-4">
@@ -217,6 +262,19 @@ export default function Sidebar({
                 <ShieldCheck className="h-4.5 w-4.5" strokeWidth={2} />
               </button>
             )}
+            <button
+              onClick={onCreateChannel}
+              className={cn(
+                "flex items-center justify-center text-white transition active:scale-95",
+                youMode
+                  ? "you-fab-tonal h-10 w-10"
+                  : "h-9 w-9 rounded-xl bg-accent hover:bg-accent/90"
+              )}
+              aria-label="Создать канал"
+              title="Создать канал"
+            >
+              <Megaphone className="h-4.5 w-4.5" strokeWidth={2} />
+            </button>
             <button
               onClick={onCreateGroup}
               className={cn(
@@ -277,8 +335,9 @@ export default function Sidebar({
                 <p
                   className={cn(
                     "px-3 pt-2 pb-1.5 text-[11px] font-bold",
-                    youMode ? "text-[var(--you-on-surface-variant)]" : "font-mono tracking-[0.16em] text-black/35 uppercase"
+                    youMode ? "text-[var(--you-on-surface-variant)]" : "font-mono tracking-[0.16em] uppercase"
                   )}
+                  style={youMode ? undefined : { color: colors.subtitle }}
                 >
                   Чаты
                 </p>
@@ -288,8 +347,9 @@ export default function Sidebar({
             <p
               className={cn(
                 "px-3 pt-4 pb-1.5 text-[11px] font-bold",
-                youMode ? "text-[var(--you-on-surface-variant)]" : "font-mono tracking-[0.16em] text-black/35 uppercase"
+                youMode ? "text-[var(--you-on-surface-variant)]" : "font-mono tracking-[0.16em] uppercase"
               )}
+              style={youMode ? undefined : { color: colors.subtitle }}
             >
               Люди
             </p>
@@ -323,15 +383,15 @@ export default function Sidebar({
                       <Avatar profile={p} online={onlineIds.has(p.id)} />
                       <div className="min-w-0 flex-1">
                           <p className="flex min-w-0 items-center gap-1 text-[15px] font-bold tracking-tight">
-                            <span className="truncate">{p.nickname}</span>
+                            <span className="truncate" style={youMode ? undefined : { color: colors.title }}>
+                              {p.nickname}
+                            </span>
                             {hasWinPro(p) && <Crown size="xs" />}
                             {isVerified(p) && <Verified size="xs" level={badgeLevel(p)} />}
                           </p>
                         <p
-                          className={cn(
-                            "mt-0.5 truncate font-mono text-[12px] font-medium",
-                            youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/45"
-                          )}
+                          className="mt-0.5 truncate font-mono text-[12px] font-medium"
+                          style={youMode ? undefined : { color: colors.subtitle }}
                         >
                           @{p.username}
                         </p>
@@ -380,7 +440,9 @@ export default function Sidebar({
                 strokeWidth={1.6}
               />
             </div>
-            <p className="mt-4 font-bold">Пока пусто</p>
+            <p className="mt-4 font-bold" style={youMode ? undefined : { color: colors.title }}>
+              Пока пусто
+            </p>
             <p
               className={cn(
                 "mt-1 text-[13px] leading-relaxed font-medium",
@@ -389,18 +451,32 @@ export default function Sidebar({
             >
               Найдите человека через поиск или соберите группу
             </p>
-            <button
-              onClick={onCreateGroup}
-              className={cn(
-                "mt-4 flex items-center gap-2 px-5 py-3 text-sm font-bold transition active:scale-95",
-                youMode
-                  ? "you-pill-primary"
-                  : "rounded-xl bg-ink text-white hover:bg-black"
-              )}
-            >
-              <UsersRound className="h-4 w-4" />
-              Создать группу
-            </button>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button
+                onClick={onCreateGroup}
+                className={cn(
+                  "flex items-center gap-2 px-5 py-3 text-sm font-bold transition active:scale-95",
+                  youMode
+                    ? "you-pill-primary"
+                    : "rounded-xl bg-ink text-white hover:bg-black"
+                )}
+              >
+                <UsersRound className="h-4 w-4" />
+                Создать группу
+              </button>
+              <button
+                onClick={onCreateChannel}
+                className={cn(
+                  "flex items-center gap-2 px-5 py-3 text-sm font-bold transition active:scale-95",
+                  youMode
+                    ? "you-fab-tonal"
+                    : "rounded-xl bg-accent text-white hover:bg-accent/90"
+                )}
+              >
+                <Megaphone className="h-4 w-4" />
+                Создать канал
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -424,14 +500,14 @@ export default function Sidebar({
           <Avatar profile={me} online size="sm" />
           <div className="min-w-0 flex-1">
             <p className="flex min-w-0 items-center gap-1 text-sm font-bold tracking-tight">
-              <span className="truncate">{me.nickname}</span>
+              <span className="truncate" style={youMode ? undefined : { color: colors.title }}>
+                {me.nickname}
+              </span>
               {isVerified(me) && <Verified size="xs" level={badgeLevel(me)} />}
             </p>
             <p
-              className={cn(
-                "truncate font-mono text-[11px] font-medium",
-                youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/40"
-              )}
+              className="truncate font-mono text-[11px] font-medium"
+              style={youMode ? undefined : { color: colors.subtitle }}
             >
               @{me.username}
             </p>

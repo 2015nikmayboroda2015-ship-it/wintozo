@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Check, CircleAlert, Loader2, Search, Users, X } from "lucide-react";
+import { Camera, Check, CircleAlert, Loader2, Megaphone, Search, Users, X } from "lucide-react";
 import { isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
 import { uuid, validateBio, validateGroupTitle } from "../lib/utils";
 import { filesUpload } from "../lib/blobStorage";
@@ -9,11 +9,14 @@ import { cn } from "../utils/cn";
 
 interface Props {
   me: Profile;
+  /** group — обычная группа, channel — канал (писать смогут только админы). */
+  mode?: "group" | "channel";
   onClose: () => void;
   onCreated: (chatId: string) => void;
 }
 
-export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
+export default function CreateGroupModal({ me, mode = "group", onClose, onCreated }: Props) {
+  const isChannel = mode === "channel";
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -73,44 +76,87 @@ export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
     if (tErr) return setError(tErr);
     const dErr = validateBio(description);
     if (dErr) return setError(dErr);
-    if (picked.length === 0) return setError("Добавьте хотя бы одного участника");
+    if (!isChannel && picked.length === 0) return setError("Добавьте хотя бы одного участника");
 
     setError(null);
     setBusy(true);
     try {
-      const chatId = uuid();
-      let avatar_url: string | null = null;
+      let chatId = "";
 
-      if (avatarFile) {
-        const ext = (avatarFile.name.split(".").pop() || "png").toLowerCase();
-        const path = `${chatId}/cover.${ext}`;
-        try {
-          avatar_url = `${await filesUpload("avatars", path, avatarFile, avatarFile.type)}?t=${Date.now()}`;
-        } catch {
-          avatar_url = null;
+      if (isChannel) {
+        // Канал создаётся серверным RPC: любой пользователь может создать канал.
+        const { data, error: chErr } = await supabase.rpc("create_winchat_ch", {
+          _creator_id: me.id,
+          _title: title.trim(),
+          _description: description.trim() || null,
+          _avatar_url: null,
+        });
+        if (chErr) throw chErr;
+        const chRes = data as { ok: boolean; chat_id?: string; error?: string };
+        if (!chRes.ok || !chRes.chat_id) {
+          throw new Error(chRes.error || "Не удалось создать канал");
         }
+        chatId = chRes.chat_id;
+
+        if (avatarFile) {
+          const ext = (avatarFile.name.split(".").pop() || "png").toLowerCase();
+          const path = `${chatId}/cover.${ext}`;
+          try {
+            const avatar_url = `${await filesUpload("avatars", path, avatarFile, avatarFile.type)}?t=${Date.now()}`;
+            await supabase.rpc("edit_wintozo_channel", {
+              _user_id: me.id,
+              _chat_id: chatId,
+              _title: null,
+              _description: null,
+              _avatar_url: avatar_url,
+              _verified: null,
+              _is_official: null,
+            });
+          } catch {
+            // Обложка не критична — канал уже создан.
+          }
+        }
+      } else {
+        chatId = uuid();
+        let avatar_url: string | null = null;
+
+        if (avatarFile) {
+          const ext = (avatarFile.name.split(".").pop() || "png").toLowerCase();
+          const path = `${chatId}/cover.${ext}`;
+          try {
+            avatar_url = `${await filesUpload("avatars", path, avatarFile, avatarFile.type)}?t=${Date.now()}`;
+          } catch {
+            avatar_url = null;
+          }
+        }
+
+        const { error: cErr } = await supabase.from("chats").insert({
+          id: chatId,
+          is_group: true,
+          is_channel: false,
+          title: title.trim(),
+          description: description.trim() || null,
+          avatar_url,
+          created_by: me.id,
+        });
+        if (cErr) throw cErr;
+
+        await supabase.from("chat_members").insert({
+          chat_id: chatId,
+          user_id: me.id,
+          role: "owner",
+        });
       }
 
-      const { error: cErr } = await supabase.from("chats").insert({
-        id: chatId,
-        is_group: true,
-        title: title.trim(),
-        description: description.trim() || null,
-        avatar_url,
-        created_by: me.id,
-      });
-      if (cErr) throw cErr;
-
-      await supabase.from("chat_members").insert({
-        chat_id: chatId,
-        user_id: me.id,
-        role: "owner",
-      });
       for (const p of picked) {
-        await supabase.from("chat_members").insert({ chat_id: chatId, user_id: p.id });
+        await supabase.from("chat_members").insert({
+          chat_id: chatId,
+          user_id: p.id,
+          role: isChannel ? "subscriber" : "member",
+        });
       }
 
-      // Уведомляем участников, чтобы группа появилась у них сразу
+      // Уведомляем участников, чтобы чат появился у них сразу
       picked.forEach((p) => {
         const ping = supabase.channel(`user:${p.id}`);
         ping.subscribe((status) => {
@@ -122,8 +168,14 @@ export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
       });
 
       onCreated(chatId);
-    } catch {
-      setError("Не удалось создать группу. Проверьте, что SQL обновления выполнен.");
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : isChannel
+            ? "Не удалось создать канал. Проверьте, что SQL обновления выполнен."
+            : "Не удалось создать группу. Проверьте, что SQL обновления выполнен."
+      );
     } finally {
       setBusy(false);
     }
@@ -139,8 +191,12 @@ export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
       <div className="animate-scale-in relative flex max-h-[88vh] w-full max-w-md flex-col rounded-[28px] bg-white shadow-2xl">
         <div className="flex items-center justify-between px-6 pt-6 sm:px-7">
           <h3 className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
-            <Users className="h-5 w-5" strokeWidth={2} />
-            Новая группа
+            {isChannel ? (
+              <Megaphone className="h-5 w-5" strokeWidth={2} />
+            ) : (
+              <Users className="h-5 w-5" strokeWidth={2} />
+            )}
+            {isChannel ? "Новый канал" : "Новая группа"}
           </h3>
           <button
             onClick={onClose}
@@ -156,10 +212,11 @@ export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
           <div className="flex items-center gap-4">
             <div className="group relative">
               <Avatar
-                name={title || "Группа"}
+                name={title || (isChannel ? "Канал" : "Группа")}
                 avatarUrl={avatarPreview}
                 seed={title || "group"}
                 group={!title}
+                channel={isChannel}
                 size="lg"
               />
               <button
@@ -187,7 +244,7 @@ export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Название группы"
+              placeholder={isChannel ? "Название канала" : "Название группы"}
               className="w-full rounded-xl border border-black/10 bg-paper px-4 py-3 text-[15px] font-semibold outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/15"
             />
           </div>
@@ -200,7 +257,7 @@ export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
               value={description}
               onChange={(e) => setDescription(e.target.value.slice(0, 160))}
               rows={2}
-              placeholder="О чём эта группа"
+              placeholder={isChannel ? "О чём этот канал" : "О чём эта группа"}
               className="w-full resize-none rounded-xl border border-black/10 bg-paper px-4 py-3 text-sm font-medium outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/15"
             />
             <p className="mt-1 text-right font-mono text-[10px] text-black/35">
@@ -231,7 +288,7 @@ export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Добавить участников"
+              placeholder={isChannel ? "Добавить подписчиков" : "Добавить участников"}
               className="w-full rounded-xl border border-black/10 bg-paper py-2.5 pr-4 pl-10 text-sm font-medium outline-none transition focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10"
             />
           </div>
@@ -287,7 +344,7 @@ export default function CreateGroupModal({ me, onClose, onCreated }: Props) {
             disabled={busy}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink py-3.5 text-[15px] font-bold text-white transition hover:bg-black active:scale-[0.99] disabled:opacity-60"
           >
-            {busy ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Создать группу"}
+            {busy ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : isChannel ? "Создать канал" : "Создать группу"}
           </button>
         </div>
       </div>

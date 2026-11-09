@@ -3,12 +3,15 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   ArrowLeft,
   ArrowUp,
+  Check,
   CircleAlert,
   ImagePlus,
   Info,
   Loader2,
+  Megaphone,
   MessageCircle,
   Mic,
+  Pencil,
   Star,
   Trash2,
   Users,
@@ -16,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import {
+  canPostInChat,
   chatSeed,
   isVerified,
   supabase,
@@ -82,6 +86,9 @@ export default function ChatView({
   const [sendError, setSendError] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [hasText, setHasText] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const uncontrolledText = useRef("");
   /** Актуальный список сообщений — для синхронного сохранения локальных заметок. */
@@ -120,6 +127,8 @@ export default function ChatView({
   const online = chat.isGroup
     ? chat.members.some((p) => p.id !== me.id && onlineIds.has(p.id))
     : !!chat.other && onlineIds.has(chat.other.id);
+  /** В каналах писать могут только владелец/админы (и глобальный @admin). */
+  const canPost = canPostInChat(chat, me);
 
   /** Получить уровень галочки для профиля */
   const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
@@ -206,6 +215,15 @@ export default function ChatView({
       )
       .on(
         "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
+        (payload) => {
+          const m = payload.new as Message;
+          setMessages((prev) => prev.map((x) => (x.id === m.id ? m : x)));
+          // Не трогаем превью в сайдбаре: изменено может быть не последнее сообщение.
+        }
+      )
+      .on(
+        "postgres_changes",
         { event: "DELETE", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
         (payload) => {
           const id = (payload.old as { id?: string }).id;
@@ -283,6 +301,7 @@ export default function ChatView({
     // uncontrolledText может быть устаревшим, пока не сработает compositionend.
     const content = (ta?.value ?? uncontrolledText.current).trim();
     if (!content && !opts?.image && !opts?.audio && !opts?.video) return;
+    if (!canPost) return flashError("В канале писать могут только администраторы");
     if (sending) return;
     setSending(true);
     try {
@@ -626,8 +645,71 @@ export default function ChatView({
       .then(() => undefined);
   }
 
+  /* ---------- редактирование сообщений ---------- */
+  function startEdit(m: Message) {
+    setEditingId(m.id);
+    setEditingText(m.content ?? "");
+    setSendError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditingText("");
+  }
+
+  async function saveEdit(m: Message) {
+    const text = editingText.trim();
+    if (!text && !m.image_url && !m.audio_url && !m.video_url) {
+      return flashError("Сообщение не может быть пустым");
+    }
+    setEditBusy(true);
+    try {
+      if (chat.isSaved) {
+        const editedAt = new Date().toISOString();
+        const next = messagesRef.current.map((x) =>
+          x.id === m.id ? { ...x, content: text || null, edited_at: editedAt } : x
+        );
+        messagesRef.current = next;
+        persistSavedNotes(me.id, next);
+        setMessages(next);
+        notifySavedNotesChanged(me.id);
+        cancelEdit();
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("edit_wintozo_message", {
+        _user_id: me.id,
+        _message_id: m.id,
+        _content: text,
+      });
+      if (error) throw error;
+
+      const res = data as {
+        ok: boolean;
+        content?: string | null;
+        edited_at?: string;
+        error?: string;
+      };
+      if (!res.ok) return flashError(res.error || "Не удалось изменить сообщение");
+
+      const editedAt = res.edited_at ?? new Date().toISOString();
+      setMessages((prev) =>
+        prev.map((x) =>
+          x.id === m.id
+            ? { ...x, content: res.content ?? (text || null), edited_at: editedAt }
+            : x
+        )
+      );
+      cancelEdit();
+    } catch {
+      flashError("Не удалось изменить сообщение");
+    } finally {
+      setEditBusy(false);
+    }
+  }
+
   function notifyTyping() {
-    if (chat.isSaved) return;
+    if (chat.isSaved || !canPost) return;
     const now = Date.now();
     if (now - lastTypingSent.current < 1500) return;
     lastTypingSent.current = now;
@@ -698,13 +780,24 @@ export default function ChatView({
           ))}
 
         {own && (
-          <button
-            onClick={() => removeMessage(m.id)}
-            className="mb-2 rounded-full p-1.5 text-black/25 opacity-100 transition hover:bg-red-500/10 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100"
-            aria-label="Удалить сообщение"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          <div className="mb-2 flex items-center gap-0.5 opacity-100 transition md:opacity-0 md:group-hover:opacity-100">
+            {m.content && (
+              <button
+                onClick={() => startEdit(m)}
+                className="rounded-full p-1.5 text-black/25 transition hover:bg-accent/10 hover:text-accent"
+                aria-label="Редактировать сообщение"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <button
+              onClick={() => removeMessage(m.id)}
+              className="rounded-full p-1.5 text-black/25 transition hover:bg-red-500/10 hover:text-red-500"
+              aria-label="Удалить сообщение"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         )}
 
         <div className="animate-msg-in max-w-[78%] sm:max-w-[65%]">
@@ -782,23 +875,73 @@ export default function ChatView({
               </button>
             )}
 
-            {m.content && (
-              <p
+            {editingId === m.id ? (
+              <div
                 className={cn(
-                  "break-words whitespace-pre-wrap",
-                  (m.image_url || m.audio_url || m.video_url) && "px-2.5 pt-1.5 pb-1"
+                  "px-2.5 pt-1.5 pb-1",
+                  !(m.image_url || m.audio_url || m.video_url) && "px-3"
                 )}
               >
-                {m.content}
-                <span
+                <textarea
+                  value={editingText}
+                  onChange={(e) => setEditingText(e.target.value)}
+                  rows={Math.min(5, Math.max(2, Math.ceil(editingText.length / 42)))}
+                  autoFocus
                   className={cn(
-                    "float-right mt-3 ml-3 font-mono text-[10px]",
-                    own ? "text-white/45" : "text-black/35"
+                    "w-full resize-none rounded-xl px-2.5 py-2 text-[14px] font-medium outline-none",
+                    own
+                      ? "bg-white/10 text-white placeholder:text-white/40"
+                      : "bg-paper text-ink placeholder:text-black/35"
+                  )}
+                  placeholder="Текст сообщения"
+                />
+                <div className="mt-1.5 flex justify-end gap-1.5">
+                  <button
+                    onClick={cancelEdit}
+                    className={cn(
+                      "rounded-lg px-2.5 py-1 text-[11px] font-bold transition",
+                      own ? "text-white/70 hover:bg-white/10" : "text-black/50 hover:bg-black/5"
+                    )}
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={() => saveEdit(m)}
+                    disabled={editBusy}
+                    className={cn(
+                      "flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition disabled:opacity-50",
+                      own ? "bg-white text-ink hover:bg-white/90" : "bg-ink text-white hover:bg-black"
+                    )}
+                  >
+                    {editBusy ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Check className="h-3 w-3" />
+                    )}
+                    Сохранить
+                  </button>
+                </div>
+              </div>
+            ) : (
+              m.content && (
+                <p
+                  className={cn(
+                    "break-words whitespace-pre-wrap",
+                    (m.image_url || m.audio_url || m.video_url) && "px-2.5 pt-1.5 pb-1"
                   )}
                 >
-                  {formatTime(m.created_at)}
-                </span>
-              </p>
+                  {m.content}
+                  <span
+                    className={cn(
+                      "float-right mt-3 ml-3 font-mono text-[10px]",
+                      own ? "text-white/45" : "text-black/35"
+                    )}
+                  >
+                    {formatTime(m.created_at)}
+                    {m.edited_at ? " · изм." : ""}
+                  </span>
+                </p>
+              )
             )}
 
             {m.audio_url && !m.content && (
@@ -821,6 +964,8 @@ export default function ChatView({
     "Личные заметки — хранятся на этом устройстве"
   ) : typingName ? (
     <TypingLabel who={chat.isGroup ? typingName || undefined : undefined} />
+  ) : chat.isChannel ? (
+    `${chat.members.length} подписчиков${canPost ? "" : " · только администраторы пишут"}`
   ) : chat.isGroup ? (
     `${chat.members.length} участников`
   ) : online ? (
@@ -862,6 +1007,7 @@ export default function ChatView({
             avatarUrl={chat.avatarUrl}
             seed={chatSeed(chat)}
             group={chat.isGroup}
+            channel={chat.isChannel}
             online={chat.isGroup || chat.isSaved ? null : online}
           />
           <div className="min-w-0 flex-1">
@@ -873,8 +1019,15 @@ export default function ChatView({
                   strokeWidth={1.8}
                 />
               )}
-              {chat.isGroup && <Users className="mr-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />}
+              {chat.isGroup && (
+                chat.isChannel ? (
+                  <Megaphone className="mr-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />
+                ) : (
+                  <Users className="mr-0.5 h-3.5 w-3.5 shrink-0 text-black/40" />
+                )
+              )}
               <span className="truncate">{chat.title}</span>
+              {chat.verified && <Verified size="sm" level="full" />}
               {!chat.isGroup && !chat.isSaved && isVerified(chat.other) && (
                 <Verified size="sm" level={badgeLevel(chat.other)} />
               )}
@@ -960,9 +1113,13 @@ export default function ChatView({
               >
                 {chat.isSaved
                   ? "Пишите сюда всё, что не хотите потерять. Заметки хранятся только на этом устройстве."
-                  : chat.isGroup
-                    ? `Начните обсуждение в группе «${chat.title}»`
-                    : `Напишите первым — ${chat.title} будет приятно`}
+                  : chat.isChannel
+                    ? canPost
+                      ? `Напишите первое сообщение в канале «${chat.title}»`
+                      : `В канале «${chat.title}» пока нет сообщений`
+                    : chat.isGroup
+                      ? `Начните обсуждение в группе «${chat.title}»`
+                      : `Напишите первым — ${chat.title} будет приятно`}
               </p>
             </div>
           ) : (
@@ -989,7 +1146,12 @@ export default function ChatView({
             </p>
           )}
 
-          {videoRecording ? (
+          {!canPost ? (
+            <div className="flex items-center justify-center gap-2 rounded-[22px] border border-black/8 bg-black/[0.03] px-4 py-4 text-center text-[13px] font-semibold text-black/45">
+              <Megaphone className="h-4 w-4 shrink-0" />
+              Только администраторы канала могут писать
+            </div>
+          ) : videoRecording ? (
             /* --- Панель записи видеокружка --- */
             <div className="animate-fade-in flex items-center gap-3 rounded-[22px] border border-purple-500/25 bg-purple-500/8 px-4 py-2.5">
               {/* Миниатюра превью */}
@@ -1213,9 +1375,11 @@ export default function ChatView({
                 ? "загрузка вложения…"
                 : recording
                   ? "идёт запись — нажмите стрелку, чтобы отправить"
-                  : chat.isSaved
-                    ? "Заметки видны только вам и хранятся на этом устройстве"
-                    : "Enter — отправить · микрофон — голосовое"}
+                  : !canPost
+                    ? "Писать в канал могут только администраторы"
+                    : chat.isSaved
+                      ? "Заметки видны только вам и хранятся на этом устройстве"
+                      : "Enter — отправить · микрофон — голосовое"}
           </p>
         </div>
       </footer>

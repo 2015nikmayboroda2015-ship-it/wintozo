@@ -1,6 +1,7 @@
-import { Users } from "lucide-react";
+import { Megaphone, Users } from "lucide-react";
 import type { Profile } from "../lib/supabase";
 import { hasWinPro } from "../lib/winpro";
+import { badgeCodes, BADGE_IMAGES, BADGE_LABELS } from "../lib/badges";
 import { avatarGradient, initials } from "../lib/utils";
 import { cn } from "../utils/cn";
 import Crown from "./Crown";
@@ -34,12 +35,16 @@ interface Props {
   avatarUrl?: string | null;
   seed?: string;
   group?: boolean;
+  /** Канал — вместо иконки группы показываем рупор. */
+  channel?: boolean;
   size?: keyof typeof SIZES;
   /** null — не показывать индикатор присутствия */
   online?: boolean | null;
   className?: string;
   /** Показывать ли корону WinPro */
   showWinPro?: boolean;
+  /** Явно переданные бейджи (если нужны не из профиля). */
+  badges?: number[] | null;
 }
 
 export default function Avatar({
@@ -48,15 +53,18 @@ export default function Avatar({
   avatarUrl,
   seed,
   group = false,
+  channel = false,
   size = "md",
   online = null,
   className,
   showWinPro,
+  badges,
 }: Props) {
   const label = name ?? profile?.nickname ?? "W";
   const url = avatarUrl !== undefined ? avatarUrl : (profile?.avatar_url ?? null);
   const gradSeed = seed ?? profile?.username ?? label ?? "winchat";
   const showCrown = showWinPro ?? hasWinPro(profile);
+  const codes = badges ?? badgeCodes(profile);
 
   return (
     <div className={cn("relative shrink-0", className)}>
@@ -75,7 +83,11 @@ export default function Avatar({
             className="h-full w-full object-cover"
           />
         ) : group ? (
-          <Users className={ICON[size]} strokeWidth={1.9} />
+          channel ? (
+            <Megaphone className={ICON[size]} strokeWidth={1.9} />
+          ) : (
+            <Users className={ICON[size]} strokeWidth={1.9} />
+          )
         ) : (
           initials(label)
         )}
@@ -93,6 +105,19 @@ export default function Avatar({
         <span className="absolute -top-1.5 -right-1.5 drop-shadow-lg">
           <Crown size="xs" className="h-4 w-4" />
         </span>
+      )}
+      {codes.length > 0 && (
+        <div className="absolute -top-1.5 -left-1.5 z-10 flex">
+          {codes.slice(0, 3).map((code, i) => (
+            <img
+              key={code}
+              src={BADGE_IMAGES[code]}
+              alt={BADGE_LABELS[code]}
+              draggable={false}
+              className={cn("h-6 w-6 object-contain ring-2 ring-white shadow-md", i > 0 && "-ml-2")}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

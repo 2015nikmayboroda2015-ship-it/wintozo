@@ -57,7 +57,7 @@ export default function YouLocked({ me, onBack, onGetWinPro }: Props) {
 
           <div className="mt-7 space-y-2.5 text-left">
             {[
-              "6 динамических палитр — как обои рабочего стола",
+              "10 динамических палитр — как обои рабочего стола",
               "Отдельный маршрут /themes/you/chat",
               "Крупные формы, тональные поверхности и аккуратные акценты",
             ].map((text) => (

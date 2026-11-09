@@ -22,6 +22,8 @@ export interface Profile {
   verify_status?: VerifyLevel;
   winpass?: string | null;
   winpro_until?: string | null;
+  /** Выданные бейджи: коды через запятую, например «1» или «1,2». */
+  badges?: string | null;
   created_at: string;
 }
 
@@ -59,6 +61,8 @@ export interface Message {
   video_url: string | null;
   video_duration: number | null;
   created_at: string;
+  /** Когда сообщение было отредактировано (null — не редактировалось). */
+  edited_at?: string | null;
 }
 
 export interface ChatRow {
@@ -70,11 +74,27 @@ export interface ChatRow {
   avatar_url: string | null;
   created_by: string | null;
   updated_at: string;
+  /** Канал: писать могут только владелец/админы. */
+  is_channel?: boolean | null;
+  /** Официальный канал WinChat — на него подписаны все, нельзя отписаться. */
+  is_official?: boolean | null;
+  /** Синяя галочка канала/группы. */
+  verified?: boolean | null;
 }
 
 export interface ChatItem {
   id: string;
   isGroup: boolean;
+  /** Канал: писать могут только владелец/админы. */
+  isChannel?: boolean;
+  /** Официальный канал WinChat (все подписаны, отписка запрещена). */
+  isOfficial?: boolean;
+  /** Синяя галочка канала/группы. */
+  verified?: boolean;
+  /** Роль текущего пользователя в чате: owner/admin/subscriber/member. */
+  myRole?: string | null;
+  /** Роли участников: user_id → role. */
+  memberRoles?: Record<string, string>;
   /** Отображаемое имя: никнейм собеседника или название группы */
   title: string;
   description: string | null;
@@ -88,6 +108,26 @@ export interface ChatItem {
   /** Личный чат «Избранное» — заметки, которые видит только владелец. */
   isSaved?: boolean;
 }
+
+/** Глобальный администратор WinChat (@admin). */
+export const isGlobalAdmin = (p?: Profile | null): boolean =>
+  !!p && p.username.toLowerCase() === "admin";
+
+/** Может ли пользователь писать в этот чат (в каналах — только админы). */
+export const canPostInChat = (chat: ChatItem, me?: Profile | null): boolean => {
+  if (!chat.isChannel) return true;
+  if (isGlobalAdmin(me)) return true;
+  if (chat.myRole === "owner" || chat.myRole === "admin") return true;
+  return !!me && chat.ownerId === me.id;
+};
+
+/** Может ли пользователь управлять группой/каналом. */
+export const canManageChat = (chat: ChatItem, me?: Profile | null): boolean => {
+  if (!me) return false;
+  if (isGlobalAdmin(me)) return true;
+  if (chat.ownerId === me.id) return true;
+  return !!chat.isChannel && (chat.myRole === "owner" || chat.myRole === "admin");
+};
 
 /** Ключ для градиента аватара */
 export const chatSeed = (c: ChatItem) =>

@@ -5,8 +5,8 @@
  */
 import { supabase } from "./supabase";
 
-/** Текущая версия клиента. Синхронизирована с GitHub Release v3.0.0. */
-export const APP_VERSION = "3.1.2";
+/** Текущая версия клиента. Синхронизирована с GitHub Release v4.0.0. */
+export const APP_VERSION = "4.0.0";
 
 /** Ссылка на APK в релизах GitHub. */
 export const DOWNLOAD_URL = "https://github.com/NikitaDev2015/wintozo/releases/latest";
@@ -24,36 +24,48 @@ const LEGACY_MIN = "1.0.0";
 /** Верхняя граница диапазона «старой» версии (включительно). */
 const LEGACY_MAX = "2.0.1";
 
-/** Разобрать "3.0.1" → [3,0,1]. Неполные части → 0. */
+/** Разобрать "4.0.0" → [4,0,0]. Неполные части → 0. */
 function parseVersion(v: string): number[] {
   return v.trim().split(".").map((x) => parseInt(x, 10) || 0);
 }
 
-/** true, если remote строго новее local (сравнение по частям). */
-export function isVersionNewer(remote: string, local: string): boolean {
-  const r = parseVersion(remote);
-  const l = parseVersion(local);
-  const len = Math.max(r.length, l.length);
+/** Выделить числовую часть и пререлизный суффикс.
+ *  "4.0.0-beta+build12" → core [4,0,0], pre "beta". */
+function splitVersion(v: string): { core: number[]; pre: string | null } {
+  const clean = (v || "").trim().split("+")[0];
+  const dash = clean.indexOf("-");
+  const coreStr = dash >= 0 ? clean.slice(0, dash) : clean;
+  const pre = dash >= 0 ? clean.slice(dash + 1) : null;
+  return { core: parseVersion(coreStr), pre: pre && pre.length ? pre : null };
+}
+
+/** Полное сравнение версий (с пререлизами по semver):
+ *  4.0.0-beta < 4.0.0; "4.0.0-aa" < "4.0.0-ab" (лексикографически). */
+function compareFullVersions(a: number[], b: number[], preA: string | null, preB: string | null): number {
+  const len = Math.max(a.length, b.length);
   for (let i = 0; i < len; i++) {
-    const a = r[i] ?? 0;
-    const b = l[i] ?? 0;
-    if (a > b) return true;
-    if (a < b) return false;
+    const x = a[i] ?? 0;
+    const y = b[i] ?? 0;
+    if (x !== y) return x > y ? 1 : -1;
   }
-  return false;
+  if (preA && !preB) return -1;
+  if (!preA && preB) return 1;
+  if (preA && preB) return preA < preB ? -1 : preA > preB ? 1 : 0;
+  return 0;
+}
+
+/** true, если remote строго новее local (сравнение по частям, с пререлизами). */
+export function isVersionNewer(remote: string, local: string): boolean {
+  const r = splitVersion(remote);
+  const l = splitVersion(local);
+  return compareFullVersions(r.core, l.core, r.pre, l.pre) > 0;
 }
 
 /** Сравнение версий: -1 | 0 | 1. */
 function compareVersions(a: string, b: string): number {
-  const pa = parseVersion(a);
-  const pb = parseVersion(b);
-  const len = Math.max(pa.length, pb.length);
-  for (let i = 0; i < len; i++) {
-    const x = pa[i] ?? 0;
-    const y = pb[i] ?? 0;
-    if (x !== y) return x > y ? 1 : -1;
-  }
-  return 0;
+  const ra = splitVersion(a);
+  const rb = splitVersion(b);
+  return compareFullVersions(ra.core, rb.core, ra.pre, rb.pre);
 }
 
 /** Попадает ли серверная версия в диапазон «Памяти о Wintozo». */
@@ -180,14 +192,18 @@ export interface ChangelogEntry {
 
 /** Что нового в текущих версиях (пополняется с каждым релизом). */
 export const CHANGELOGS: Record<string, ChangelogEntry> = {
-  "3.0.0": {
-    version: "3.0.0",
-    title: "В версии 3.0.0 были добавлены функции",
+  "4.0.0": {
+    version: "4.0.0",
+    title: "В версии 4.0.0 были добавлены функции",
     items: [
-      "WinPro — обновленная и улучшенная версия Wintozo Pro",
-      "Кастомные темы",
-      "Верификации",
-      "Группы",
+      "1. Добавлен WinChat You (Material Design интерфейс)",
+      "2. Выход из бета-тестирования ! Лучшие тестеры : @spidi390 , @markol",
+      "3. Исправлены баги",
+      "4. Отправка видео",
+      "5. Отправка видео-кружков",
+      "6. OTA-Обновления",
+      "7. Каналы и их редактирование",
+      "8. Редактирование сообщений",
     ],
   },
 };

@@ -217,7 +217,6 @@ export default function CheckVersion() {
                   <ul className="mt-3 space-y-2">
                     {entry.items.map((item: string) => (
                       <li key={item} className="flex items-start gap-2 text-sm font-semibold text-ink">
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                         {item}
                       </li>
                     ))}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bell, Camera, Check, CircleAlert, History, Loader2, Lock, LogOut, Palette, Sparkles, ShieldCheck, User, X } from "lucide-react";
 import { isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
 import { filesUpload } from "../lib/blobStorage";
+import { badgeCodes, BADGE_IMAGES, BADGE_LABELS } from "../lib/badges";
 import { normalizeWinpass, validateBio, validateNickname, validatePassword } from "../lib/utils";
 import Avatar from "./Avatar";
 import Crown from "./Crown";
@@ -235,6 +236,7 @@ export default function SettingsModal({
 
   const showTab = (t: Tab) => (activeTab === t ? "animate-fade-in" : "hidden");
   const you = youMode || currentId === YOU_THEME_ID;
+  const myBadges = badgeCodes(me);
 
   return (
     <div className="font-app fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
@@ -372,6 +374,24 @@ export default function SettingsModal({
                   <Verified size="xs" className="h-3 w-3" level={badgeLevel(me)} />
                   Подтверждённый аккаунт
                 </p>
+              )}
+              {myBadges.length > 0 && (
+                <div className="mt-4 flex flex-col items-center">
+                  <div className="flex items-center gap-2">
+                    {myBadges.map((code) => (
+                      <img
+                        key={code}
+                        src={BADGE_IMAGES[code]}
+                        alt={BADGE_LABELS[code]}
+                        className="h-10 w-10 rounded-full object-contain ring-1 ring-black/10"
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-2 font-mono text-[11px] font-semibold tracking-[0.16em] text-black/45 uppercase">
+                    Бейджи
+                  </p>
+                  <p className="mt-0.5 font-bold">{myBadges.map((c) => BADGE_LABELS[c]).join(", ")}</p>
+                </div>
               )}
             </div>
 

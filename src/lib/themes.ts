@@ -25,6 +25,8 @@ export const THEMES = [
     otherMsg: "#ffffff",
     otherMsgText: "#101214",
     otherMsgBorder: "rgba(0,0,0,0.08)",
+    chatTitle: "#101214",
+    chatSubtitle: "rgba(16,18,20,0.45)",
   },
   {
     id: "ocean",
@@ -42,6 +44,8 @@ export const THEMES = [
     otherMsg: "#ffffff",
     otherMsgText: "#0c4a6e",
     otherMsgBorder: "rgba(6,182,212,0.15)",
+    chatTitle: "#075985",
+    chatSubtitle: "rgba(6,74,110,0.45)",
   },
   {
     id: "sunset",
@@ -59,6 +63,8 @@ export const THEMES = [
     otherMsg: "#ffffff",
     otherMsgText: "#431407",
     otherMsgBorder: "rgba(249,115,22,0.12)",
+    chatTitle: "#431407",
+    chatSubtitle: "rgba(67,20,7,0.45)",
   },
 ] as const;
 
@@ -80,6 +86,8 @@ export const WINPRO_THEMES = [
     otherMsg: "#ffffff",
     otherMsgText: "#2b2416",
     otherMsgBorder: "rgba(184,134,11,0.22)",
+    chatTitle: "#2b2416",
+    chatSubtitle: "rgba(43,36,22,0.45)",
   },
   {
     id: "neon-aurora",
@@ -97,6 +105,8 @@ export const WINPRO_THEMES = [
     otherMsg: "#ffffff",
     otherMsgText: "#06301f",
     otherMsgBorder: "rgba(0,168,107,0.18)",
+    chatTitle: "#06301f",
+    chatSubtitle: "rgba(6,48,31,0.45)",
   },
   {
     id: "royal-purple",
@@ -114,6 +124,8 @@ export const WINPRO_THEMES = [
     otherMsg: "#ffffff",
     otherMsgText: "#2a1a4a",
     otherMsgBorder: "rgba(124,58,237,0.18)",
+    chatTitle: "#2a1a4a",
+    chatSubtitle: "rgba(42,26,74,0.45)",
   },
   {
     id: YOU_THEME_ID,
@@ -159,6 +171,59 @@ export function isWinProTheme(id: string): boolean {
 /** Проверить, что включён режим WinChat You (Material You) */
 export function isYouTheme(id: string): boolean {
   return id === YOU_THEME_ID;
+}
+
+export interface ChatThemeColors {
+  accent: string;
+  accentSoft: string;
+  chatBg: string;
+  headerBg: string;
+  border: string;
+  title: string;
+  subtitle: string;
+  activeBg: string;
+}
+
+/** Цвета строк сайдбара под текущую тему (в You-режиме — из CSS-переменных). */
+export function getChatThemeColors(): ChatThemeColors {
+  const t = getCurrentTheme();
+  try {
+    if (isYouTheme(t.id)) {
+      const style = getComputedStyle(document.documentElement);
+      const v = (name: string) => style.getPropertyValue(name).trim();
+      return {
+        accent: v("--you-primary"),
+        accentSoft: v("--you-primary-container"),
+        chatBg: v("--you-surface"),
+        headerBg: v("--you-surface-low"),
+        border: v("--you-outline-variant"),
+        title: v("--you-on-surface"),
+        subtitle: v("--you-on-surface-variant"),
+        activeBg: v("--you-secondary-container"),
+      };
+    }
+  } catch {
+    /* no-op */
+  }
+  const c = t as {
+    accent: string;
+    accentSoft?: string;
+    chatBg?: string;
+    headerBg?: string;
+    border?: string;
+    chatTitle?: string;
+    chatSubtitle?: string;
+  };
+  return {
+    accent: c.accent,
+    accentSoft: c.accentSoft || c.accent,
+    chatBg: c.chatBg || "#f5f5f2",
+    headerBg: c.headerBg || "#ffffff",
+    border: c.border || "rgba(0,0,0,0.08)",
+    title: c.chatTitle || "#101214",
+    subtitle: c.chatSubtitle || "rgba(16,18,20,0.45)",
+    activeBg: c.accentSoft || c.accent,
+  };
 }
 
 /** Получить текущую тему из localStorage (id сохраняется при выборе) */

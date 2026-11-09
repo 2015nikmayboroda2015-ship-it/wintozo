@@ -31,6 +31,11 @@ function buildSavedChat(userId: string): ChatItem {
   return {
     id: SAVED_CHAT_ID,
     isGroup: false,
+    isChannel: false,
+    isOfficial: false,
+    verified: false,
+    myRole: "owner",
+    memberRoles: {},
     title: "Избранное",
     description: "Личные заметки — хранятся на этом устройстве",
     avatarUrl: null,
@@ -122,6 +127,7 @@ export default function Messenger({
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
   const [settingsOpen, setSettingsOpen] = useState(initialSettingsOpen);
   const [groupOpen, setGroupOpen] = useState(false);
+  const [channelOpen, setChannelOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [termOpen, setTermOpen] = useState(false);
@@ -170,9 +176,11 @@ export default function Messenger({
 
     const { data: mine } = await supabase
       .from("chat_members")
-      .select("chat_id")
+      .select("chat_id, role")
       .eq("user_id", userId);
-    const ids = ((mine as { chat_id: string }[]) || []).map((r) => r.chat_id);
+    const membership = (mine as { chat_id: string; role: string }[]) || [];
+    const ids = membership.map((r) => r.chat_id);
+    const roleByChat = new Map(membership.map((r) => [r.chat_id, r.role]));
     if (!ids.length) {
       setChats([savedItem]);
       setLoadingChats(false);
@@ -181,7 +189,7 @@ export default function Messenger({
 
     const [{ data: chatRows }, { data: memberRows }, { data: lastMsgs }] = await Promise.all([
       supabase.from("chats").select("*").in("id", ids),
-      supabase.from("chat_members").select("chat_id, user_id, profiles(*)").in("chat_id", ids),
+      supabase.from("chat_members").select("chat_id, user_id, role, profiles(*)").in("chat_id", ids),
       supabase
         .from("messages")
         .select("*")
@@ -190,14 +198,18 @@ export default function Messenger({
         .limit(500),
     ]);
 
-    type MemberRow = { chat_id: string; user_id: string; profiles: Profile | Profile[] | null };
+    type MemberRow = { chat_id: string; user_id: string; role: string | null; profiles: Profile | Profile[] | null };
     const membersByChat = new Map<string, Profile[]>();
+    const memberRolesByChat = new Map<string, Record<string, string>>();
     ((memberRows as unknown as MemberRow[]) || []).forEach((r) => {
       const p = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
       if (!p) return;
       const list = membersByChat.get(r.chat_id) || [];
       list.push(p);
       membersByChat.set(r.chat_id, list);
+      const roles = memberRolesByChat.get(r.chat_id) || {};
+      roles[p.id] = r.role || "member";
+      memberRolesByChat.set(r.chat_id, roles);
     });
 
     const lastByChat = new Map<string, Message>();
@@ -214,7 +226,12 @@ export default function Messenger({
         return {
           id: c.id,
           isGroup: !!c.is_group,
-          title: c.is_group ? c.title || "Группа" : (other?.nickname ?? "Диалог"),
+          isChannel: !!c.is_channel,
+          isOfficial: !!c.is_official,
+          verified: !!c.verified,
+          myRole: roleByChat.get(c.id) ?? null,
+          memberRoles: memberRolesByChat.get(c.id) ?? {},
+          title: c.is_group ? c.title || (c.is_channel ? "Канал" : "Группа") : (other?.nickname ?? "Диалог"),
           description: c.is_group ? c.description : (other?.bio ?? null),
           avatarUrl: c.is_group ? c.avatar_url : (other?.avatar_url ?? null),
           other,
@@ -396,6 +413,7 @@ export default function Messenger({
             youMode ? onOpenYouSettings?.() : setSettingsOpen(true)
           }
           onCreateGroup={() => setGroupOpen(true)}
+          onCreateChannel={() => setChannelOpen(true)}
           onOpenAdmin={() => setAdminOpen(true)}
           onOpenTerminal={() => setTermOpen(true)}
           isAdmin={isAdmin}
@@ -444,9 +462,24 @@ export default function Messenger({
       {groupOpen && (
         <CreateGroupModal
           me={me}
+          mode="group"
           onClose={() => setGroupOpen(false)}
           onCreated={async (id) => {
             setGroupOpen(false);
+            await loadChats();
+            setActiveId(id);
+            if (youMode) onYouChatRoute?.(id);
+          }}
+        />
+      )}
+
+      {channelOpen && (
+        <CreateGroupModal
+          me={me}
+          mode="channel"
+          onClose={() => setChannelOpen(false)}
+          onCreated={async (id) => {
+            setChannelOpen(false);
             await loadChats();
             setActiveId(id);
             if (youMode) onYouChatRoute?.(id);
