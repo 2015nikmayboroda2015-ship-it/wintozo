@@ -5,8 +5,8 @@
  */
 import { supabase } from "./supabase";
 
-/** Текущая версия клиента. Синхронизирована с GitHub Release v4.0.0. */
-export const APP_VERSION = "4.0.0";
+/** Текущая версия клиента. Синхронизирована с GitHub Release v4.0.1. */
+export const APP_VERSION = "4.0.1";
 
 /** Ссылка на APK в релизах GitHub. */
 export const DOWNLOAD_URL = "https://github.com/NikitaDev2015/wintozo/releases/latest";

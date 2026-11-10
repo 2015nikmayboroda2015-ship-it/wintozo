@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Mic,
   Pencil,
+  Phone,
   Star,
   Trash2,
   Users,
@@ -21,6 +22,7 @@ import {
 import {
   canPostInChat,
   chatSeed,
+  isGlobalAdmin,
   isVerified,
   supabase,
   type ChatItem,
@@ -33,6 +35,8 @@ import { filesUpload } from "../lib/blobStorage";
 import { compressVideo } from "../lib/videoCompress";
 import { loadSavedNotes, notifySavedNotesChanged, persistSavedNotes } from "../lib/savedNotes";
 import { showMessageNotificationIfHidden } from "../lib/notify";
+import { useCalls } from "../hooks/useCalls";
+import CallOverlay from "./CallOverlay";
 import Avatar from "./Avatar";
 import AudioMessage from "./AudioMessage";
 import VideoCircle from "./VideoCircle";
@@ -129,6 +133,11 @@ export default function ChatView({
     : !!chat.other && onlineIds.has(chat.other.id);
   /** В каналах писать могут только владелец/админы (и глобальный @admin). */
   const canPost = canPostInChat(chat, me);
+
+  /* ---------- звонки ---------- */
+  const calls = useCalls(chat, me);
+  const callPeer: Profile | null =
+    calls.status === "incoming" && calls.incoming ? calls.incoming.from : chat.other;
 
   /** Получить уровень галочки для профиля */
   const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
@@ -1072,6 +1081,38 @@ export default function ChatView({
             <Info className="h-5 w-5" strokeWidth={1.9} />
           </button>
         )}
+
+        {/* Звонки: только для глобального админа (@admin) в личных чатах */}
+        {!chat.isSaved && !chat.isGroup && chat.other && isGlobalAdmin(me) && (
+          <>
+            <button
+              onClick={() => void calls.startCall("voice")}
+              className={cn(
+                "rounded-full p-2 transition",
+                youMode
+                  ? "text-[var(--you-on-surface-variant)] hover:bg-[var(--you-secondary-container)] hover:text-[var(--you-primary)]"
+                  : "text-black/40 hover:bg-black/5 hover:text-ink"
+              )}
+              aria-label="Голосовой звонок"
+              title="Голосовой звонок"
+            >
+              <Phone className="h-5 w-5" strokeWidth={1.9} />
+            </button>
+            <button
+              onClick={() => void calls.startCall("video")}
+              className={cn(
+                "rounded-full p-2 transition",
+                youMode
+                  ? "text-[var(--you-on-surface-variant)] hover:bg-[var(--you-secondary-container)] hover:text-[var(--you-primary)]"
+                  : "text-black/40 hover:bg-black/5 hover:text-ink"
+              )}
+              aria-label="Видеозвонок"
+              title="Видеозвонок"
+            >
+              <Video className="h-5 w-5" strokeWidth={1.9} />
+            </button>
+          </>
+        )}
       </header>
 
       {/* Лента */}
@@ -1404,6 +1445,28 @@ export default function ChatView({
             onClick={(e) => e.stopPropagation()}
           />
         </div>
+      )}
+
+      {/* Экран звонка */}
+      {calls.status !== "idle" && (
+        <CallOverlay
+          status={calls.status}
+          kind={calls.kind}
+          peer={callPeer}
+          title={chat.isGroup ? chat.title : null}
+          peerStream={calls.peerStream}
+          localStream={calls.localStream}
+          elapsed={calls.elapsed}
+          muted={calls.muted}
+          camOff={calls.camOff}
+          error={calls.error}
+          onAccept={() => void calls.acceptCall()}
+          onDecline={() => calls.declineCall()}
+          onCancel={() => calls.endCall()}
+          onEnd={() => calls.endCall()}
+          onToggleMute={() => calls.toggleMute()}
+          onToggleCamera={() => calls.toggleCamera()}
+        />
       )}
     </div>
   );

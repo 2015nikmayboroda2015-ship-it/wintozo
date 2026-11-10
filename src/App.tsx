@@ -14,10 +14,11 @@ import {
 import { getAnimationId } from "./lib/animations";
 import { requestNotifyPermission } from "./lib/notify";
 import { applyLegacyGate, declineLegacyUi, isLegacyUi, resetLegacyChoice } from "./lib/checkVersion";
-import { reportDeviceStatus } from "./lib/ota";
+import { reportDeviceStatus, isAndroidWebLite } from "./lib/ota";
 import { navigate } from "./lib/router";
 import Auth from "./components/Auth";
 import Messenger from "./components/Messenger";
+import LiteMessenger from "./components/LiteMessenger";
 import LegacyScreen from "./components/LegacyScreen";
 import YouLocked from "./components/YouLocked";
 
@@ -331,6 +332,12 @@ export default function App() {
         </div>
       </div>
     );
+  /* ---------- Android-телефон в браузере → урезанная Lite-версия ---------- */
+  if (isAndroidWebLite()) {
+    document.title = "WinChat Lite";
+    return <LiteMessenger me={profile} onLogout={() => supabase.auth.signOut()} />;
+  }
+
   if (isLegacyUi())
     return (
       <LegacyScreen

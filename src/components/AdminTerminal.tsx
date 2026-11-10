@@ -15,6 +15,18 @@ interface LogEntry {
   text: string;
 }
 
+interface OtaDeviceRow {
+  device_id: string;
+  is_wintozo_web: boolean;
+  status: string | null;
+  platform: string | null;
+  app_version: string | null;
+  model: string | null;
+  manufacturer: string | null;
+  os_version: string | null;
+  username: string | null;
+}
+
 export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: Props) {
   const [history, setHistory] = useState<LogEntry[]>([
     { type: "info", text: "WinChat Admin Terminal v2.0" },
@@ -22,6 +34,10 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
   ]);
   const [input, setInput] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  /* Окно выбора устройства для OTA-обновления (/set ota @user "ссылка" версия). */
+  const [otaPicker, setOtaPicker] = useState<{ url: string; version: string | null; target: string } | null>(null);
+  const [otaPickerDevices, setOtaPickerDevices] = useState<OtaDeviceRow[]>([]);
+  const [otaPickerBusy, setOtaPickerBusy] = useState(false);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,6 +49,46 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
       el?.focus();
     }
   }, [open]);
+
+  async function openOtaPicker(target: string, url: string, version: string | null) {
+    setOtaPicker({ url, version, target });
+    setOtaPickerBusy(false);
+    const { data, error } = await supabase.rpc("get_winchat_ota_devices", {
+      _admin_id: me.id,
+      _limit: 50,
+    });
+    if (error) {
+      setOtaPickerDevices([]);
+      return;
+    }
+    const res = data as { ok: boolean; devices?: OtaDeviceRow[] };
+    let list = (res.devices ?? []) as OtaDeviceRow[];
+    if (target.startsWith("@")) {
+      const uname = target.slice(1).toLowerCase();
+      list = list.filter((d) => (d.username ?? "").toLowerCase() === uname);
+    }
+    setOtaPickerDevices(list);
+    if (list.length === 1) {
+      void selectOtaDevice(list[0].device_id, url, version);
+    }
+  }
+
+  async function selectOtaDevice(deviceId: string, url: string, version: string | null) {
+    setOtaPickerBusy(true);
+    const { data } = await supabase.rpc("set_winchat_ota", {
+      _admin_id: me.id,
+      _url: url,
+      _version: version,
+      _target: deviceId,
+    });
+    setOtaPickerBusy(false);
+    const res = data as { ok: boolean; message?: string; error?: string };
+    setHistory((prev) => [
+      ...prev,
+      { type: res.ok ? "success" : "error", text: res.ok ? `✓ ${res.message}` : `✗ ${res.error}` },
+    ]);
+    if (res.ok) setOtaPicker(null);
+  }
 
   async function runCommand(raw: string) {
     const trimmed = raw.trim();
@@ -78,7 +134,7 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             { type: "info", text: "/channel delete <id|название> — Удалить канал" },
             { type: "info", text: "/set version <X.Y.Z>        — Установить версию (можно 4.0.0-beta)" },
             { type: "info", text: "/get version                — Текущая версия приложения" },
-            { type: "info", text: "/set ota \"<ссылка>\" [версия] [@username|device|*] — OTA для Android" },
+            { type: "info", text: '/set ota [@username] "<ссылка>" [версия] [@target|*] — OTA для Android' },
             { type: "info", text: "/set ota off                — Отключить OTA" },
             { type: "info", text: "/get ota                    — Текущая OTA-настройка" },
             { type: "info", text: "/get devices                — Устройства, которые запускали приложение" },
@@ -251,7 +307,7 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             if (!after) {
               setHistory((prev) => [
                 ...prev,
-                { type: "error", text: 'Использование: /set ota "<ссылка>" [версия] [@username|device|*]' },
+                { type: "error", text: 'Использование: /set ota [@username] "<ссылка>" [версия] [@target|*]' },
               ]);
               break;
             }
@@ -278,28 +334,32 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
               break;
             }
 
-            // URL: в кавычках или первым токеном
+            // /set ota [@username] "[ссылка]" [версия] [@target|*]
+            // Пример: /set ota @user "https://.../app.apk" 4.0.1
             let rest = after;
-            let url = "";
-            if (rest.startsWith('"') || rest.startsWith("'")) {
-              const quote = rest[0];
-              const end = rest.indexOf(quote, 1);
-              if (end < 0) {
-                setHistory((prev) => [...prev, { type: "error", text: "Не закрыта кавычка в ссылке" }]);
-                break;
-              }
-              url = rest.slice(1, end).trim();
-              rest = rest.slice(end + 1).trim();
-            } else {
-              const m = rest.match(/^(\S+)(?:\s+|$)/);
-              url = m ? m[1] : "";
-              rest = m ? rest.slice(m[0].length).trim() : "";
+            let prefixTarget: string | null = null;
+            const pre = rest.match(/^@([^\s"']+)\s+([\s\S]*)$/);
+            if (pre) {
+              prefixTarget = `@${pre[1]}`;
+              rest = pre[2].trim();
+            }
+
+            const urlM = /https?:\/\/[^\s"']+/i.exec(rest);
+            const url = urlM ? urlM[0] : "";
+            const remainder = urlM ? rest.slice(urlM.index + urlM[0].length).trim() : "";
+
+            if (!url) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: 'Ссылка должна начинаться с http:// или https://' },
+              ]);
+              break;
             }
 
             // Необязательные аргументы: версия и цель
             let version: string | null = null;
             let target: string | null = null;
-            for (const token of rest.split(/\s+/).filter(Boolean)) {
+            for (const token of remainder.split(/\s+/).filter(Boolean)) {
               const clean = token.replace(/^["']|["']$/g, "");
               if (!version && /^\d+\.\d+(\.\d+)?(-[0-9a-z][0-9a-z.\-]*(\+[0-9a-z.\-]+)?)?$/i.test(clean)) {
                 version = clean;
@@ -308,11 +368,13 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
               }
             }
 
+            const finalTarget = prefixTarget ?? target ?? null;
+
             const { data, error } = await supabase.rpc("set_winchat_ota", {
               _admin_id: me.id,
               _url: url,
               _version: version,
-              _target: target,
+              _target: finalTarget,
             });
 
             if (error) {
@@ -338,13 +400,18 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
               { type: "info", text: `URL: ${url}` },
               { type: "info", text: `Версия: ${res.version ?? "не указана"} · Цель: ${res.target ?? "*"}` },
             ]);
+
+            // Если задана конкретная цель (например, @username) — открываем выбор устройства.
+            if (url && finalTarget && finalTarget !== "*") {
+              void openOtaPicker(finalTarget, url, version);
+            }
             break;
           }
 
           if (what !== "version") {
             setHistory((prev) => [
               ...prev,
-              { type: "error", text: 'Использование: /set version <X.Y.Z[-beta]> | /set ota "<ссылка>"' },
+              { type: "error", text: 'Использование: /set version <X.Y.Z[-beta]> | /set ota [@username] "<ссылка>" [версия]' },
             ]);
             return;
           }
@@ -485,7 +552,7 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             if (!res.url) {
               setHistory((prev) => [
                 ...prev,
-                { type: "info", text: 'OTA не настроена. Используйте /set ota "<ссылка>"' },
+                { type: "info", text: 'OTA не настроена. Используйте /set ota [@username] "<ссылка>" [версия]' },
               ]);
               break;
             }
@@ -843,6 +910,66 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
         { type: "error", text: `Непредвиденная ошибка: ${(err as Error).message}` },
       ]);
     }
+  }
+
+  if (!open) return null;
+
+  /* ---------- Окно выбора устройства для OTA-обновления ---------- */
+  if (otaPicker) {
+    return (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+        <div className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-[#0d1117] text-white shadow-2xl ring-1 ring-white/10">
+          <div className="flex items-center justify-between border-b border-white/10 bg-[#161b22] px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Terminal className="h-4 w-4 text-green-400" />
+              <span className="font-mono text-sm font-bold">Выбор устройства</span>
+            </div>
+            <button
+              onClick={() => setOtaPicker(null)}
+              className="rounded-full p-1.5 text-white/50 transition hover:bg-white/10 hover:text-white"
+              aria-label="Закрыть"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 font-mono text-[13px]">
+            <p className="mb-3 text-white/60">
+              Цель: <span className="text-green-400">{otaPicker.target}</span>
+              {otaPicker.version ? <span className="text-white/40"> · Версия: {otaPicker.version}</span> : null}
+            </p>
+            {otaPickerDevices.length === 0 ? (
+              <p className="text-white/60">Устройства не найдены для этой цели</p>
+            ) : (
+              otaPickerDevices.map((d, i) => (
+                <button
+                  key={d.device_id}
+                  onClick={() => void selectOtaDevice(d.device_id, otaPicker.url, otaPicker.version)}
+                  disabled={otaPickerBusy}
+                  className="mb-2 block w-full rounded-xl bg-white/5 px-3 py-2 text-left transition hover:bg-white/10 disabled:opacity-50"
+                >
+                  <span className="font-bold text-green-400">{i + 1}.</span>{" "}
+                  {d.username ? `@${d.username}` : "—"}
+                  {" · "}
+                  {[d.manufacturer, d.model].filter(Boolean).join(" ") || d.platform || "устройство"}
+                  {" · "}
+                  {d.status ?? (d.is_wintozo_web ? "is_wintozo_web_true" : "is_wintozo_web_no")}
+                  {" · v"}
+                  {d.app_version ?? "?"}
+                </button>
+              ))
+            )}
+          </div>
+          <div className="border-t border-white/10 bg-[#0d1117] px-4 py-3">
+            <button
+              onClick={() => setOtaPicker(null)}
+              className="rounded-lg bg-white/10 px-3 py-1.5 font-mono text-xs font-bold transition hover:bg-white/20"
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!open) return null;

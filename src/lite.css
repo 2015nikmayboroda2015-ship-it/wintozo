@@ -1,0 +1,666 @@
+/* ============================================================
+   WinChat Lite — урезанный Android-веб интерфейс в стиле old Wintozo.
+   Только личные чаты и текстовые сообщения, без картинок/аватарок.
+   Все селекторы в префиксе .wclite, чтобы не пересекаться с основной темой.
+   ============================================================ */
+
+.wclite {
+  --bg: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-glass: rgba(255, 255, 255, 0.72);
+  --text: #0f172a;
+  --text-secondary: #64748b;
+  --accent: #3b82f6;
+  --accent-2: #8b5cf6;
+  --accent-text: #ffffff;
+  --accent-glow: rgba(59, 130, 246, 0.18);
+  --accent-soft: rgba(59, 130, 246, 0.08);
+  --border: #e2e8f0;
+  --radius: 16px;
+  --gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  --gradient-soft: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(139, 92, 246, 0.12));
+  --transition: 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.12);
+
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow: hidden;
+  transition: background 0.5s cubic-bezier(0.22, 1, 0.36, 1), color 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.wclite[data-theme="dark"] {
+  --bg: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-glass: rgba(30, 41, 59, 0.66);
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --accent: #8b5cf6;
+  --accent-2: #6366f1;
+  --accent-text: #ffffff;
+  --accent-glow: rgba(139, 92, 246, 0.22);
+  --accent-soft: rgba(139, 92, 246, 0.12);
+  --border: #334155;
+  --gradient: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  --gradient-soft: linear-gradient(135deg, rgba(139, 92, 246, 0.14), rgba(99, 102, 241, 0.14));
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.wclite[data-theme="midnight"] {
+  --bg: #050816;
+  --bg-secondary: #0d1126;
+  --bg-tertiary: #161b38;
+  --bg-glass: rgba(13, 17, 38, 0.66);
+  --text: #e0e7ff;
+  --text-secondary: #6b7ab8;
+  --accent: #06b6d4;
+  --accent-2: #3b82f6;
+  --accent-text: #050816;
+  --accent-glow: rgba(6, 182, 212, 0.28);
+  --accent-soft: rgba(6, 182, 212, 0.1);
+  --border: #1e2547;
+  --gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+  --gradient-soft: linear-gradient(135deg, rgba(6, 182, 212, 0.14), rgba(59, 130, 246, 0.14));
+  --shadow: 0 2px 8px rgba(6, 182, 212, 0.08);
+  --shadow-lg: 0 12px 40px rgba(6, 182, 212, 0.16);
+}
+
+.wclite[data-theme="sunset"] {
+  --bg: #1a0f1e;
+  --bg-secondary: #2a1830;
+  --bg-tertiary: #3a2440;
+  --bg-glass: rgba(42, 24, 48, 0.66);
+  --text: #fef3f2;
+  --text-secondary: #c4a0b8;
+  --accent: #f97316;
+  --accent-2: #ec4899;
+  --accent-text: #1a0f1e;
+  --accent-glow: rgba(249, 115, 22, 0.26);
+  --accent-soft: rgba(249, 115, 22, 0.1);
+  --border: #3a2440;
+  --gradient: linear-gradient(135deg, #f97316 0%, #ec4899 100%);
+  --gradient-soft: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(236, 72, 153, 0.14));
+  --shadow: 0 2px 8px rgba(249, 115, 22, 0.08);
+  --shadow-lg: 0 12px 40px rgba(249, 115, 22, 0.18);
+}
+
+@keyframes liteMsgIn { from { opacity: 0; transform: translateY(14px) scale(0.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes liteSlideInLeft { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes litePopIn { 0% { opacity: 0; transform: scale(0.6); } 60% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes liteFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes liteToastIn { from { opacity: 0; transform: translateY(16px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.wclite input,
+.wclite button { font-family: inherit; border: none; outline: none; background: none; color: inherit; }
+
+.wclite ::-webkit-scrollbar { width: 5px; height: 5px; }
+.wclite ::-webkit-scrollbar-track { background: transparent; }
+.wclite ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+/* ---------- Неубираемая плашка «Установите приложение» ---------- */
+
+.wclite .lite-ota {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  color: #fff;
+  background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 30;
+}
+
+.wclite .lite-ota-icon {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.wclite .lite-ota-body { flex: 1; min-width: 0; }
+
+.wclite .lite-ota-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wclite .lite-ota-sub { font-size: 10.5px; color: rgba(255, 255, 255, 0.55); }
+
+.wclite .lite-ota-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--gradient);
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.wclite .lite-ota-btn:active { transform: scale(0.94); }
+.wclite .lite-ota-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+/* ---------- Шапка ---------- */
+
+.wclite .lite-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.wclite .lite-logo {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.wclite .lite-logo-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2.5px 7px;
+  border-radius: 8px;
+}
+
+.wclite .lite-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  transition: color var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.wclite .lite-icon-btn:hover { color: var(--accent); transform: translateY(-1px); }
+.wclite .lite-icon-btn:active { transform: scale(0.92); }
+
+/* ---------- Список чатов ---------- */
+
+.wclite .lite-list-body { flex: 1; overflow-y: auto; padding: 8px; }
+
+.wclite .lite-chat-list { display: flex; flex-direction: column; gap: 2px; padding: 4px; }
+
+.wclite .lite-chat-item {
+  display: flex;
+  align-items: center;
+  padding: 11px 12px;
+  gap: 13px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background var(--transition), transform var(--transition);
+  animation: liteSlideInLeft 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.wclite .lite-chat-item:hover { background: var(--bg-tertiary); transform: translateX(3px); }
+.wclite .lite-chat-item:active { transform: scale(0.985); }
+
+.wclite .lite-chat-active { background: var(--gradient-soft); position: relative; }
+
+.wclite .lite-chat-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 3.5px;
+  border-radius: 4px;
+  background: var(--gradient);
+  animation: litePopIn 0.3s var(--spring);
+}
+
+/* Буквенный «аватар» без картинок */
+.wclite .lite-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--accent-text);
+  flex-shrink: 0;
+  box-shadow: var(--shadow);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.wclite .lite-chat-item:hover .lite-avatar { transform: scale(1.06); }
+
+.wclite .lite-info { flex: 1; min-width: 0; }
+
+.wclite .lite-name {
+  font-weight: 650;
+  font-size: 15px;
+  color: var(--text);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wclite .lite-last {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wclite .lite-time { font-size: 11px; color: var(--text-secondary); flex-shrink: 0; }
+
+/* ---------- Переписка ---------- */
+
+.wclite .lite-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  flex-shrink: 0;
+  z-index: 5;
+}
+
+.wclite .lite-chat-header-info { flex: 1; min-width: 0; }
+
+.wclite .lite-chat-title {
+  font-weight: 700;
+  font-size: 15.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wclite .lite-chat-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wclite .lite-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: radial-gradient(ellipse 70% 50% at 50% 0%, var(--accent-soft), transparent 70%);
+}
+
+.wclite .lite-msg-row { display: flex; animation: liteMsgIn 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
+.wclite .lite-msg-self { justify-content: flex-end; }
+.wclite .lite-msg-other { justify-content: flex-start; }
+
+.wclite .lite-bubble {
+  max-width: 76%;
+  padding: 9px 14px;
+  border-radius: 18px;
+  font-size: 14.5px;
+  line-height: 1.45;
+  word-break: break-word;
+  white-space: pre-wrap;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.wclite .lite-msg-self .lite-bubble {
+  background: var(--gradient);
+  color: var(--accent-text);
+  border-bottom-right-radius: 5px;
+  box-shadow: 0 3px 12px var(--accent-glow);
+}
+
+.wclite .lite-msg-other .lite-bubble {
+  background: var(--bg-secondary);
+  color: var(--text);
+  border-bottom-left-radius: 5px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.wclite .lite-msg-time { font-size: 10px; opacity: 0.65; margin-top: 3px; text-align: right; }
+
+/* Вложение (фото/видео/голос) — только текстовая плашка */
+.wclite .lite-bubble-media {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+/* ---------- Ввод ---------- */
+
+.wclite .lite-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  flex-shrink: 0;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+}
+
+.wclite .lite-input-msg {
+  flex: 1;
+  padding: 11px 16px;
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border);
+  border-radius: 24px;
+  color: var(--text);
+  font-size: 14.5px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  min-width: 0;
+}
+
+.wclite .lite-input-msg:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.wclite .lite-send-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--accent-text);
+  background: var(--gradient);
+  flex-shrink: 0;
+  transition: transform var(--transition), opacity var(--transition);
+}
+
+.wclite .lite-send-btn:active { transform: scale(0.9); }
+.wclite .lite-send-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+/* ---------- Пусто / загрузка ---------- */
+
+.wclite .lite-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  gap: 8px;
+}
+
+.wclite .lite-empty-icon {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-soft);
+  color: var(--accent);
+  margin-bottom: 6px;
+  animation: liteFloat 3.2s ease-in-out infinite;
+}
+
+.wclite .lite-empty-title { font-size: 17px; font-weight: 700; color: var(--text); }
+
+.wclite .lite-skeleton {
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-tertiary) 37%, var(--bg-secondary) 63%);
+  background-size: 400% 100%;
+  animation: liteShimmer 1.4s ease infinite;
+}
+
+@keyframes liteShimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* ---------- Поиск чатов ---------- */
+
+.wclite .lite-search {
+  flex-shrink: 0;
+  padding: 10px 14px 4px;
+}
+
+.wclite .lite-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border);
+  border-radius: 24px;
+  color: var(--text-secondary);
+}
+
+.wclite .lite-search-box:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.wclite .lite-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.wclite .lite-search-input::placeholder { color: var(--text-secondary); }
+
+/* Заголовки секций в глобальном поиске */
+.wclite .lite-section-label {
+  padding: 12px 14px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+/* Статусные строки поиска (загрузка / никого не нашли) */
+.wclite .lite-search-status {
+  padding: 10px 18px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Подпись автора в группах */
+.wclite .lite-msg-from {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-2);
+  margin-bottom: 2px;
+}
+
+.wclite .lite-mini-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 5px;
+  color: var(--text-secondary);
+}
+
+/* ---------- Нижняя навигация (Чаты / Ещё) ---------- */
+
+.wclite .lite-bottom-nav {
+  display: flex;
+  border-top: 1px solid var(--border);
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  flex-shrink: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.wclite .lite-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-weight: 600;
+  transition: color var(--transition), transform var(--transition);
+  position: relative;
+}
+
+.wclite .lite-nav-item:hover { color: var(--text); }
+.wclite .lite-nav-item:active { transform: scale(0.92); }
+
+.wclite .lite-nav-item-active { color: var(--accent); }
+.wclite .lite-nav-item-active::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  width: 18px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--gradient);
+  animation: litePopIn 0.3s var(--spring);
+}
+
+/* ---------- Профиль (урезанный) ---------- */
+
+.wclite .lite-profile {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.wclite .lite-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.wclite .lite-profile-name { font-size: 17px; font-weight: 750; }
+.wclite .lite-profile-sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+
+.wclite .lite-card {
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.wclite .lite-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+}
+
+.wclite .lite-row + .lite-row { border-top: 1px solid var(--border); }
+
+.wclite .lite-row-label { color: var(--text-secondary); font-weight: 600; }
+
+.wclite .lite-row-value { color: var(--text); font-weight: 650; text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.wclite .lite-hint {
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.wclite .lite-exit-btn {
+  margin-top: 4px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fb7185;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.wclite .lite-exit-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.wclite .lite-exit-btn:active { transform: scale(0.98); }
+
+/* ---------- Тост ---------- */
+
+.wclite .lite-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 96px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--gradient);
+  box-shadow: var(--shadow-lg);
+  animation: liteToastIn 0.3s var(--spring);
+  z-index: 60;
+}

@@ -93,6 +93,24 @@ function isNativeAndroid(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
 }
 
+/**
+ * Android-телефон в браузере (не нативное приложение).
+ * Такие устройства получают урезанную Lite-версию интерфейса:
+ * только личные чаты и текстовые сообщения + неубираемая плашка
+ * «Установите приложение» со ссылкой из OTA. iPhone работает в полную силу.
+ */
+export function isAndroidWebLite(): boolean {
+  if (isNativeAndroid()) return false; // нативное приложение — полная версия
+  try {
+    // Отладка с ПК: открыть сайт с ?lite — включить Lite-версию.
+    if (new URLSearchParams(window.location.search).has("lite")) return true;
+    const ua = navigator.userAgent || "";
+    return /Android/i.test(ua);
+  } catch {
+    return false;
+  }
+}
+
 export function canInstallOta(): boolean {
   return isNativeAndroid() && Capacitor.isPluginAvailable("WinChatOta");
 }
