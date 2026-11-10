@@ -58,7 +58,7 @@ function rawMessage(err: unknown): string {
 }
 
 /** Переводит ошибки Supabase Auth на русский и подсказывает действие. */
-function mapAuthError(err: unknown): string {
+export function mapAuthError(err: unknown): string {
   console.error("[WinChat] ошибка авторизации:", err);
   const raw = rawMessage(err);
   const e = err as Record<string, unknown> | null;

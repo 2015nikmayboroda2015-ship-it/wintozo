@@ -5,8 +5,8 @@
  */
 import { supabase } from "./supabase";
 
-/** Текущая версия клиента. Синхронизирована с GitHub Release v4.0.1. */
-export const APP_VERSION = "4.0.1";
+/** Текущая версия клиента. Синхронизирована с GitHub Release v5.0.0. */
+export const APP_VERSION = "5.0.0";
 
 /** Ссылка на APK в релизах GitHub. */
 export const DOWNLOAD_URL = "https://github.com/NikitaDev2015/wintozo/releases/latest";
@@ -192,6 +192,18 @@ export interface ChangelogEntry {
 
 /** Что нового в текущих версиях (пополняется с каждым релизом). */
 export const CHANGELOGS: Record<string, ChangelogEntry> = {
+  "5.0.0": {
+    version: "5.0.0",
+    title: "В версии 5.0.0 были добавлены функции",
+    items: [
+      "1. Новый интерфейс WinChat Glass (Liquid Glass)",
+      "2. Прозрачные стеклянные панели, глубокое размытие и глянцевые блики",
+      "3. Очень крупные скругления и новый шрифт",
+      "4. Отдельный маршрут /themes/glass/chat",
+      "5. WinChat Glass доступен с WinPro",
+      "6. Исправлены баги",
+    ],
+  },
   "4.0.0": {
     version: "4.0.0",
     title: "В версии 4.0.0 были добавлены функции",

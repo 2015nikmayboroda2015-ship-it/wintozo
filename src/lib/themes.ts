@@ -8,6 +8,9 @@ import { applyYouPalette, getYouSeedId } from "./materialYou";
 /** id темы Material You — она включает отдельный режим WinChat You. */
 export const YOU_THEME_ID = "material-you";
 
+/** id темы Liquid Glass — отдельный режим WinChat Glass. */
+export const GLASS_THEME_ID = "glass";
+
 export const THEMES = [
   {
     id: "ink-blue",
@@ -144,6 +147,25 @@ export const WINPRO_THEMES = [
     otherMsgText: "#1d1233",
     otherMsgBorder: "rgba(136,115,163,0.18)",
   },
+  {
+    id: GLASS_THEME_ID,
+    name: "WinChat Glass",
+    description: "Прозрачное «жидкое стекло»: размытие, глянцевые блики и очень крупные скругления",
+    accent: "#3f6df6",
+    accentSoft: "rgba(255,255,255,0.65)",
+    chatBg: "#e7edf6",
+    headerBg: "rgba(255,255,255,0.55)",
+    border: "rgba(255,255,255,0.75)",
+    gradientFrom: "#7aa2ff",
+    gradientTo: "#c4d6ff",
+    ownerMsg: "#3f6df6",
+    ownerMsgText: "#ffffff",
+    otherMsg: "rgba(255,255,255,0.62)",
+    otherMsgText: "#1a2434",
+    otherMsgBorder: "rgba(255,255,255,0.85)",
+    chatTitle: "#1a2434",
+    chatSubtitle: "rgba(26,36,52,0.55)",
+  },
 ] as const;
 
 export type Theme = (typeof THEMES)[number];
@@ -171,6 +193,11 @@ export function isWinProTheme(id: string): boolean {
 /** Проверить, что включён режим WinChat You (Material You) */
 export function isYouTheme(id: string): boolean {
   return id === YOU_THEME_ID;
+}
+
+/** Проверить, что включён режим WinChat Glass (Liquid Glass) */
+export function isGlassTheme(id: string): boolean {
+  return id === GLASS_THEME_ID;
 }
 
 export interface ChatThemeColors {
@@ -249,6 +276,9 @@ export function applyTheme(theme: Theme | WinProTheme): void {
     document.documentElement.classList.remove("theme-dark");
     r.setProperty("--color-paper", theme.chatBg);
   }
+
+  // WinChat Glass: прозрачные стеклянные панели (CSS-слой .theme-glass).
+  document.documentElement.classList.toggle("theme-glass", isGlassTheme(theme.id));
 
   // WinChat You: отдельная тональная схема Material You + «обои» пользователя.
   if (isYouTheme(theme.id)) {

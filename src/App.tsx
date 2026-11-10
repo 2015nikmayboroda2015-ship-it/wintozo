@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { isWinProActive, supabase, type Profile } from "./lib/supabase";
+import { isGlobalAdmin, isWinProActive, supabase, type Profile } from "./lib/supabase";
 import { checkBanned } from "./lib/adminApi";
 import {
   applyTheme,
   getCurrentTheme,
   getThemeById,
+  GLASS_THEME_ID,
   isWinProTheme,
   saveThemeId,
   THEMES,
@@ -15,12 +16,22 @@ import { getAnimationId } from "./lib/animations";
 import { requestNotifyPermission } from "./lib/notify";
 import { applyLegacyGate, declineLegacyUi, isLegacyUi, resetLegacyChoice } from "./lib/checkVersion";
 import { reportDeviceStatus, isAndroidWebLite } from "./lib/ota";
+import {
+  isPhoneDevice,
+  markOobeInstallDone,
+  markOobeUpdateDone,
+  OOBE_INSTALL_KEY,
+  OOBE_UPDATE_KEY,
+} from "./lib/oobe";
 import { navigate } from "./lib/router";
 import Auth from "./components/Auth";
 import Messenger from "./components/Messenger";
 import LiteMessenger from "./components/LiteMessenger";
 import LegacyScreen from "./components/LegacyScreen";
 import YouLocked from "./components/YouLocked";
+import GlassLocked from "./components/GlassLocked";
+import OobeUpdate from "./components/OobeUpdate";
+import OobeInstall from "./components/OobeInstall";
 
 /* ============================================================
    Лёгкий роутер (как в старом Wintozo)
@@ -34,9 +45,15 @@ import YouLocked from "./components/YouLocked";
 const LEGACY_PREFIX = "/events/themes/wintozo";
 const YOU_PREFIX = "/themes/you";
 const YOU_PREV_THEME_KEY = "winchat_you_prev_theme";
+const GLASS_PREFIX = "/themes/glass";
+const GLASS_PREV_THEME_KEY = "winchat_glass_prev_theme";
 
 function isYouPath(path: string): boolean {
   return path === YOU_PREFIX || path.startsWith(`${YOU_PREFIX}/`);
+}
+
+function isGlassPath(path: string): boolean {
+  return path === GLASS_PREFIX || path.startsWith(`${GLASS_PREFIX}/`);
 }
 
 function useRoute(): string {
@@ -69,6 +86,9 @@ export default function App() {
   const [banReason, setBanReason] = useState("");
   /* Ивент «Память о Wintozo»: показывать ли legacy-экран выбора/старый UI */
   const [legacyAsk, setLegacyAsk] = useState(false);
+  /* OOBE: приветствия после обновления и при первом скачивании */
+  const [oobeUpdateShown, setOobeUpdateShown] = useState(true);
+  const [oobeInstallShown, setOobeInstallShown] = useState(true);
   /* Лёгкий роутер: путь синхронизируется с экранами приложения */
   const path = useRoute();
   /* WinChat You — отдельный режим-маршрут /themes/you/* */
@@ -77,6 +97,45 @@ export default function App() {
     ? path.match(/^\/themes\/you\/chat\/([^/?#]+)/)?.[1] ?? null
     : null;
   const wasYou = useRef(false);
+
+  /* WinChat Glass — отдельный режим-маршрут /themes/glass/* */
+  const glassMode = isGlassPath(path);
+  const glassChatId = glassMode
+    ? path.match(/^\/themes\/glass\/chat\/([^/?#]+)/)?.[1] ?? null
+    : null;
+  const wasGlass = useRef(false);
+  /** Активный «особый» режим интерфейса: You или Glass. */
+  const themedMode = youMode || glassMode;
+  const themeRoutePrefix = glassMode ? GLASS_PREFIX : YOU_PREFIX;
+
+  /* ---------- OOBE: приветствия (телефоны − автоматически, ПК − по адресу) ---------- */
+  const oobeForceUpdate = path.startsWith("/oobe_update");
+  const oobeForceInstall = path.startsWith("/install_oobe");
+  const showInstallOobe =
+    oobeForceInstall || (isPhoneDevice() && !oobeInstallShown && !banned);
+  const showUpdateOobe =
+    oobeForceUpdate || (isPhoneDevice() && !oobeUpdateShown && !!profile && !banned);
+
+  const finishUpdateOobe = () => {
+    markOobeUpdateDone();
+    setOobeUpdateShown(true);
+    navigate(profile ? "/chats" : "/login");
+  };
+  const finishInstallOobe = () => {
+    markOobeInstallDone();
+    setOobeInstallShown(true);
+    navigate(profile ? "/chats" : "/login");
+  };
+
+  useEffect(() => {
+    try {
+      setOobeUpdateShown(localStorage.getItem(OOBE_UPDATE_KEY) === "1");
+      setOobeInstallShown(localStorage.getItem(OOBE_INSTALL_KEY) === "1");
+    } catch {
+      /* no-op */
+    }
+  }, []);
+
 
   useEffect(() => {
     // Применить тему из localStorage при старте
@@ -219,6 +278,13 @@ export default function App() {
     window.dispatchEvent(new PopStateEvent("popstate"));
   }, [path]);
 
+  /* ---------- WinChat Glass: короткий адрес → чат ---------- */
+  useEffect(() => {
+    if (path !== GLASS_PREFIX) return;
+    window.history.replaceState({}, "", `${GLASS_PREFIX}/chat`);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, [path]);
+
   /* ---------- WinChat You: включение/выключение режима ---------- */
   useEffect(() => {
     if (!profile) return;
@@ -280,7 +346,94 @@ export default function App() {
     document.title = "WinChat";
   }, [profile, youMode, path]);
 
-  if (booting || (session && !profile)) return <Splash />;
+  /* ---------- WinChat Glass: включение/выключение режима ---------- */
+  useEffect(() => {
+    if (!profile) return;
+    const allowed = isWinProActive(profile) || isGlobalAdmin(profile);
+    const active = glassMode && allowed;
+    const savedId = (getCurrentTheme() as { id?: string }).id ?? THEMES[0].id;
+
+    if (active) {
+      if (!wasGlass.current) {
+        // Запоминаем тему, к которой вернёмся после выхода из Glass.
+        try {
+          const prev = localStorage.getItem("winchat_theme_id");
+          if (prev && prev !== GLASS_THEME_ID) {
+            localStorage.setItem(GLASS_PREV_THEME_KEY, prev);
+          }
+        } catch {
+          /* no-op */
+        }
+      }
+      wasGlass.current = true;
+      saveThemeId(GLASS_THEME_ID);
+      applyTheme(getThemeById(GLASS_THEME_ID) ?? THEMES[0]);
+      document.title = "WinChat Glass";
+      return;
+    }
+
+    const leavingGlass = wasGlass.current;
+    wasGlass.current = false;
+
+    // После перезагрузки адрес может снова стать /chats (или /), но тема
+    // WinChat Glass уже выбрана — не сбрасываем её, а возвращаем в Glass.
+    if (
+      savedId === GLASS_THEME_ID &&
+      allowed &&
+      !leavingGlass &&
+      !youMode &&
+      (path === "/chats" || path === "/" || path === "")
+    ) {
+      window.history.replaceState({}, "", `${GLASS_PREFIX}/chat`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      return;
+    }
+
+    // Пользователь выбрал другую тему или ушёл в You — не перетираем.
+    if (savedId !== GLASS_THEME_ID || youMode) {
+      if (!themedMode) document.title = "WinChat";
+      return;
+    }
+
+    // Вышли из /themes/glass/* — возвращаем тему, которая была до Glass.
+    let prev: string = THEMES[0].id;
+    try {
+      prev = localStorage.getItem(GLASS_PREV_THEME_KEY) || THEMES[0].id;
+    } catch {
+      /* no-op */
+    }
+    if (isWinProTheme(prev) && !allowed) prev = THEMES[0].id;
+    saveThemeId(prev);
+    applyTheme(getThemeById(prev) ?? THEMES[0]);
+    if (!themedMode) document.title = "WinChat";
+  }, [profile, glassMode, path, youMode, themedMode]);
+
+  if (booting || (session && !profile)) {
+    /* OOBE первого скачивания: приветствие «Установка завершена» и форма — вместо splash */
+    if (!banned && showInstallOobe) {
+      return (
+        <OobeInstall hasSession={!!session} profile={null} onFinish={finishInstallOobe} />
+      );
+    }
+    return <Splash />;
+  }
+
+  /* ---------- OOBE: приветствия WinChat 5.0 (обновление / установка) ---------- */
+  if (showInstallOobe) {
+    document.title = "Добро пожаловать в WinChat";
+    return (
+      <OobeInstall hasSession={!!session} profile={profile} onFinish={finishInstallOobe} />
+    );
+  }
+  if (showUpdateOobe) {
+    document.title = "WinChat 5.0";
+    return (
+      <OobeUpdate
+        winPro={profile ? isWinProActive(profile) : session ? null : false}
+        onFinish={finishUpdateOobe}
+      />
+    );
+  }
 
   /* ---------- Маршруты старого интерфейса ---------- */
   if (path.startsWith(LEGACY_PREFIX)) {
@@ -332,6 +485,7 @@ export default function App() {
         </div>
       </div>
     );
+
   /* ---------- Android-телефон в браузере → урезанная Lite-версия ---------- */
   if (isAndroidWebLite()) {
     document.title = "WinChat Lite";
@@ -370,13 +524,26 @@ export default function App() {
     );
   }
 
-  /* ---------- /settings, /settings/status/winpro, /themes/you/settings ---------- */
+  /* ---------- /themes/glass/* — WinChat Glass (WinPro или админ) ---------- */
+  if (glassMode && !isWinProActive(profile) && !isGlobalAdmin(profile)) {
+    return (
+      <GlassLocked
+        me={profile}
+        onBack={() => navigate("/chats")}
+        onGetWinPro={() => navigate("/settings/status/winpro")}
+      />
+    );
+  }
+
+  /* ---------- /settings, /settings/status/winpro, /themes/{you,glass}/settings ---------- */
   const settingsTab =
-    path === "/settings/status/winpro" || path === "/themes/you/winpro"
+    path === "/settings/status/winpro" ||
+    path === "/themes/you/winpro" ||
+    path === "/themes/glass/winpro"
       ? "winpro" as const
       : path === "/settings"
         ? "profile" as const
-        : path === "/themes/you/settings"
+        : path === "/themes/you/settings" || path === "/themes/glass/settings"
           ? "customization" as const
           : null;
 
@@ -391,13 +558,15 @@ export default function App() {
       }}
       initialSettingsOpen={!!settingsTab}
       initialSettingsTab={settingsTab ?? undefined}
-      youMode={youMode}
-      initialChatId={youChatId}
-      onYouChatRoute={(id) => navigate(id ? `${YOU_PREFIX}/chat/${id}` : `${YOU_PREFIX}/chat`)}
+      youMode={themedMode}
+      initialChatId={youMode ? youChatId : glassMode ? glassChatId : null}
+      onYouChatRoute={(id) =>
+        navigate(id ? `${themeRoutePrefix}/chat/${id}` : `${themeRoutePrefix}/chat`)
+      }
       onExitYou={() => navigate("/chats")}
-      onOpenYouSettings={() => navigate(`${YOU_PREFIX}/settings`)}
+      onOpenYouSettings={() => navigate(`${themeRoutePrefix}/settings`)}
       onYouSettingsClosed={() => {
-        if (youMode) navigate(`${YOU_PREFIX}/chat`);
+        if (themedMode) navigate(`${themeRoutePrefix}/chat`);
       }}
     />
   );

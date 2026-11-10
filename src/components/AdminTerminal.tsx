@@ -335,7 +335,7 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             }
 
             // /set ota [@username] "[ссылка]" [версия] [@target|*]
-            // Пример: /set ota @user "https://.../app.apk" 4.0.1
+            // Пример: /set ota @user "https://.../app.apk" 5.0.0
             let rest = after;
             let prefixTarget: string | null = null;
             const pre = rest.match(/^@([^\s"']+)\s+([\s\S]*)$/);

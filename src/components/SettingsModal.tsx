@@ -8,7 +8,7 @@ import Avatar from "./Avatar";
 import Crown from "./Crown";
 import Verified from "./Verified";
 import { cn } from "../utils/cn";
-import { ALL_THEMES, applyTheme, getThemeById, saveThemeId, THEMES, WINPRO_THEMES, YOU_THEME_ID } from "../lib/themes";
+import { ALL_THEMES, applyTheme, getThemeById, GLASS_THEME_ID, saveThemeId, THEMES, WINPRO_THEMES, YOU_THEME_ID } from "../lib/themes";
 import {
   YOU_SEEDS,
   YOU_SHAPES,
@@ -365,33 +365,24 @@ export default function SettingsModal({
                   }}
                 />
               </div>
-              <p className="mt-3 flex items-center gap-1.5 font-mono text-sm font-semibold text-black/40">
+              <p className="mt-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 font-mono text-sm font-semibold text-black/40">
                 @{me.username}
                 {isVerified(me) && <Verified size="sm" level={badgeLevel(me)} />}
+                {myBadges.map((code) => (
+                  <img
+                    key={code}
+                    src={BADGE_IMAGES[code]}
+                    alt={BADGE_LABELS[code]}
+                    title={BADGE_LABELS[code]}
+                    className="h-6 w-6 object-contain drop-shadow-sm"
+                  />
+                ))}
               </p>
               {isVerified(me) && (
                 <p className="mt-1.5 flex items-center gap-1 rounded-full bg-[#1d9bf0]/10 px-2.5 py-1 text-[11px] font-bold text-[#1d9bf0]">
                   <Verified size="xs" className="h-3 w-3" level={badgeLevel(me)} />
                   Подтверждённый аккаунт
                 </p>
-              )}
-              {myBadges.length > 0 && (
-                <div className="mt-4 flex flex-col items-center">
-                  <div className="flex items-center gap-2">
-                    {myBadges.map((code) => (
-                      <img
-                        key={code}
-                        src={BADGE_IMAGES[code]}
-                        alt={BADGE_LABELS[code]}
-                        className="h-10 w-10 rounded-full object-contain ring-1 ring-black/10"
-                      />
-                    ))}
-                  </div>
-                  <p className="mt-2 font-mono text-[11px] font-semibold tracking-[0.16em] text-black/45 uppercase">
-                    Бейджи
-                  </p>
-                  <p className="mt-0.5 font-bold">{myBadges.map((c) => BADGE_LABELS[c]).join(", ")}</p>
-                </div>
               )}
             </div>
 
@@ -536,6 +527,7 @@ export default function SettingsModal({
                 {WINPRO_THEMES.map((t) => {
                   const active = currentId === t.id;
                   const isYou = t.id === YOU_THEME_ID;
+                  const isGlass = t.id === GLASS_THEME_ID;
                   return (
                     <button
                       key={t.id}
@@ -552,6 +544,9 @@ export default function SettingsModal({
                         if (isYou) {
                           onClose();
                           navigate("/themes/you/chat");
+                        } else if (isGlass) {
+                          onClose();
+                          navigate("/themes/glass/chat");
                         } else if (youMode) {
                           navigate("/chats");
                         }
@@ -595,7 +590,7 @@ export default function SettingsModal({
               </div>
 
               {/* ===== Material You — WinChat You ===== */}
-              {(you || currentId === YOU_THEME_ID) && (
+              {currentId === YOU_THEME_ID && (
                 <div className="mt-5">
                   <div
                     className={cn(
