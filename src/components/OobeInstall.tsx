@@ -14,7 +14,7 @@ import { mapAuthError } from "./Auth";
 import { rememberLegacyPassword } from "./LegacyScreen";
 import { normalizeWinpass, validateNickname, validatePassword, validateUsername } from "../lib/utils";
 import { cn } from "../utils/cn";
-import { OobeButton } from "./OobeUpdate";
+import { OobeButton, OobeHeader } from "./OobeUpdate";
 import type { Profile } from "../lib/supabase";
 
 interface Props {
@@ -164,10 +164,11 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
   }
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-white">
+    <div className="oobe-font relative min-h-dvh overflow-hidden bg-white">
+      <OobeHeader />
       {/* ============ ШАГ: ПРИВЕТСТВИЕ УСТАНОВКИ ============ */}
       {step === "welcome" && (
-        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[520px] flex-col items-center justify-center px-6 text-center">
+        <div className="relative z-10 mx-auto flex min-h-dvh pt-14 w-full max-w-[520px] flex-col items-center justify-center px-6 text-center">
           <div className="animate-[oobe-pop_0.7s_cubic-bezier(0.22,1.3,0.4,1)_both] relative">
             <span
               aria-hidden
@@ -191,7 +192,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
 
       {/* ============ ШАГ: РЕГИСТРАЦИЯ ИЛИ ВХОД (Liquid Glass) ============ */}
       {step === "auth" && (
-        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[440px] flex-col justify-center px-5 py-12">
+        <div className="relative z-10 mx-auto flex min-h-dvh pt-14 w-full max-w-[440px] flex-col justify-center px-5 py-12">
           {/* Шапка */}
           <div className="animate-[oobe-rise_0.6s_cubic-bezier(0.22,1.2,0.4,1)_both] mb-6 flex items-center justify-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-black/8 bg-white shadow-[0_14px_30px_-18px_rgba(28,60,140,0.5)]">
@@ -301,7 +302,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
 
       {/* ============ ШАГ: ПОДАРОК-WinPASS ============ */}
       {step === "winpass" && issuedWinpass && (
-        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[440px] flex-col items-center justify-center px-6 text-center">
+        <div className="relative z-10 mx-auto flex min-h-dvh pt-14 w-full max-w-[440px] flex-col items-center justify-center px-6 text-center">
             <div className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_both] w-full rounded-[36px] border border-black/8 bg-white p-7 shadow-[0_30px_70px_-46px_rgba(28,60,140,0.45)]">
             <p className="text-[20px] font-extrabold tracking-tight text-[#101214]">
               Аккаунт создан! 🎉
@@ -332,7 +333,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
 
       {/* ============ ШАГ: ПРОВЕРКА ============ */}
       {step === "checking" && (
-        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[440px] flex-col items-center justify-center px-6 text-center">
+        <div className="relative z-10 mx-auto flex min-h-dvh pt-14 w-full max-w-[440px] flex-col items-center justify-center px-6 text-center">
           <div className="animate-[oobe-pop_0.6s_cubic-bezier(0.22,1.3,0.4,1)_both] flex flex-col items-center gap-4 rounded-full border border-black/8 bg-white px-10 py-7 shadow-[0_24px_54px_-40px_rgba(28,60,140,0.5)]">
             <span className="h-10 w-10 animate-spin rounded-full border-4 border-[#3f6df6]/20 border-t-[#3f6df6]" />
             <p className="text-[17px] font-extrabold tracking-tight text-[#101214]">
@@ -347,7 +348,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
 
       {/* ============ ШАГ: ФИНАЛ — ЛОГОТИП WINCHAT ============ */}
       {step === "success" && (
-        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[520px] flex-col items-center justify-center px-6 text-center">
+        <div className="relative z-10 mx-auto flex min-h-dvh pt-14 w-full max-w-[520px] flex-col items-center justify-center px-6 text-center">
           <div className="animate-[oobe-pop_0.7s_cubic-bezier(0.22,1.3,0.4,1)_both] relative">
             <span
               aria-hidden

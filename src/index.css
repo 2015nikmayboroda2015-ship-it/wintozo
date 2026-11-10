@@ -2249,16 +2249,13 @@ body {
    OOBE — приветственные экраны (обновление 5.0.0 / установка)
    ============================================================ */
 
-/* Живой аврора-фон шагов OOBE */
-.oobe-aurora {
-  background:
-    radial-gradient(ellipse 55% 42% at 4% -4%, #6fa3ff 0%, transparent 56%),
-    radial-gradient(ellipse 50% 44% at 98% 2%, #b990ff 0%, transparent 58%),
-    radial-gradient(ellipse 62% 52% at 104% 78%, #4fe0c6 0%, transparent 58%),
-    radial-gradient(ellipse 60% 46% at -6% 88%, #ffb5e6 0%, transparent 58%),
-    radial-gradient(ellipse 70% 50% at 44% 34%, white 0%, rgba(255, 255, 255, 0) 72%),
-    linear-gradient(168deg, #e9f1fe 0%, #d5e2fa 38%, #dee9fb 64%, #cfe0f8 100%);
-  background-attachment: fixed;
+/* Шрифт OOBE — стеклянная Nunito (как в WinChat Glass) */
+.oobe-font,
+.oobe-font input,
+.oobe-font button,
+.oobe-font textarea,
+.oobe-font select {
+  font-family: "Nunito", "Libre Franklin", Roboto, ui-sans-serif, system-ui, sans-serif;
 }
 
 @keyframes oobe-rise {
@@ -2315,12 +2312,160 @@ body {
     transform: none;
   }
 }
+@keyframes oobe-float {
+  from {
+    opacity: 0;
+    transform: translateY(34px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes oobe-zoom {
+  from {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 @keyframes oobe-progress {
   0% {
     margin-left: -35%;
   }
   100% {
     margin-left: 105%;
+  }
+}
+
+/* ---------- Анимации отдельных экранов-проверок ---------- */
+
+/* Расходящиеся кольца радара (поиск/подключение). */
+@keyframes oobe-radar {
+  0% {
+    transform: scale(0.35);
+    opacity: 0.75;
+  }
+  80% {
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+}
+
+/* Сектор развёртки радара. */
+@keyframes oobe-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Три прыгающие точки (загрузка/обмен). */
+@keyframes oobe-dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0) scale(0.85);
+    opacity: 0.45;
+  }
+  40% {
+    transform: translateY(-9px) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Детерминированное заполнение полосы. */
+@keyframes oobe-bar-fill {
+  from {
+    width: 2%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Сканирующая линия поверх карточки/щита. */
+@keyframes oobe-scan {
+  0% {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+}
+
+/* Пружинящее покачивание (замок, шестерня). */
+@keyframes oobe-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) rotate(-4deg);
+  }
+  75% {
+    transform: translateY(3px) rotate(4deg);
+  }
+}
+
+/* Появление галочки «пройдено». */
+@keyframes oobe-check-pop {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Рисуемая дуга прогресса (stroke-dashoffset). */
+@keyframes oobe-arc {
+  from {
+    stroke-dashoffset: 180;
+  }
+  to {
+    stroke-dashoffset: 45;
+  }
+}
+
+/* Пульс-волна вокруг иконки. */
+@keyframes oobe-pulse-wave {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+/* Летящие искры синхронизации. */
+@keyframes oobe-orbit {
+  from {
+    transform: rotate(0deg) translateX(var(--oobe-orbit-r, 44px)) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(var(--oobe-orbit-r, 44px)) rotate(-360deg);
   }
 }
 
