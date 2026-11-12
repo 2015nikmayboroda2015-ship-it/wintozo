@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ArrowRight, CheckCheck, Crown, Sparkles } from "lucide-react";
+﻿import { useEffect, useState } from "react";
+import { ArrowRight, CheckCheck, Sparkles } from "lucide-react";
 import { cn } from "../utils/cn";
 
 interface Props {
@@ -63,17 +63,19 @@ export default function OobeUpdate({ winPro, onFinish }: Props) {
   }, [step]);
 
   return (
-    <div className="oobe-root relative min-h-dvh overflow-hidden">
+    <div className="oobe-root relative min-h-dvh overflow-hidden bg-white">
       {/* Индикатор шага */}
       <div className="absolute top-5 left-0 z-20 flex w-full items-center justify-center gap-2">
-        <div className="oobe-steps" role="progressbar" aria-valuemin={1} aria-valuemax={3} aria-valuenow={step}>
-          {[1, 2, 3].map((n) => (
-            <span
-              key={n}
-              className={cn("oobe-step-dot", n < step ? "is-done" : n === step ? "is-active" : "")}
-            />
-          ))}
-        </div>
+        {[1, 2, 3].map((n) => (
+          <span
+            key={n}
+            className={cn(
+              "h-2 rounded-full transition-all duration-500",
+              n === step ? "w-7 bg-[#3f6df6]" : step === 1 ? "w-2 bg-black/15" : "w-2 bg-[#1a2434]/20"
+            )}
+            style={{ animationDelay: `${n * 0.1}s` }}
+          />
+        ))}
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[520px] flex-col px-6 py-[72px]">
@@ -137,7 +139,7 @@ export default function OobeUpdate({ winPro, onFinish }: Props) {
         {step === 2 && (
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             {/* Предпросмотр Liquid Glass */}
-            <div className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_both] oobe-card w-full max-w-[400px] overflow-hidden">
+            <div className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_both] w-full max-w-[400px] overflow-hidden rounded-[34px] border border-black/10 bg-white shadow-[0_34px_76px_-46px_rgba(28,60,140,0.45)]">
               {/* Шапка-островок */}
               <div className="m-3 mb-0 flex items-center justify-between rounded-full bg-[#0d1220]/92 px-4 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_16px_36px_-24px_rgba(8,18,40,0.9)]">
                 <span className="flex items-center gap-2">
@@ -160,7 +162,7 @@ export default function OobeUpdate({ winPro, onFinish }: Props) {
                 </div>
 
                 {/* Капсула ввода */}
-                <div className="mt-3 flex items-center gap-2 rounded-full border border-black/10 bg-white/70 py-2 pr-2 pl-4">
+                <div className="mt-3 flex items-center gap-2 rounded-full border border-black/10 bg-[#f7f8fa] py-2 pr-2 pl-4">
                   <span className="flex-1 text-left text-[12px] font-semibold text-black/35">
                     Сообщение
                   </span>
@@ -176,7 +178,7 @@ export default function OobeUpdate({ winPro, onFinish }: Props) {
             </p>
 
             {/* Проверка окружения и WinPro — реалистичная последовательность */}
-            <div className="animate-[oobe-rise_0.6s_cubic-bezier(0.22,1.2,0.4,1)_0.4s_both] mt-5 w-full max-w-[400px] oobe-card px-6 py-6">
+            <div className="animate-[oobe-rise_0.6s_cubic-bezier(0.22,1.2,0.4,1)_0.4s_both] mt-5 w-full max-w-[400px] rounded-[32px] border border-black/10 bg-white px-6 py-6 shadow-[0_24px_56px_-40px_rgba(28,60,140,0.45)]">
               {!checksDone ? (
                 <div className="flex flex-col gap-3 py-1 text-left">
                   {CHECKS.map((label, i) => {
@@ -222,7 +224,7 @@ export default function OobeUpdate({ winPro, onFinish }: Props) {
               ) : winPro ? (
                 <div className="flex flex-col items-center gap-2.5 py-1">
                   <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/95 bg-white/85 text-[#ffd166] shadow-[inset_0_1px_0_rgba(255,255,255,1),0_14px_30px_-18px_rgba(255,180,60,0.8)]">
-                    <Crown className="h-7 w-7" />
+                   
                   </span>
                   <p className="text-[15px] leading-snug font-extrabold text-[#12295c]">
                     У вас есть WinPro. Вы можете использовать WinChat Glass как основную
@@ -303,12 +305,16 @@ export function OobeButton({
       disabled={disabled}
       aria-disabled={disabled}
       className={cn(
-        "group oobe-btn-primary disabled:cursor-not-allowed disabled:opacity-60",
-        className
+        "group mt-9 flex w-full max-w-[340px] items-center justify-center gap-2 rounded-full border border-white bg-white/70 px-6 py-4 text-[15px] font-extrabold text-[#1a2434] tracking-wide shadow-[inset_0_1px_0_rgba(255,255,255,1),inset_0_-10px_22px_-14px_rgba(44,86,232,0.35),0_22px_48px_-26px_rgba(28,60,120,0.55)] backdrop-blur-xl backdrop-saturate-150 transition active:scale-[0.98]",
+        className,
+        // Пока идёт проверка — кнопка приглушена и не кликается
+        disabled
+          ? "cursor-not-allowed opacity-50 saturate-50"
+          : "hover:bg-white/90"
       )}
     >
       {label}
-      <span className="oobe-btn-arrow">
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#3f6df6] text-white transition group-hover:translate-x-0.5">
         <ArrowRight className="h-3.5 w-3.5" strokeWidth={3} />
       </span>
     </button>

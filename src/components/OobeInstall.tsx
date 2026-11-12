@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+﻿import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   ArrowRight,
   AtSign,
@@ -7,7 +7,6 @@ import {
   EyeOff,
   KeyRound,
   Loader2,
-  ShieldCheck,
   UserRound,
 } from "lucide-react";
 import { emailFor, loginByWinpass, supabase } from "../lib/supabase";
@@ -165,38 +164,26 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
   }
 
   return (
-    <div className="oobe-root font-app relative min-h-dvh overflow-hidden">
-      {/* Живые световые пятна Liquid Glass */}
-      <div className="oobe-bg" aria-hidden />
-
+    <div className="relative min-h-dvh overflow-hidden bg-white">
       {/* ============ ШАГ: ПРИВЕТСТВИЕ УСТАНОВКИ ============ */}
       {step === "welcome" && (
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[520px] flex-col items-center justify-center px-6 text-center">
           <div className="animate-[oobe-pop_0.7s_cubic-bezier(0.22,1.3,0.4,1)_both] relative">
             <span
               aria-hidden
-              className="absolute -inset-6 animate-[oobe-breathe_3s_ease-in-out_infinite] rounded-full"
-              style={{
-                background:
-                  "radial-gradient(circle at 35% 30%, rgba(123,162,255,0.55), rgba(63,109,246,0.35) 55%, transparent 75%)",
-              }}
+              className="absolute -inset-6 animate-[oobe-breathe_3s_ease-in-out_infinite] rounded-full bg-white/70 blur-2xl"
             />
-            <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-[32px] border border-white/90 bg-white/70 shadow-[0_30px_60px_-32px_rgba(28,60,140,0.55)] backdrop-blur-xl">
+            <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-[32px] border border-black/8 bg-white shadow-[0_30px_60px_-32px_rgba(28,60,140,0.55)]">
               <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
             </div>
           </div>
 
           <h1 className="animate-[oobe-rise_0.7s_cubic-bezier(0.22,1.2,0.4,1)_0.15s_both] mt-7 text-[30px] leading-snug font-extrabold tracking-tight text-[#101214]">
             Установка завершена!
-            <span className="mt-1 block bg-gradient-to-r from-[#3f6df6] via-[#7aa2ff] to-[#5b8cff] bg-clip-text text-transparent">
+            <span className="mt-1 block bg-gradient-to-r from-[#3f6df6] to-[#7aa2ff] bg-clip-text text-transparent">
               Добро пожаловать в WinChat!
             </span>
           </h1>
-
-          <p className="animate-[oobe-rise_0.7s_cubic-bezier(0.22,1.2,0.4,1)_0.25s_both] mt-3 max-w-[300px] text-[13.5px] leading-relaxed font-semibold text-black/45">
-            Ваши данные и WinPass уже на месте — теперь зайдём в аккаунт, чтобы
-            продолжить общение.
-          </p>
 
           <OobeButton onClick={() => setStep("auth")} label="Далее" />
         </div>
@@ -207,7 +194,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[440px] flex-col justify-center px-5 py-12">
           {/* Шапка */}
           <div className="animate-[oobe-rise_0.6s_cubic-bezier(0.22,1.2,0.4,1)_both] mb-6 flex items-center justify-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-white/80 bg-white/70 shadow-lg backdrop-blur-xl">
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-black/8 bg-white shadow-[0_14px_30px_-18px_rgba(28,60,140,0.5)]">
               <img src="/logo.jpg" alt="" className="h-full w-full object-cover" />
             </div>
             <div>
@@ -221,7 +208,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
           </div>
 
           {/* Стеклянная карточка с формой */}
-          <div className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_0.12s_both] oobe-card p-6">
+          <div className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_0.12s_both] rounded-[36px] border border-black/8 bg-white p-6 shadow-[0_30px_70px_-46px_rgba(28,60,140,0.45)]">
             <form onSubmit={submit} className="space-y-3.5">
               {mode === "register" && (
                 <OobeField
@@ -243,22 +230,24 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
                 maxLength={20}
               />
               <OobeField
+                icon={
+                  showPw ? (
+                    <Eye
+                      className="h-4 w-4 cursor-pointer"
+                      onClick={() => setShowPw(false)}
+                    />
+                  ) : (
+                    <EyeOff
+                      className="h-4 w-4 cursor-pointer opacity-70"
+                      onClick={() => setShowPw(true)}
+                    />
+                  )
+                }
                 label="Пароль"
                 value={password}
                 onChange={setPassword}
                 placeholder="минимум 6 символов"
                 type={showPw ? "text" : "password"}
-                maxLength={64}
-                trailing={
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-[#3f6df6]/80 transition hover:bg-[#3f6df6]/10"
-                    aria-label={showPw ? "Скрыть пароль" : "Показать пароль"}
-                  >
-                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                }
               />
 
               {error && (
@@ -271,30 +260,30 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
               <button
                 type="submit"
                 disabled={loading}
-                className="oobe-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+                className="group flex w-full items-center justify-center gap-2 rounded-full bg-[#3f6df6] px-6 py-4 text-[15px] font-extrabold text-white tracking-wide shadow-[0_18px_38px_-22px_rgba(44,86,232,0.9)] transition hover:bg-[#2c56e8] active:scale-[0.98] disabled:opacity-60"
               >
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                 Продолжить
-                {!loading && (
-                  <span className="oobe-btn-arrow">
-                    <ArrowRight className="h-3.5 w-3.5" strokeWidth={3} />
-                  </span>
-                )}
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white transition group-hover:translate-x-0.5">
+                  <ArrowRight className="h-3.5 w-3.5" strokeWidth={3} />
+                </span>
               </button>
             </form>
 
             <div className="my-4 flex items-center gap-3">
               <span className="h-px flex-1 bg-black/10" />
               <span className="text-[10px] font-extrabold tracking-[0.18em] text-black/35 uppercase">
-                или
+               или
               </span>
               <span className="h-px flex-1 bg-black/10" />
             </div>
 
             <button
               type="button"
-              onClick={() => setMode(mode === "register" ? "login" : "register")}
-              className="oobe-btn-ghost"
+              onClick={() =>
+                setMode(mode === "register" ? "login" : "register")
+              }
+              className="w-full rounded-full py-2 text-[13px] font-bold text-[#3f6df6] transition hover:opacity-75 active:scale-[0.99]"
             >
               {mode === "register" ? "Есть аккаунт? Войти" : "Создать аккаунт"}
             </button>
@@ -313,17 +302,14 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
       {/* ============ ШАГ: ПОДАРОК-WinPASS ============ */}
       {step === "winpass" && issuedWinpass && (
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[440px] flex-col items-center justify-center px-6 text-center">
-          <div className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_both] oobe-card w-full p-7">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#3f6df6]/10">
-              <ShieldCheck className="h-8 w-8 text-[#3f6df6]" />
-            </div>
-            <p className="mt-4 text-[20px] font-extrabold tracking-tight text-[#101214]">
+            <div className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_both] w-full rounded-[36px] border border-black/8 bg-white p-7 shadow-[0_30px_70px_-46px_rgba(28,60,140,0.45)]">
+            <p className="text-[20px] font-extrabold tracking-tight text-[#101214]">
               Аккаунт создан! 🎉
             </p>
             <p className="mt-2 text-[13px] leading-relaxed font-semibold text-black/50">
               Сохраните <b>WinPass</b> — код восстановления, привязанный к аккаунту навсегда.
             </p>
-            <div className="mt-5 break-all rounded-[24px] border border-black/10 bg-black/[0.04] px-4 py-4 font-mono text-lg font-extrabold text-[#101214] tracking-wide">
+            <div className="mt-5 break-all rounded-[24px] border border-black/10 bg-[#f7f8fa] px-4 py-4 font-mono text-lg font-extrabold text-[#101214] tracking-wide">
               {issuedWinpass}
             </div>
             <button
@@ -333,8 +319,8 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
                 setTimeout(() => setCopied(false), 1800);
               }}
               className={cn(
-                "mt-3 w-full rounded-full border border-black/8 py-3 text-[13px] font-extrabold text-[#1a2434] transition active:scale-[0.98]",
-                copied ? "bg-[#3f6df6] text-white" : "bg-white/70"
+                "mt-3 w-full rounded-full border border-black/8 bg-white py-3 text-[13px] font-extrabold text-[#1a2434] transition active:scale-[0.98]",
+                copied && "bg-[#3f6df6] text-white"
               )}
             >
               {copied ? "Скопировано ✓" : "Скопировать код"}
@@ -347,11 +333,8 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
       {/* ============ ШАГ: ПРОВЕРКА ============ */}
       {step === "checking" && (
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[440px] flex-col items-center justify-center px-6 text-center">
-          <div className="animate-[oobe-pop_0.6s_cubic-bezier(0.22,1.3,0.4,1)_both] oobe-card flex flex-col items-center gap-4 rounded-full border border-white/80 bg-white/70 px-10 py-7 shadow-2xl backdrop-blur-xl">
-            <span className="relative flex h-12 w-12 items-center justify-center">
-              <span className="absolute inset-0 animate-ping rounded-full bg-[#3f6df6]/20" />
-              <span className="relative h-10 w-10 animate-spin rounded-full border-4 border-[#3f6df6]/20 border-t-[#3f6df6]" />
-            </span>
+          <div className="animate-[oobe-pop_0.6s_cubic-bezier(0.22,1.3,0.4,1)_both] flex flex-col items-center gap-4 rounded-full border border-black/8 bg-white px-10 py-7 shadow-[0_24px_54px_-40px_rgba(28,60,140,0.5)]">
+            <span className="h-10 w-10 animate-spin rounded-full border-4 border-[#3f6df6]/20 border-t-[#3f6df6]" />
             <p className="text-[17px] font-extrabold tracking-tight text-[#101214]">
               Проверка<span className="animate-pulse">..</span>
             </p>
@@ -368,13 +351,9 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
           <div className="animate-[oobe-pop_0.7s_cubic-bezier(0.22,1.3,0.4,1)_both] relative">
             <span
               aria-hidden
-              className="absolute -inset-6 animate-[oobe-breathe_3s_ease-in-out_infinite] rounded-full"
-              style={{
-                background:
-                  "radial-gradient(circle at 35% 30%, rgba(168,224,106,0.5), rgba(63,109,246,0.3) 55%, transparent 75%)",
-              }}
+              className="absolute -inset-6 animate-[oobe-breathe_3s_ease-in-out_infinite] rounded-full bg-white/70 blur-2xl"
             />
-            <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-[32px] border border-white/90 bg-white/70 shadow-[0_30px_60px_-32px_rgba(28,60,140,0.55)] backdrop-blur-xl">
+            <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-[32px] border border-black/8 bg-white shadow-[0_30px_60px_-32px_rgba(28,60,140,0.55)]">
               <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
             </div>
           </div>
@@ -406,29 +385,23 @@ function OobeField({
   type = "text",
   maxLength,
   autoFocus,
-  trailing,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  icon?: ReactNode;
+  icon: ReactNode;
   type?: string;
   maxLength?: number;
   autoFocus?: boolean;
-  trailing?: ReactNode;
 }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-[10px] font-extrabold tracking-[0.18em] text-black/40 uppercase">
         {label}
       </span>
-      <span className="relative block">
-        {icon && (
-          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#3f6df6]/80">
-            {icon}
-          </span>
-        )}
+      <span className="flex items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 py-3 transition focus-within:border-[#3f6df6]/50 focus-within:ring-4 focus-within:ring-[#3f6df6]/10">
+        <span className="pointer-events-none text-[#3f6df6]/80 [&>svg]:pointer-events-auto">{icon}</span>
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -436,9 +409,8 @@ function OobeField({
           type={type}
           maxLength={maxLength}
           autoFocus={autoFocus}
-          className={cn("oobe-input", icon && "oobe-input-icon", trailing && "pr-11")}
+          className="w-full bg-transparent text-[14px] font-bold text-[#101214] placeholder:font-semibold placeholder:text-black/30 outline-none"
         />
-        {trailing}
       </span>
     </label>
   );
@@ -458,12 +430,12 @@ function WinpassGlass({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mt-5 text-center">
+    <div className="mt-4 text-center">
       {!open ? (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="oobe-btn-ghost"
+          className="mx-auto flex items-center gap-1.5 rounded-full border border-black/8 bg-black/[0.03] px-4 py-2 text-[12px] font-bold text-black/50 transition hover:bg-black/[0.06]"
         >
           <KeyRound className="h-3.5 w-3.5 text-[#3f6df6]" />
           Войти по WinPass
@@ -471,9 +443,9 @@ function WinpassGlass({
       ) : (
         <form
           onSubmit={onSubmit}
-          className="animate-fade-in oobe-card rounded-[30px] p-4 text-left"
+          className="animate-fade-in rounded-[30px] border border-black/8 bg-white p-4 shadow-[0_20px_44px_-34px_rgba(28,60,140,0.4)]"
         >
-          <label className="block">
+          <label className="block text-left">
             <span className="mb-1.5 flex items-center gap-1.5 text-[10px] font-extrabold tracking-[0.18em] text-black/40 uppercase">
               <KeyRound className="h-3 w-3 text-[#3f6df6]" />
               WinPass
@@ -483,21 +455,21 @@ function WinpassGlass({
               onChange={(e) => onChange(e.target.value)}
               placeholder="33b42-a1b2c3d4e5f6"
               autoComplete="off"
-              className="oobe-input font-mono"
+              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-[14px] font-bold tracking-wide text-[#101214] outline-none focus:border-[#3f6df6]/50 focus:ring-4 focus:ring-[#3f6df6]/10"
             />
           </label>
           <button
             type="submit"
             disabled={loading}
-            className="oobe-btn-primary mt-3 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-3 w-full rounded-full bg-[#3f6df6] py-3 text-[13px] font-extrabold text-white shadow-[0_16px_34px_-22px_rgba(44,86,232,0.85)] transition hover:bg-[#2c56e8] active:scale-[0.98] disabled:opacity-60"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {loading ? <Loader2 className="inline h-4 w-4 animate-spin" /> : null}
             Войти по WinPass
           </button>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="oobe-btn-ghost mt-2"
+            className="mt-1.5 w-full rounded-full py-2 text-[12px] font-bold text-black/45 transition hover:bg-white/60"
           >
             Назад
           </button>

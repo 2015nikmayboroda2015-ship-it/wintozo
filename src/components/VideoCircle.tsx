@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Maximize2, Pause, Play } from "lucide-react";
+import { Download, Maximize2, Pause, Play } from "lucide-react";
 import { cn } from "../utils/cn";
 import VideoFullscreen from "./VideoFullscreen";
 
@@ -7,6 +7,8 @@ interface Props {
   src: string;
   duration: number | null;
   own: boolean;
+  /** Скачать видеокружок в DCIM/WinChat/Video. */
+  onDownload?: () => void;
 }
 
 const RADIUS = 48;
@@ -21,7 +23,7 @@ function durationLabel(seconds: number | null): string {
  * Видеокружок: настоящее круглое видео, снятое пользователем.
  * Проигрывается внутри круга, отдельная кнопка открывает полный экран.
  */
-export default function VideoCircle({ src, duration, own }: Props) {
+export default function VideoCircle({ src, duration, own, onDownload }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -157,6 +159,21 @@ export default function VideoCircle({ src, duration, own }: Props) {
             </span>
           ) : null}
         </button>
+
+        {onDownload && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDownload();
+            }}
+            className="absolute bottom-0 left-0 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white shadow-md backdrop-blur-sm transition hover:bg-black/75"
+            aria-label="Скачать видео в DCIM/WinChat/Video"
+            title="Скачать в DCIM/WinChat/Video"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+        )}
 
         <button
           type="button"

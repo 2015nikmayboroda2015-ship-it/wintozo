@@ -13,6 +13,7 @@ import {
   YOU_THEME_ID,
 } from "./lib/themes";
 import { getAnimationId } from "./lib/animations";
+import { initSecureAccountStore, rememberAccount } from "./lib/secureAccountStore";
 import { requestNotifyPermission } from "./lib/notify";
 import { applyLegacyGate, declineLegacyUi, isLegacyUi, resetLegacyChoice } from "./lib/checkVersion";
 import { reportDeviceStatus, isAndroidWebLite } from "./lib/ota";
@@ -138,24 +139,41 @@ export default function App() {
 
 
   useEffect(() => {
-    // Применить тему из localStorage при старте
-    const theme = getCurrentTheme();
-    applyTheme(theme);
+    let alive = true;
 
-    // OTA: отправить статус устройства (is_wintozo_web_true / _no).
-    // Сам поиск OTA делает CheckVersion после входа (см. lib/ota.ts).
-    void reportDeviceStatus();
+    // Сначала проверяем зашифрованную папку /winchat/account_settings/:
+    // оттуда восстанавливаются тема, анимация, профиль и сессия аккаунта.
+    (async () => {
+      await initSecureAccountStore();
+      if (!alive) return;
 
-    supabase.auth.getSession().then(({ data }) => {
+      // Тема применяется после восстановления настроек из зашифрованного файла.
+      applyTheme(getCurrentTheme());
+
+      // OTA: отправить статус устройства (is_wintozo_web_true / _no).
+      // Сам поиск OTA делает CheckVersion после входа (см. lib/ota.ts).
+      void reportDeviceStatus();
+
+      const { data } = await supabase.auth.getSession();
+      if (!alive) return;
       setSession(data.session);
       setBooting(false);
       void requestNotifyPermission();
-    });
+    })();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
-    return () => subscription.unsubscribe();
+    return () => {
+      alive = false;
+      subscription.unsubscribe();
+    };
   }, []);
+
+  /* Запоминаем профиль в зашифрованном хранилище при входе/обновлении. */
+  useEffect(() => {
+    if (profile) rememberAccount(profile);
+  }, [profile]);
 
   /* Проверка серверной версии при запуске (ивент «Память о Wintozo») */
   useEffect(() => {

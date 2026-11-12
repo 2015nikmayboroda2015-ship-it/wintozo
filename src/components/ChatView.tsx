@@ -5,6 +5,7 @@ import {
   ArrowUp,
   Check,
   CircleAlert,
+  Download,
   ImagePlus,
   Info,
   Loader2,
@@ -13,7 +14,9 @@ import {
   Mic,
   Pencil,
   Phone,
+  Plus,
   Star,
+  Sticker,
   Trash2,
   Users,
   Video,
@@ -36,6 +39,7 @@ import { compressVideo } from "../lib/videoCompress";
 import { loadSavedNotes, notifySavedNotesChanged, persistSavedNotes } from "../lib/savedNotes";
 import { showMessageNotificationIfHidden } from "../lib/notify";
 import { useCalls } from "../hooks/useCalls";
+import { downloadMedia } from "../lib/mediaDownload";
 import CallOverlay from "./CallOverlay";
 import Avatar from "./Avatar";
 import AudioMessage from "./AudioMessage";
@@ -43,6 +47,7 @@ import VideoCircle from "./VideoCircle";
 import VideoMessage from "./VideoMessage";
 import Verified from "./Verified";
 import { cn } from "../utils/cn";
+import StickerPanel from "./StickerPanel";
 
 const GROUP_WINDOW = 5 * 60 * 1000;
 
@@ -84,11 +89,16 @@ export default function ChatView({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
+  const [stickerToSave, setStickerToSave] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
   const [compressPct, setCompressPct] = useState(0);
   const [typingName, setTypingName] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [savedHint, setSavedHint] = useState<string | null>(null);
+  const savedHintTimer = useRef<number | undefined>(undefined);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const [hasText, setHasText] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
@@ -210,8 +220,8 @@ export default function ChatView({
           const sender = memberById.get(m.sender_id) ?? chat.other ?? null;
           const senderName = sender?.nickname || "Собеседник";
           const chatTitle = chat.isGroup ? chat.title : "";
-          const preview = m.content || m.audio_url ? "Голосовое" : m.image_url ? "Фото" : m.video_url ? "Видео" : "";
-          const body = preview || m.content || "Новое сообщение";
+          const preview = m.sticker_url ? "Стикер" : m.audio_url ? "Голосовое" : m.video_url ? "Видео" : m.image_url ? "Фото" : "";
+          const body = m.content || preview || "Новое сообщение";
 
           showMessageNotificationIfHidden({
             title: chatTitle ? `${chatTitle} · ${senderName}` : senderName,
@@ -296,6 +306,8 @@ export default function ChatView({
   /* ---------- отправка ---------- */
   async function send(opts?: {
     image?: File;
+    /** Готовая ссылка на стикер с sticker-сервера. */
+    stickerUrl?: string;
     audio?: Blob;
     seconds?: number;
     video?: Blob;
@@ -309,12 +321,13 @@ export default function ChatView({
     // Читаем актуальное значение из DOM — на мобильных Android при IME-вводе
     // uncontrolledText может быть устаревшим, пока не сработает compositionend.
     const content = (ta?.value ?? uncontrolledText.current).trim();
-    if (!content && !opts?.image && !opts?.audio && !opts?.video) return;
+    if (!content && !opts?.image && !opts?.stickerUrl && !opts?.audio && !opts?.video) return;
     if (!canPost) return flashError("В канале писать могут только администраторы");
     if (sending) return;
     setSending(true);
     try {
       let image_url: string | null = null;
+      let sticker_url: string | null = opts?.stickerUrl ?? null;
       let audio_url: string | null = null;
       let audio_duration: number | null = null;
       let video_url: string | null = null;
@@ -352,6 +365,7 @@ export default function ChatView({
           sender_id: me.id,
           content: content || null,
           image_url,
+          sticker_url,
           audio_url,
           audio_duration,
           video_url,
@@ -385,6 +399,7 @@ export default function ChatView({
           sender_id: me.id,
           content: content || null,
           image_url,
+          sticker_url,
           audio_url,
           audio_duration,
           video_url,
@@ -408,13 +423,15 @@ export default function ChatView({
       }
     } catch {
       flashError(
-        opts?.video
-          ? "Не удалось отправить видео"
-          : opts?.audio
-            ? "Не удалось отправить голосовое"
-            : opts?.image
-              ? "Не удалось отправить фото"
-              : "Не удалось отправить сообщение"
+        opts?.stickerUrl
+          ? "Не удалось отправить стикер"
+          : opts?.video
+            ? "Не удалось отправить видео"
+            : opts?.audio
+              ? "Не удалось отправить голосовое"
+              : opts?.image
+                ? "Не удалось отправить фото"
+                : "Не удалось отправить сообщение"
       );
     } finally {
       setSending(false);
@@ -813,14 +830,18 @@ export default function ChatView({
           <div
             className={cn(
               "overflow-hidden rounded-[20px] text-[15px] leading-relaxed font-medium",
-              m.image_url || m.audio_url || m.video_url ? "p-1.5" : "px-4 py-2.5",
-              own
-                ? youMode
-                  ? "you-msg-own"
-                  : "rounded-br-lg bg-ink text-white"
-                : youMode
-                  ? "you-msg-other"
-                  : "rounded-bl-lg bg-white text-ink shadow-sm ring-1 ring-black/8"
+              m.sticker_url
+                ? "bg-transparent p-0"
+                : cn(
+                    m.image_url || m.audio_url || m.video_url ? "p-1.5" : "px-4 py-2.5",
+                    own
+                      ? youMode
+                        ? "you-msg-own"
+                        : "rounded-br-lg bg-ink text-white"
+                      : youMode
+                        ? "you-msg-other"
+                        : "rounded-bl-lg bg-white text-ink shadow-sm ring-1 ring-black/8"
+                  )
             )}
           >
             {chat.isGroup && !own && !groupedPrev && (
@@ -834,6 +855,26 @@ export default function ChatView({
                 {sender?.nickname || "Участник"}
                 {isVerified(sender) && <Verified size="xs" className="h-3 w-3" level={badgeLevel(sender)} />}
               </p>
+            )}
+
+            {m.sticker_url && (
+              <button
+                type="button"
+                onClick={() => setStickerToSave(m.sticker_url!)}
+                className="group/sticker relative block cursor-pointer"
+                title="Сохранить стикер себе"
+                aria-label="Сохранить стикер себе"
+              >
+                <img
+                  src={m.sticker_url}
+                  alt="Стикер"
+                  loading="lazy"
+                  className="h-32 w-32 object-contain drop-shadow-md transition group-hover/sticker:scale-[1.03] sm:h-40 sm:w-40"
+                />
+                <span className="absolute right-1 bottom-1 flex h-7 w-7 items-center justify-center rounded-full bg-ink/75 text-white opacity-0 backdrop-blur-sm transition group-hover/sticker:opacity-100">
+                  <Plus className="h-3.5 w-3.5" />
+                </span>
+              </button>
             )}
 
             {m.audio_url && (
@@ -854,34 +895,55 @@ export default function ChatView({
                     src={m.video_url}
                     duration={m.video_duration}
                     own={own}
+                    onDownload={() => void saveMediaFile(m.video_url!, "video")}
                   />
                 ) : (
                   <VideoMessage
                     src={m.video_url}
                     duration={m.video_duration}
                     own={own}
+                    onDownload={() => void saveMediaFile(m.video_url!, "video")}
                   />
                 )}
               </div>
             )}
 
             {m.image_url && (
-              <button
-                onClick={() => setLightbox(m.image_url)}
-                className="relative block cursor-zoom-in overflow-hidden rounded-2xl"
-              >
-                <img
-                  src={m.image_url}
-                  alt="Фотография"
-                  loading="lazy"
-                  className="max-h-72 w-auto max-w-full object-cover transition hover:opacity-95"
-                />
-                {!m.content && (
-                  <span className="absolute right-2.5 bottom-2.5 rounded-full bg-black/55 px-2 py-0.5 font-mono text-[10px] text-white">
-                    {formatTime(m.created_at)}
-                  </span>
-                )}
-              </button>
+              <div className="group/image relative overflow-hidden rounded-2xl">
+                <button
+                  onClick={() => setLightbox(m.image_url)}
+                  className="relative block cursor-zoom-in overflow-hidden"
+                  aria-label="Открыть фотографию"
+                >
+                  <img
+                    src={m.image_url}
+                    alt="Фотография"
+                    loading="lazy"
+                    className="max-h-72 w-auto max-w-full object-cover transition hover:opacity-95"
+                  />
+                  {!m.content && (
+                    <span className="absolute right-2.5 bottom-2.5 rounded-full bg-black/55 px-2 py-0.5 font-mono text-[10px] text-white">
+                      {formatTime(m.created_at)}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void saveMediaFile(m.image_url!, "photo");
+                  }}
+                  disabled={downloading === m.image_url}
+                  className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white opacity-100 backdrop-blur-sm transition hover:bg-black/75 disabled:opacity-60 sm:opacity-0 sm:group-hover/image:opacity-100"
+                  aria-label="Скачать фото в DCIM/WinChat/Photos"
+                  title="Скачать в DCIM/WinChat/Photos"
+                >
+                  {downloading === m.image_url ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             )}
 
             {editingId === m.id ? (
@@ -936,14 +998,15 @@ export default function ChatView({
                 <p
                   className={cn(
                     "break-words whitespace-pre-wrap",
-                    (m.image_url || m.audio_url || m.video_url) && "px-2.5 pt-1.5 pb-1"
+                    (m.image_url || m.audio_url || m.video_url || m.sticker_url) &&
+                      "px-2.5 pt-1.5 pb-1"
                   )}
                 >
                   {m.content}
                   <span
                     className={cn(
                       "float-right mt-3 ml-3 font-mono text-[10px]",
-                      own ? "text-white/45" : "text-black/35"
+                      m.sticker_url ? "text-black/40" : own ? "text-white/45" : "text-black/35"
                     )}
                   >
                     {formatTime(m.created_at)}
@@ -968,6 +1031,25 @@ export default function ChatView({
       </div>
     );
   });
+
+  const saveMediaFile = async (url: string, kind: "photo" | "video") => {
+    setDownloading(url);
+    try {
+      const result = await downloadMedia(url, kind);
+      setSavedHint(result.message);
+      window.clearTimeout(savedHintTimer.current);
+      savedHintTimer.current = window.setTimeout(() => setSavedHint(null), 3600);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(savedHintTimer.current);
+    },
+    []
+  );
 
   const statusLine = chat.isSaved ? (
     "Личные заметки — хранятся на этом устройстве"
@@ -1300,6 +1382,20 @@ export default function ChatView({
                     <ImagePlus className="h-5 w-5" strokeWidth={1.8} />
                   )}
                 </button>
+                <button
+                  onClick={() => setStickerPickerOpen(true)}
+                  disabled={compressing || sending}
+                  className={cn(
+                    "rounded-full p-2.5 transition disabled:opacity-50",
+                    youMode
+                      ? "text-[var(--you-on-surface-variant)] hover:text-[var(--you-primary)]"
+                      : "text-black/40 hover:bg-black/5 hover:text-accent"
+                  )}
+                  aria-label="Открыть меню стикеров"
+                  title="Стикеры"
+                >
+                  <Sticker className="h-5 w-5" strokeWidth={1.8} />
+                </button>
                 <textarea
                   ref={textRef}
                   rows={1}
@@ -1425,25 +1521,80 @@ export default function ChatView({
         </div>
       </footer>
 
+      {/* Меню стикеров */}
+      {stickerPickerOpen && (
+        <StickerPanel
+          meId={me.id}
+          mode="picker"
+          onClose={() => setStickerPickerOpen(false)}
+          onSend={(url) => void send({ stickerUrl: url })}
+          onSaved={(message) => {
+            setSavedHint(message);
+            window.clearTimeout(savedHintTimer.current);
+            savedHintTimer.current = window.setTimeout(() => setSavedHint(null), 3600);
+          }}
+        />
+      )}
+
+      {/* Сохранить полученный стикер себе */}
+      {stickerToSave && (
+        <StickerPanel
+          meId={me.id}
+          mode="save"
+          saveUrl={stickerToSave}
+          onClose={() => setStickerToSave(null)}
+          onSaved={(message) => {
+            setSavedHint(message);
+            window.clearTimeout(savedHintTimer.current);
+            savedHintTimer.current = window.setTimeout(() => setSavedHint(null), 3600);
+          }}
+        />
+      )}
+
       {/* Просмотр фото */}
       {lightbox && (
         <div
           className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-ink/88 p-6"
           onClick={() => setLightbox(null)}
         >
-          <button
-            className="absolute top-5 right-5 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20"
-            onClick={() => setLightbox(null)}
-            aria-label="Закрыть просмотр"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="absolute top-5 right-5 flex items-center gap-2">
+            <button
+              className="flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (lightbox) void saveMediaFile(lightbox, "photo");
+              }}
+              aria-label="Скачать фотографию в DCIM/WinChat/Photos"
+              title="Скачать в DCIM/WinChat/Photos"
+            >
+              {downloading === lightbox ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">Скачать</span>
+            </button>
+            <button
+              className="rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20"
+              onClick={() => setLightbox(null)}
+              aria-label="Закрыть просмотр"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
           <img
             src={lightbox}
             alt="Фотография"
             className="animate-scale-in max-h-[85vh] max-w-full rounded-2xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {/* Подсказка о сохранении файла */}
+      {savedHint && (
+        <div className="animate-slide-up pointer-events-none fixed bottom-24 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-ink px-4 py-2.5 text-center text-[12px] font-bold text-white shadow-2xl">
+          {savedHint}
         </div>
       )}
 

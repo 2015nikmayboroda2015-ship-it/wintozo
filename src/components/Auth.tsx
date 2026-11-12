@@ -341,7 +341,7 @@ export default function Auth({ initialMode }: { initialMode?: "login" | "registe
             </div>
           )}
 
-          <div className="mt-7 rounded-full bg-black/5 p-1">
+          <div className="mt-7 flex rounded-xl bg-black/5 p-1">
             {([
               ["login", "Вход"],
               ["register", "Регистрация"],
@@ -356,7 +356,7 @@ export default function Auth({ initialMode }: { initialMode?: "login" | "registe
                   setNotice(null);
                 }}
                 className={cn(
-                  "flex-1 rounded-full py-2 text-sm font-bold transition",
+                  "flex-1 rounded-lg py-2 text-sm font-bold transition",
                   mode === m
                     ? "bg-ink text-white shadow-sm"
                     : "text-black/45 hover:text-ink"
@@ -462,14 +462,15 @@ export default function Auth({ initialMode }: { initialMode?: "login" | "registe
             <button
               type="submit"
               disabled={loading}
-              className="oobe-btn-primary oobe-btn-tight disabled:cursor-not-allowed disabled:opacity-60"
+              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-ink py-3.5 text-[15px] font-bold text-white transition hover:bg-black active:scale-[0.99] disabled:opacity-60"
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-              {mode === "login" ? "Войти" : mode === "register" ? "Создать аккаунт" : "Войти по WinPass"}
-              {!loading && (
-                <span className="oobe-btn-arrow">
-                  <ArrowRight className="h-3.5 w-3.5" strokeWidth={3} />
-                </span>
+              {loading ? (
+                <Loader2 className="h-4.5 w-4.5 animate-spin" />
+              ) : (
+                <>
+                  {mode === "login" ? "Войти" : mode === "register" ? "Создать аккаунт" : "Войти по WinPass"}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </>
               )}
             </button>
           </form>

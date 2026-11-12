@@ -430,6 +430,7 @@ export default function LiteMessenger({ me, onLogout }: Props) {
         if (m.sender_id === me.id) who = "Вы: ";
         else who = (chat.members.find((p) => p.id === m.sender_id)?.nickname || "") + ": ";
       }
+      if (m.sticker_url) return `${who}🩷 Стикер`;
       if (m.image_url) return `${who}📷 Фото — только в приложении`;
       if (m.video_url) return `${who}🎬 Видео — только в приложении`;
       if (m.audio_url) return `${who}🎙️ Голосовое — только в приложении`;
@@ -881,11 +882,13 @@ export default function LiteMessenger({ me, onLogout }: Props) {
             const isSelf = m.sender_id === me.id;
             const media = m.audio_url
               ? "🎙️"
-              : m.image_url
-                ? "📷"
-                : m.video_url
-                  ? "🎬"
-                  : "";
+              : m.sticker_url
+                ? "🩷"
+                : m.image_url
+                  ? "📷"
+                  : m.video_url
+                    ? "🎬"
+                    : "";
             const body = media
               ? `${media} Медиа доступно только в приложении`
               : m.content || "";

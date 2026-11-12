@@ -56,6 +56,8 @@ export interface Message {
   sender_id: string;
   content: string | null;
   image_url: string | null;
+  /** Стикер/GIF: файл лежит на sticker-сервере, здесь только ссылка. */
+  sticker_url?: string | null;
   audio_url: string | null;
   audio_duration: number | null;
   video_url: string | null;

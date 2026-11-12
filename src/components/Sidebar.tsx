@@ -128,6 +128,7 @@ export default function Sidebar({
     }
     if (m.audio_url) return `${who}Голосовое сообщение`;
     if (m.video_url) return `${who}Видео`;
+    if (m.sticker_url) return `${who}Стикер`;
     if (m.image_url) return who + (m.content ? `Фото — ${m.content}` : "Фотография");
     return who + (m.content || "");
   }
