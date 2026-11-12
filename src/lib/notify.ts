@@ -40,7 +40,6 @@ export function showMessageNotification({
     icon,
     tag,
     data: { url, chatId },
-    renotify: true,
   })
 
   notification.onclick = () => {

@@ -583,7 +583,12 @@ export default function SettingsModal({
                         className="mt-2.5 h-1.5 w-full rounded-full"
                         style={{ background: `linear-gradient(90deg, ${t.gradientFrom}, ${t.gradientTo})` }}
                       />
-                      <p className="mt-2 text-[11px] font-bold leading-tight text-white">{t.name}</p>
+                      <p
+                        className="mt-2 text-[11px] font-bold leading-tight"
+                        style={{ color: "#101214" }}
+                      >
+                        {t.name}
+                      </p>
                     </button>
                   );
                 })}

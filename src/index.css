@@ -2476,3 +2476,229 @@ body {
     animation: none !important;
   }
 }
+
+/* ============================================================
+   OOBE — Liquid Glass premium redesign (5.0.0)
+   ============================================================ */
+
+/* Живой aurora-фон приветствия и форм */
+.oobe-root {
+  background:
+    radial-gradient(ellipse 55% 42% at 12% 8%, rgba(63, 109, 246, 0.2) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 88% 90%, rgba(255, 122, 106, 0.18) 0%, transparent 62%),
+    radial-gradient(ellipse 45% 38% at 82% 6%, rgba(168, 224, 106, 0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 8% 96%, rgba(124, 77, 255, 0.15) 0%, transparent 62%),
+    linear-gradient(158deg, #f6f8ff 0%, #eef2fc 42%, #f7f3fd 100%);
+  background-attachment: fixed;
+}
+
+/* Дрейфующие световые пятна на фоне */
+.oobe-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.oobe-bg::before,
+.oobe-bg::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+}
+.oobe-bg::before {
+  width: 46vmax;
+  height: 46vmax;
+  left: -14vmax;
+  top: -12vmax;
+  background: rgba(63, 109, 246, 0.28);
+  animation: oobe-bg-drift-a 16s ease-in-out infinite alternate;
+}
+.oobe-bg::after {
+  width: 52vmax;
+  height: 52vmax;
+  right: -18vmax;
+  bottom: -20vmax;
+  background: rgba(255, 122, 106, 0.26);
+  animation: oobe-bg-drift-b 20s ease-in-out infinite alternate;
+}
+
+@keyframes oobe-bg-drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(6vmax, 4vmax, 0) scale(1.12); }
+}
+@keyframes oobe-bg-drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1.05); }
+  to { transform: translate3d(-5vmax, -3vmax, 0) scale(0.95); }
+}
+
+/* Стеклянная карточка (Liquid Glass) */
+.oobe-card {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.52) 55%, rgba(255, 255, 255, 0.66) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 34px;
+  backdrop-filter: blur(28px) saturate(165%);
+  -webkit-backdrop-filter: blur(28px) saturate(165%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -18px 40px -22px rgba(44, 86, 232, 0.28),
+    0 40px 90px -48px rgba(28, 60, 120, 0.55);
+}
+
+/* Стеклянное поле ввода */
+.oobe-input {
+  width: 100%;
+  border-radius: 9999px;
+  border: 1px solid rgba(16, 18, 20, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 13px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #101214;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+}
+.oobe-input::placeholder { color: rgba(16, 18, 20, 0.35); font-weight: 600; }
+.oobe-input:focus {
+  border-color: rgba(63, 109, 246, 0.55);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(63, 109, 246, 0.12);
+}
+.oobe-input-icon { padding-left: 44px; }
+
+/* Основная стеклянная кнопка OOBE */
+.oobe-btn-primary {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+  margin-top: 28px;
+  border: none;
+  border-radius: 9999px;
+  padding: 15px 24px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: linear-gradient(135deg, #3f6df6 0%, #5b8cff 55%, #7aa2ff 100%);
+  background-size: 160% 160%;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -12px 24px -14px rgba(23, 47, 143, 0.8),
+    0 22px 48px -20px rgba(44, 86, 232, 0.85);
+  transition: transform 0.18s ease, box-shadow 0.25s ease, background-position 0.5s ease, opacity 0.2s ease;
+}
+.oobe-btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -70%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.6s ease;
+}
+.oobe-btn-primary:hover:not(:disabled) {
+  background-position: 100% 100%;
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -12px 24px -14px rgba(23, 47, 143, 0.8),
+    0 28px 56px -20px rgba(44, 86, 232, 0.95);
+}
+.oobe-btn-primary:hover:not(:disabled)::before { left: 130%; }
+.oobe-btn-primary:active:not(:disabled) { transform: scale(0.98); }
+.oobe-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+.oobe-btn-primary:disabled:hover { transform: none; background-position: 0% 0%; }
+
+/* Кнопка внутри карточки/формы — без авто-отступа */
+.oobe-btn-tight { margin-top: 0; }
+
+/* Иконка-чип со стрелкой внутри кнопки */
+.oobe-btn-arrow {
+  display: inline-flex;
+  height: 26px;
+  width: 26px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: transform 0.3s cubic-bezier(0.22, 1.3, 0.36, 1);
+}
+.oobe-btn-primary:hover:not(:disabled) .oobe-btn-arrow { transform: translateX(3px); }
+
+/* Вторичная (нейтральная) стеклянная кнопка */
+.oobe-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 340px;
+  margin-top: 12px;
+  border: 1px solid rgba(16, 18, 20, 0.1);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 13px 24px;
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(16, 18, 20, 0.65);
+  transition: background-color 0.2s ease, transform 0.18s ease, border-color 0.2s ease;
+}
+.oobe-btn-ghost:hover { background: rgba(255, 255, 255, 0.9); border-color: rgba(16, 18, 20, 0.16); }
+.oobe-btn-ghost:active { transform: scale(0.98); }
+
+/* Индикатор шагов OOBE */
+.oobe-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.oobe-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(16, 18, 20, 0.12);
+  transition: width 0.5s cubic-bezier(0.22, 1.2, 0.36, 1), background-color 0.4s ease, opacity 0.4s ease;
+}
+.oobe-step-dot.is-active { width: 28px; background: #3f6df6; }
+.oobe-step-dot.is-done { width: 8px; background: rgba(16, 18, 20, 0.28); }
+
+/* Плавающая капсула «Dynamic Island» для превью чата */
+.oobe-island {
+  position: relative;
+  margin: clamp(8px, 1.3vw, 14px) clamp(8px, 1.4vw, 16px) 0;
+  background: linear-gradient(180deg, rgba(13, 18, 30, 0.96) 0%, rgba(20, 27, 46, 0.9) 100%);
+  border: none;
+  border-radius: 9999px;
+  color: #fff;
+  backdrop-filter: blur(36px) saturate(150%);
+  -webkit-backdrop-filter: blur(36px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 24px 52px -28px rgba(8, 18, 40, 0.85);
+}
+.oobe-island-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(118deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.03) 36%, transparent 52%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oobe-bg::before,
+  .oobe-bg::after {
+    animation: none !important;
+  }
+}

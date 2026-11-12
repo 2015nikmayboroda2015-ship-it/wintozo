@@ -121,7 +121,7 @@ export async function subscribeWebPush(): Promise<{
   }
 
   // Оформляем новую подписку
-  const applicationServerKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
+  const applicationServerKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY) as unknown as BufferSource;
   subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey
