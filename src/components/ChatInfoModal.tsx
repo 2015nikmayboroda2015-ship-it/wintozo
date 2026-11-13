@@ -3,6 +3,7 @@ import {
   AtSign,
   Camera,
   Crown,
+  Link2,
   Loader2,
   LogOut,
   Megaphone,
@@ -230,6 +231,18 @@ export default function ChatInfoModal({
     await supabase.from("chat_members").delete().eq("chat_id", chat.id).eq("user_id", me.id);
     setBusy(false);
     onLeft();
+  }
+
+  /** Копировать ссылку-приглашение в буфер обмена. */
+  async function copyInvite() {
+    if (!chat.invite_code) return;
+    const path = chat.isChannel ? "/channel/invite" : "/group/invite";
+    const url = `${window.location.origin}${path}/${chat.invite_code}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      /* буфер может быть недоступен — не блокируем UI */
+    }
   }
 
   async function deleteChannel() {
@@ -607,6 +620,17 @@ export default function ChatInfoModal({
 
         {(chat.isGroup || (isChannel && canManage)) && (
           <div className="border-t border-black/8 px-6 py-4">
+            {chat.invite_code && (
+              <button
+                type="button"
+                onClick={() => void copyInvite()}
+                className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-black/10 bg-paper py-3 text-sm font-bold transition hover:bg-black/5"
+              >
+                <Link2 className="h-4 w-4" />
+                Пригласить по ссылке
+              </button>
+            )}
+
             {isChannel && canManage && (
               <div className="space-y-2">
                 {confirmDelete ? (

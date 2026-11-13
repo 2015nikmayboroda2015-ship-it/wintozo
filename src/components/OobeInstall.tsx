@@ -14,7 +14,9 @@ import { mapAuthError } from "./Auth";
 import { rememberLegacyPassword } from "./LegacyScreen";
 import { normalizeWinpass, validateNickname, validatePassword, validateUsername } from "../lib/utils";
 import { cn } from "../utils/cn";
-import { OobeButton } from "./OobeUpdate";
+import { OobeButton, OobeThemeToggle } from "./OobeUpdate";
+import YouBackdrop from "./YouBackdrop";
+import type { OobeVariant } from "./OobeThemeChooser";
 import type { Profile } from "../lib/supabase";
 
 interface Props {
@@ -24,6 +26,10 @@ interface Props {
   profile: Profile | null;
   /** Завершить OOBE и открыть мессенджер. */
   onFinish: () => void;
+  /** Стиль OOBE: You (Material You) или Liquid Glass. */
+  variant?: OobeVariant;
+  /** Переключить стиль OOBE на лету (кнопка сверху). */
+  onThemeSwitch?: (variant: OobeVariant) => void;
 }
 
 type Step = "welcome" | "auth" | "winpass" | "checking" | "success";
@@ -33,9 +39,11 @@ type Step = "welcome" | "auth" | "winpass" | "checking" | "success";
  * / вход → экран «Проверка..» → финал «WinChat · Продолжить».
  * Показывается на телефонах при первом запуске; на ПК — по /install_oobe.
  */
-export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
+export default function OobeInstall({ hasSession, profile, onFinish, variant = "liquid", onThemeSwitch }: Props) {
   const [step, setStep] = useState<Step>(() => (hasSession ? "checking" : "welcome"));
   const [mode, setMode] = useState<"register" | "login">("register");
+  /** Настоящий Material You (не перекраска Liquid). */
+  const you = variant === "you";
 
   const [nickname, setNickname] = useState("");
   const [username, setUsername] = useState("");
@@ -164,7 +172,20 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
   }
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-white">
+    <div
+      className={cn(
+        "oobe-root relative min-h-dvh overflow-hidden",
+        you ? "theme-you oobe-you-shell" : "oobe-card bg-white"
+      )}
+    >
+      {/* Живой фон Material You */}
+      {you && <YouBackdrop />}
+
+      {/* Переключатель стиля OOBE: You ↔ Liquid */}
+      {onThemeSwitch && (
+        <OobeThemeToggle variant={variant} onSwitch={onThemeSwitch} />
+      )}
+
       {/* ============ ШАГ: ПРИВЕТСТВИЕ УСТАНОВКИ ============ */}
       {step === "welcome" && (
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[520px] flex-col items-center justify-center px-6 text-center">
@@ -173,19 +194,29 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
               aria-hidden
               className="absolute -inset-6 animate-[oobe-breathe_3s_ease-in-out_infinite] rounded-full bg-white/70 blur-2xl"
             />
-            <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-[32px] border border-black/8 bg-white shadow-[0_30px_60px_-32px_rgba(28,60,140,0.55)]">
+            <div
+              className={cn(
+                "relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-[32px] border border-black/8 bg-white shadow-[0_30px_60px_-32px_rgba(28,60,140,0.55)]",
+                you && "oobe-you-logo"
+              )}
+            >
               <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
             </div>
           </div>
 
-          <h1 className="animate-[oobe-rise_0.7s_cubic-bezier(0.22,1.2,0.4,1)_0.15s_both] mt-7 text-[30px] leading-snug font-extrabold tracking-tight text-[#101214]">
+          <h1 className="animate-[oobe-rise_0.7s_cubic-bezier(0.22,1.2,0.4,1)_0.15s_both] mt-7 text-[30px] leading-snug font-extrabold tracking-tight text-[#101214] oobe-title">
             Установка завершена!
-            <span className="mt-1 block bg-gradient-to-r from-[#3f6df6] to-[#7aa2ff] bg-clip-text text-transparent">
+            <span
+              className={cn(
+                "mt-1 block bg-gradient-to-r from-[#3f6df6] to-[#7aa2ff] bg-clip-text text-transparent",
+                you && "oobe-accent-grad"
+              )}
+            >
               Добро пожаловать в WinChat!
             </span>
           </h1>
 
-          <OobeButton onClick={() => setStep("auth")} label="Далее" />
+          <OobeButton onClick={() => setStep("auth")} label="Далее" you={you} />
         </div>
       )}
 
@@ -194,21 +225,31 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[440px] flex-col justify-center px-5 py-12">
           {/* Шапка */}
           <div className="animate-[oobe-rise_0.6s_cubic-bezier(0.22,1.2,0.4,1)_both] mb-6 flex items-center justify-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-black/8 bg-white shadow-[0_14px_30px_-18px_rgba(28,60,140,0.5)]">
+            <div
+              className={cn(
+                "flex h-12 w-12 items-center justify-center overflow-hidden rounded-[18px] border border-black/8 bg-white shadow-[0_14px_30px_-18px_rgba(28,60,140,0.5)]",
+                you && "oobe-you-logo"
+              )}
+            >
               <img src="/logo.jpg" alt="" className="h-full w-full object-cover" />
             </div>
             <div>
-              <p className="text-[20px] leading-none font-extrabold tracking-tight text-[#101214]">
+              <p className={cn("text-[20px] leading-none font-extrabold tracking-tight text-[#101214]", you && "oobe-you-title")}>
                 WinChat
               </p>
-              <p className="mt-1 text-[11px] font-extrabold tracking-[0.16em] text-[#3f6df6] uppercase">
+              <p className="mt-1 text-[11px] font-extrabold tracking-[0.16em] uppercase oobe-accent-grad-text">
                 {mode === "register" ? "Регистрация" : "Вход"}
               </p>
             </div>
           </div>
 
-          {/* Стеклянная карточка с формой */}
-          <div className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_0.12s_both] rounded-[36px] border border-black/8 bg-white p-6 shadow-[0_30px_70px_-46px_rgba(28,60,140,0.45)]">
+          {/* Стеклянная / тональная карточка с формой */}
+          <div
+            className={cn(
+              "animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_0.12s_both] rounded-[36px] border border-black/8 p-6 shadow-[0_30px_70px_-46px_rgba(28,60,140,0.45)]",
+              you ? "oobe-you-card" : "oobe-preview bg-white"
+            )}
+          >
             <form onSubmit={submit} className="space-y-3.5">
               {mode === "register" && (
                 <OobeField
@@ -219,6 +260,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
                   placeholder="Как вас звать?"
                   maxLength={30}
                   autoFocus
+                  you={you}
                 />
               )}
               <OobeField
@@ -228,6 +270,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
                 onChange={setUsername}
                 placeholder="юзернейм латиницей"
                 maxLength={20}
+                you={you}
               />
               <OobeField
                 icon={
@@ -248,6 +291,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
                 onChange={setPassword}
                 placeholder="минимум 6 символов"
                 type={showPw ? "text" : "password"}
+                you={you}
               />
 
               {error && (
@@ -260,7 +304,10 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
               <button
                 type="submit"
                 disabled={loading}
-                className="group flex w-full items-center justify-center gap-2 rounded-full bg-[#3f6df6] px-6 py-4 text-[15px] font-extrabold text-white tracking-wide shadow-[0_18px_38px_-22px_rgba(44,86,232,0.9)] transition hover:bg-[#2c56e8] active:scale-[0.98] disabled:opacity-60"
+                className={cn(
+                  "group flex w-full items-center justify-center gap-2 rounded-full bg-[#3f6df6] px-6 py-4 text-[15px] font-extrabold text-white tracking-wide shadow-[0_18px_38px_-22px_rgba(44,86,232,0.9)] transition hover:bg-[#2c56e8] active:scale-[0.98] disabled:opacity-60",
+                  you && "oobe-you-btn"
+                )}
               >
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                 Продолжить
@@ -295,6 +342,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
             value={wpInput}
             onChange={setWpInput}
             loading={loading}
+            you={you}
           />
         </div>
       )}
@@ -302,14 +350,24 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
       {/* ============ ШАГ: ПОДАРОК-WinPASS ============ */}
       {step === "winpass" && issuedWinpass && (
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[440px] flex-col items-center justify-center px-6 text-center">
-            <div className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_both] w-full rounded-[36px] border border-black/8 bg-white p-7 shadow-[0_30px_70px_-46px_rgba(28,60,140,0.45)]">
-            <p className="text-[20px] font-extrabold tracking-tight text-[#101214]">
+            <div
+              className={cn(
+                "animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_both] w-full rounded-[36px] border border-black/8 p-7 shadow-[0_30px_70px_-46px_rgba(28,60,140,0.45)]",
+                you ? "oobe-you-card" : "bg-white"
+              )}
+            >
+            <p className={cn("text-[20px] font-extrabold tracking-tight text-[#101214]", you && "oobe-you-title")}>
               Аккаунт создан! 🎉
             </p>
-            <p className="mt-2 text-[13px] leading-relaxed font-semibold text-black/50">
+            <p className="mt-2 text-[13px] leading-relaxed font-semibold text-black/50 oobe-subtitle">
               Сохраните <b>WinPass</b> — код восстановления, привязанный к аккаунту навсегда.
             </p>
-            <div className="mt-5 break-all rounded-[24px] border border-black/10 bg-[#f7f8fa] px-4 py-4 font-mono text-lg font-extrabold text-[#101214] tracking-wide">
+            <div
+              className={cn(
+                "mt-5 break-all rounded-[24px] border border-black/10 bg-[#f7f8fa] px-4 py-4 font-mono text-lg font-extrabold text-[#101214] tracking-wide",
+                you ? "oobe-you-input" : "oobe-preview-input"
+              )}
+            >
               {issuedWinpass}
             </div>
             <button
@@ -320,12 +378,13 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
               }}
               className={cn(
                 "mt-3 w-full rounded-full border border-black/8 bg-white py-3 text-[13px] font-extrabold text-[#1a2434] transition active:scale-[0.98]",
+                you ? "oobe-you-btn-tonal" : "oobe-accent",
                 copied && "bg-[#3f6df6] text-white"
               )}
             >
               {copied ? "Скопировано ✓" : "Скопировать код"}
             </button>
-            <OobeButton onClick={closeWinpass} label="Продолжить" />
+            <OobeButton onClick={closeWinpass} label="Продолжить" you={you} />
           </div>
         </div>
       )}
@@ -333,12 +392,22 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
       {/* ============ ШАГ: ПРОВЕРКА ============ */}
       {step === "checking" && (
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[440px] flex-col items-center justify-center px-6 text-center">
-          <div className="animate-[oobe-pop_0.6s_cubic-bezier(0.22,1.3,0.4,1)_both] flex flex-col items-center gap-4 rounded-full border border-black/8 bg-white px-10 py-7 shadow-[0_24px_54px_-40px_rgba(28,60,140,0.5)]">
-            <span className="h-10 w-10 animate-spin rounded-full border-4 border-[#3f6df6]/20 border-t-[#3f6df6]" />
-            <p className="text-[17px] font-extrabold tracking-tight text-[#101214]">
+          <div
+            className={cn(
+              "animate-[oobe-pop_0.6s_cubic-bezier(0.22,1.3,0.4,1)_both] flex flex-col items-center gap-4 rounded-full border border-black/8 bg-white px-10 py-7 shadow-[0_24px_54px_-40px_rgba(28,60,140,0.5)]",
+              you && "oobe-you-card"
+            )}
+          >
+            <span
+              className={cn(
+                "h-10 w-10 animate-spin rounded-full border-4 border-[#3f6df6]/20 border-t-[#3f6df6]",
+                you && "oobe-you-spinner"
+              )}
+            />
+            <p className="text-[17px] font-extrabold tracking-tight text-[#101214] oobe-title">
               Проверка<span className="animate-pulse">..</span>
             </p>
-            <p className="max-w-[230px] text-[12px] leading-relaxed font-semibold text-black/45">
+            <p className="max-w-[230px] text-[12px] leading-relaxed font-semibold text-black/45 oobe-subtitle">
               Проверяем аккаунт, WinPro и безопасность…
             </p>
           </div>
@@ -359,7 +428,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
           </div>
 
           <h1 className="animate-[oobe-rise_0.7s_cubic-bezier(0.22,1.2,0.4,1)_0.2s_both] mt-7 text-[40px] font-extrabold tracking-tight text-[#101214]">
-            <span className="bg-gradient-to-r from-[#3f6df6] via-[#7aa2ff] to-[#8aa0c8] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#3f6df6] via-[#7aa2ff] to-[#8aa0c8] bg-clip-text text-transparent oobe-accent-grad">
               WinChat
             </span>
           </h1>
@@ -368,6 +437,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
             onClick={onFinish}
             label="Продолжить"
             className="animate-[oobe-rise_0.7s_cubic-bezier(0.22,1.2,0.4,1)_0.35s_both]"
+            you={you}
           />
         </div>
       )}
@@ -375,7 +445,7 @@ export default function OobeInstall({ hasSession, profile, onFinish }: Props) {
   );
 }
 
-/* ---------- Стеклянное поле ввода ---------- */
+/* ---------- Стеклянное / тональное поле ввода ---------- */
 function OobeField({
   label,
   value,
@@ -385,6 +455,7 @@ function OobeField({
   type = "text",
   maxLength,
   autoFocus,
+  you = false,
 }: {
   label: string;
   value: string;
@@ -394,14 +465,21 @@ function OobeField({
   type?: string;
   maxLength?: number;
   autoFocus?: boolean;
+  /** Стиль WinChat You (тональная капсула). */
+  you?: boolean;
 }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-[10px] font-extrabold tracking-[0.18em] text-black/40 uppercase">
         {label}
       </span>
-      <span className="flex items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 py-3 transition focus-within:border-[#3f6df6]/50 focus-within:ring-4 focus-within:ring-[#3f6df6]/10">
-        <span className="pointer-events-none text-[#3f6df6]/80 [&>svg]:pointer-events-auto">{icon}</span>
+      <span
+        className={cn(
+          "flex items-center gap-2.5 rounded-full px-4 py-3 transition focus-within:border-[#3f6df6]/50 focus-within:ring-4 focus-within:ring-[#3f6df6]/10",
+          you ? "oobe-you-input" : "border border-black/10 bg-white oobe-preview-input"
+        )}
+      >
+        <span className="pointer-events-none text-[#3f6df6]/80 oobe-accent-text [&>svg]:pointer-events-auto">{icon}</span>
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -409,7 +487,7 @@ function OobeField({
           type={type}
           maxLength={maxLength}
           autoFocus={autoFocus}
-          className="w-full bg-transparent text-[14px] font-bold text-[#101214] placeholder:font-semibold placeholder:text-black/30 outline-none"
+          className="w-full bg-transparent text-[14px] font-bold text-[#101214] placeholder:font-semibold placeholder:text-black/30 outline-none oobe-title"
         />
       </span>
     </label>
@@ -422,11 +500,14 @@ function WinpassGlass({
   value,
   onChange,
   loading,
+  you = false,
 }: {
   onSubmit: (e: FormEvent) => void;
   value: string;
   onChange: (v: string) => void;
   loading: boolean;
+  /** Стиль WinChat You (тональные поверхности). */
+  you?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -435,19 +516,25 @@ function WinpassGlass({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="mx-auto flex items-center gap-1.5 rounded-full border border-black/8 bg-black/[0.03] px-4 py-2 text-[12px] font-bold text-black/50 transition hover:bg-black/[0.06]"
+          className={cn(
+            "mx-auto flex items-center gap-1.5 rounded-full border border-black/8 bg-black/[0.03] px-4 py-2 text-[12px] font-bold text-black/50 transition hover:bg-black/[0.06]",
+            you && "oobe-you-chip"
+          )}
         >
-          <KeyRound className="h-3.5 w-3.5 text-[#3f6df6]" />
+          <KeyRound className={cn("h-3.5 w-3.5", you ? "oobe-accent-text" : "text-[#3f6df6]")} />
           Войти по WinPass
         </button>
       ) : (
         <form
           onSubmit={onSubmit}
-          className="animate-fade-in rounded-[30px] border border-black/8 bg-white p-4 shadow-[0_20px_44px_-34px_rgba(28,60,140,0.4)]"
+          className={cn(
+            "animate-fade-in rounded-[30px] border border-black/8 p-4 shadow-[0_20px_44px_-34px_rgba(28,60,140,0.4)]",
+            you ? "oobe-you-card" : "bg-white"
+          )}
         >
           <label className="block text-left">
             <span className="mb-1.5 flex items-center gap-1.5 text-[10px] font-extrabold tracking-[0.18em] text-black/40 uppercase">
-              <KeyRound className="h-3 w-3 text-[#3f6df6]" />
+              <KeyRound className={cn("h-3 w-3", you ? "oobe-accent-text" : "text-[#3f6df6]")} />
               WinPass
             </span>
             <input
@@ -455,13 +542,19 @@ function WinpassGlass({
               onChange={(e) => onChange(e.target.value)}
               placeholder="33b42-a1b2c3d4e5f6"
               autoComplete="off"
-              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-[14px] font-bold tracking-wide text-[#101214] outline-none focus:border-[#3f6df6]/50 focus:ring-4 focus:ring-[#3f6df6]/10"
+              className={cn(
+                "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-[14px] font-bold tracking-wide text-[#101214] outline-none focus:border-[#3f6df6]/50 focus:ring-4 focus:ring-[#3f6df6]/10",
+                you ? "oobe-you-input" : "oobe-preview-input"
+              )}
             />
           </label>
           <button
             type="submit"
             disabled={loading}
-            className="mt-3 w-full rounded-full bg-[#3f6df6] py-3 text-[13px] font-extrabold text-white shadow-[0_16px_34px_-22px_rgba(44,86,232,0.85)] transition hover:bg-[#2c56e8] active:scale-[0.98] disabled:opacity-60"
+            className={cn(
+              "mt-3 w-full rounded-full bg-[#3f6df6] py-3 text-[13px] font-extrabold text-white shadow-[0_16px_34px_-22px_rgba(44,86,232,0.85)] transition hover:bg-[#2c56e8] active:scale-[0.98] disabled:opacity-60",
+              you && "oobe-you-btn"
+            )}
           >
             {loading ? <Loader2 className="inline h-4 w-4 animate-spin" /> : null}
             Войти по WinPass

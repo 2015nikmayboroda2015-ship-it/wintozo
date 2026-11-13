@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Terminal, X } from "lucide-react";
+import { LayoutGrid, Terminal, X } from "lucide-react";
 import { supabase, type Profile } from "../lib/supabase";
 import { BADGE_LABELS } from "../lib/badges";
 
@@ -38,6 +38,11 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
   const [otaPicker, setOtaPicker] = useState<{ url: string; version: string | null; target: string } | null>(null);
   const [otaPickerDevices, setOtaPickerDevices] = useState<OtaDeviceRow[]>([]);
   const [otaPickerBusy, setOtaPickerBusy] = useState(false);
+  const [guiMode, setGuiMode] = useState(false);
+  const [guiBusy, setGuiBusy] = useState(false);
+  const [guiUrl, setGuiUrl] = useState("");
+  const [guiVersion, setGuiVersion] = useState("");
+  const [guiDesc, setGuiDesc] = useState("");
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -90,6 +95,78 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
     if (res.ok) setOtaPicker(null);
   }
 
+  type OtaSetResult = {
+    ok: boolean;
+    message?: string;
+    error?: string;
+    url?: string | null;
+    version?: string | null;
+    target?: string | null;
+    description?: string | null;
+  };
+
+  /** Устанавливает/снимает OTA и сохраняет описание обновления. */
+  async function applyOta(
+    urlRaw: string,
+    versionRaw: string | null,
+    targetRaw: string | null,
+    descRaw: string | null
+  ): Promise<OtaSetResult> {
+    const url = (urlRaw || "").trim().replace(/^"|"$/g, "");
+    const version = versionRaw ? versionRaw.trim() : null;
+    const target = targetRaw ? targetRaw.trim() : null;
+    const description = descRaw ? descRaw.trim() : null;
+
+    const { data, error } = await supabase.rpc("set_winchat_ota", {
+      _admin_id: me.id,
+      _url: url,
+      _version: version,
+      _target: target,
+      _desc: description,
+    });
+
+    const res = data as {
+      ok?: boolean;
+      message?: string;
+      error?: string;
+      url?: string | null;
+      version?: string | null;
+      target?: string | null;
+    };
+    if (error) return { ok: false, error: error.message };
+    if (!res.ok) return { ok: false, error: res.error ?? "Ошибка" };
+    return {
+      ok: true,
+      message: res.message,
+      url: res.url ?? url,
+      version: res.version,
+      target: res.target,
+      description,
+    };
+  }
+
+  async function guiApplyOta() {
+    if (guiBusy) return;
+    setGuiBusy(true);
+    const res = await applyOta(guiUrl, guiVersion || null, "*", guiDesc);
+    setGuiBusy(false);
+    setHistory((prev) => [
+      ...prev,
+      { type: res.ok ? "success" : "error", text: res.ok ? `✓ ${res.message}` : `✗ ${res.error}` },
+      { type: "info", text: `URL: ${res.url ?? guiUrl}` },
+      { type: "info", text: `Версия: ${res.version ?? "не указана"} · Цель: *` },
+      ...(res.description ? [{ type: "info" as const, text: `Описание обновления: ${res.description}` }] : []),
+    ]);
+  }
+
+  async function guiDisableOta() {
+    const res = await applyOta("", null, null, null);
+    setHistory((prev) => [
+      ...prev,
+      { type: res.ok ? "success" : "error", text: res.ok ? `✓ ${res.message}` : `✗ ${res.error}` },
+    ]);
+  }
+
   async function runCommand(raw: string) {
     const trimmed = raw.trim();
     if (!trimmed) return;
@@ -110,6 +187,15 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
 
     try {
       switch (cmd) {
+        case "/gui": {
+          setGuiMode((g) => !g);
+          setHistory((prev) => [
+            ...prev,
+            { type: "info", text: guiMode ? "Выход из графического режима админ-терминала" : "Графический режим админ-терминала" },
+          ]);
+          break;
+        }
+
         case "/help": {
           setHistory((prev) => [
             ...prev,
@@ -138,6 +224,7 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             { type: "info", text: "/set ota off                — Отключить OTA" },
             { type: "info", text: "/get ota                    — Текущая OTA-настройка" },
             { type: "info", text: "/get devices                — Устройства, которые запускали приложение" },
+            { type: "info", text: "/gui                       — Графический интерфейс админ-терминала (кнопки)" },
             { type: "info", text: "/help                       — Эта справка" },
           ]);
           break;
@@ -334,8 +421,8 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
               break;
             }
 
-            // /set ota [@username] "[ссылка]" [версия] [@target|*]
-            // Пример: /set ota @user "https://.../app.apk" 5.0.0
+            // /set ota [@username] "[ссылка]" [версия] [@target|*] ["описание обновления"]
+            // Пример: /set ota @user "https://.../app.apk" 5.0.0 "В этом обновлении было добавлено ..."
             let rest = after;
             let prefixTarget: string | null = null;
             const pre = rest.match(/^@([^\s"']+)\s+([\s\S]*)$/);
@@ -344,9 +431,20 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
               rest = pre[2].trim();
             }
 
-            const urlM = /https?:\/\/[^\s"']+/i.exec(rest);
+            // Описание обновления — в кавычках или через неиспользуемые токены.
+            let description: string | null = null;
+            let parseRest = rest.replace(/"([^"]*)"/g, (_m, g: string) => {
+              description = g;
+              return "";
+            });
+            parseRest = parseRest.replace(/'([^']*)'/g, (_m, g: string) => {
+              description = g;
+              return "";
+            });
+
+            const urlM = /https?:\/\/[^\s"']+/i.exec(parseRest);
             const url = urlM ? urlM[0] : "";
-            const remainder = urlM ? rest.slice(urlM.index + urlM[0].length).trim() : "";
+            const remainder = urlM ? parseRest.slice(urlM.index + urlM[0].length).trim() : "";
 
             if (!url) {
               setHistory((prev) => [
@@ -359,7 +457,8 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             // Необязательные аргументы: версия и цель
             let version: string | null = null;
             let target: string | null = null;
-            for (const token of remainder.split(/\s+/).filter(Boolean)) {
+            const tokens = remainder.split(/\s+/).filter(Boolean);
+            for (const token of tokens) {
               const clean = token.replace(/^["']|["']$/g, "");
               if (!version && /^\d+\.\d+(\.\d+)?(-[0-9a-z][0-9a-z.\-]*(\+[0-9a-z.\-]+)?)?$/i.test(clean)) {
                 version = clean;
@@ -369,41 +468,29 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             }
 
             const finalTarget = prefixTarget ?? target ?? null;
+            const finalDescription =
+              description ??
+              tokens
+                .filter((t) => t !== version && t !== target)
+                .map((t) => t.replace(/^["']|["']$/g, ""))
+                .join(" ")
+                .trim();
 
-            const { data, error } = await supabase.rpc("set_winchat_ota", {
-              _admin_id: me.id,
-              _url: url,
-              _version: version,
-              _target: finalTarget,
-            });
-
-            if (error) {
-              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
-              break;
-            }
-
-            const res = data as {
-              ok: boolean;
-              message?: string;
-              error?: string;
-              version?: string | null;
-              target?: string;
-            };
-            if (!res.ok) {
-              setHistory((prev) => [...prev, { type: "error", text: `✗ ${res.error}` }]);
-              break;
-            }
+            const res = await applyOta(url, version, finalTarget, finalDescription);
 
             setHistory((prev) => [
               ...prev,
-              { type: "success", text: `✓ ${res.message}` },
-              { type: "info", text: `URL: ${url}` },
+              { type: res.ok ? "success" : "error", text: res.ok ? `✓ ${res.message}` : `✗ ${res.error}` },
+              { type: "info", text: `URL: ${res.url ?? url}` },
               { type: "info", text: `Версия: ${res.version ?? "не указана"} · Цель: ${res.target ?? "*"}` },
+              ...(res.description
+                ? [{ type: "info" as const, text: `Описание обновления: ${res.description}` }]
+                : []),
             ]);
 
             // Если задана конкретная цель (например, @username) — открываем выбор устройства.
-            if (url && finalTarget && finalTarget !== "*") {
-              void openOtaPicker(finalTarget, url, version);
+            if (res.ok && url && finalTarget && finalTarget !== "*") {
+              void openOtaPicker(finalTarget, res.url ?? url, res.version);
             }
             break;
           }

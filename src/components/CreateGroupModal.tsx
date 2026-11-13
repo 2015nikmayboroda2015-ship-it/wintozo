@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Check, CircleAlert, Loader2, Megaphone, Search, Users, X } from "lucide-react";
-import { isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
+import { isVerified, supabase, type Profile, type VerifyLevel, genInviteCode } from "../lib/supabase";
 import { uuid, validateBio, validateGroupTitle } from "../lib/utils";
 import { filesUpload } from "../lib/blobStorage";
 import Avatar from "./Avatar";
@@ -98,6 +98,9 @@ export default function CreateGroupModal({ me, mode = "group", onClose, onCreate
         }
         chatId = chRes.chat_id;
 
+        // Приглашение для шаринга: проставляем код сразу после создания.
+        const inviteCode = genInviteCode();
+        await supabase.from("chats").update({ invite_code: inviteCode }).eq("id", chatId);
         if (avatarFile) {
           const ext = (avatarFile.name.split(".").pop() || "png").toLowerCase();
           const path = `${chatId}/cover.${ext}`;
@@ -138,6 +141,7 @@ export default function CreateGroupModal({ me, mode = "group", onClose, onCreate
           description: description.trim() || null,
           avatar_url,
           created_by: me.id,
+          invite_code: genInviteCode(),
         });
         if (cErr) throw cErr;
 

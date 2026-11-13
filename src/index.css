@@ -1250,6 +1250,163 @@ body {
 }
 
 /* ============================================================
+   OOBE — адаптация под выбранную тему:
+   • WinChat You  → стиль You (см. блок «OOBE YOU» ниже);
+   • Liquid Glass → текущий Liquid-дизайн (без перекрытий).
+   ============================================================ */
+.theme-you .oobe-title {
+  color: var(--you-on-surface) !important;
+}
+.theme-you .oobe-subtitle {
+  color: var(--you-on-surface-variant) !important;
+}
+.theme-you .oobe-accent {
+  background-color: var(--you-primary) !important;
+  color: var(--you-on-primary) !important;
+}
+.theme-you .oobe-accent-2 {
+  background: linear-gradient(135deg, var(--you-primary), var(--you-primary-strong) 60%, var(--you-secondary)) !important;
+  color: var(--you-on-primary) !important;
+}
+.theme-you .oobe-accent-grad {
+  background: linear-gradient(135deg, var(--you-primary), var(--you-primary-strong) 60%, var(--you-secondary)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+.theme-you .oobe-accent-text,
+.theme-you .oobe-accent-grad-text {
+  color: var(--you-primary) !important;
+}
+
+/* ============================================================
+   OOBE YOU — настоящий Material You (а не перекраска Liquid):
+   живой фон (YouBackdrop), тональные поверхности без стекла,
+   крупные радиусы, filled/tonal кнопки, пузыри You.
+   ============================================================ */
+
+/* Фон-оболочка: как .you-shell в мессенджере */
+.oobe-you-shell {
+  background:
+    radial-gradient(
+      ellipse 60% 50% at 100% -10%,
+      color-mix(in srgb, var(--you-primary) 12%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 55% 45% at 0% 110%,
+      color-mix(in srgb, var(--you-tertiary) 12%, transparent),
+      transparent 65%
+    ),
+    var(--you-surface) !important;
+  color: var(--you-on-surface);
+}
+
+/* Тональная карточка (surface-container, крупный радиус, без теней) */
+.oobe-you-card {
+  background-color: var(--you-surface-container) !important;
+  border-color: transparent !important;
+  border-radius: var(--you-r-lg);
+  box-shadow: none !important;
+}
+
+.oobe-you-title {
+  color: var(--you-on-surface) !important;
+}
+.oobe-you-subtitle {
+  color: var(--you-on-surface-variant) !important;
+}
+
+/* Логотип-контейнер: градиент палитры You */
+.oobe-you-logo {
+  background: linear-gradient(135deg, var(--you-primary), var(--you-primary-strong) 60%, var(--you-secondary)) !important;
+  border-color: transparent !important;
+  box-shadow: 0 12px 26px -12px color-mix(in srgb, var(--you-primary) 75%, transparent) !important;
+}
+
+/* Кнопки */
+.oobe-you-btn {
+  background-color: var(--you-primary) !important;
+  color: var(--you-on-primary) !important;
+  border-color: transparent !important;
+  border-radius: 9999px;
+  box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--you-primary) 80%, transparent) !important;
+}
+.oobe-you-btn:hover {
+  filter: brightness(1.06);
+}
+.oobe-you-btn-tonal {
+  background-color: var(--you-primary-container) !important;
+  color: var(--you-on-primary-container) !important;
+  border-color: transparent !important;
+  border-radius: 9999px;
+}
+.oobe-you-btn-outline {
+  background-color: transparent !important;
+  color: var(--you-primary) !important;
+  border: 1.5px solid var(--you-outline) !important;
+  border-radius: 9999px;
+}
+
+/* Поля ввода: тональные «капсулы» без рамок */
+.oobe-you-input {
+  background-color: var(--you-surface-high) !important;
+  border-color: transparent !important;
+  border-radius: 9999px;
+  color: var(--you-on-surface) !important;
+  box-shadow: none !important;
+}
+.oobe-you-input:focus-within {
+  background-color: var(--you-surface-highest) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--you-primary) 16%, transparent) !important;
+}
+
+/* Пузыри сообщений You */
+.oobe-you-msg-me {
+  background-color: var(--you-primary) !important;
+  background-image: none !important;
+  color: var(--you-on-primary) !important;
+  border-radius: 24px 24px 8px 24px !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.oobe-you-msg-other {
+  background-color: var(--you-surface-highest) !important;
+  background-image: none !important;
+  color: var(--you-on-surface) !important;
+  border-radius: 24px 24px 24px 8px !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Тональный чип */
+.oobe-you-chip {
+  background-color: var(--you-secondary-container) !important;
+  color: var(--you-on-secondary-container) !important;
+  border-color: transparent !important;
+}
+
+/* Точечный индикатор шагов */
+.oobe-you-dot {
+  background-color: var(--you-primary) !important;
+}
+.oobe-you-dot-inactive {
+  background-color: color-mix(in srgb, var(--you-on-surface) 18%, transparent) !important;
+}
+
+/* Спиннер в цвет палитры */
+.oobe-you-spinner {
+  border-color: color-mix(in srgb, var(--you-primary) 22%, transparent) !important;
+  border-top-color: var(--you-primary) !important;
+}
+
+/* Кружок «текущая проверка» */
+.oobe-you-check-current {
+  border-color: color-mix(in srgb, var(--you-primary) 40%, transparent) !important;
+  background-color: color-mix(in srgb, var(--you-primary) 10%, transparent) !important;
+}
+
+
+/* ============================================================
    WINCHAT YOU — у каждой палитры свой живой фон
    ============================================================ */
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { isGlobalAdmin, isWinProActive, supabase, type Profile } from "./lib/supabase";
+import { isGlobalAdmin, isWinProActive, getChatByInvite, supabase, type Profile } from "./lib/supabase";
 import { checkBanned } from "./lib/adminApi";
 import {
   applyTheme,
@@ -33,6 +33,7 @@ import YouLocked from "./components/YouLocked";
 import GlassLocked from "./components/GlassLocked";
 import OobeUpdate from "./components/OobeUpdate";
 import OobeInstall from "./components/OobeInstall";
+import OobeThemeChooser, { type OobeVariant } from "./components/OobeThemeChooser";
 
 /* ============================================================
    Лёгкий роутер (как в старом Wintozo)
@@ -90,6 +91,15 @@ export default function App() {
   /* OOBE: приветствия после обновления и при первом скачивании */
   const [oobeUpdateShown, setOobeUpdateShown] = useState(true);
   const [oobeInstallShown, setOobeInstallShown] = useState(true);
+  /* Стиль OOBE: выбирает пользователь при первом запуске (You / Liquid Glass). */
+  const [oobeTheme, setOobeTheme] = useState<OobeVariant | null>(() => {
+    try {
+      const v = localStorage.getItem("winchat_oobe_theme");
+      return v === "you" || v === "liquid" ? v : null;
+    } catch {
+      return null;
+    }
+  });
   /* Лёгкий роутер: путь синхронизируется с экранами приложения */
   const path = useRoute();
   /* WinChat You — отдельный режим-маршрут /themes/you/* */
@@ -108,6 +118,40 @@ export default function App() {
   /** Активный «особый» режим интерфейса: You или Glass. */
   const themedMode = youMode || glassMode;
   const themeRoutePrefix = glassMode ? GLASS_PREFIX : YOU_PREFIX;
+
+  /* ---------- Ссылка-приглашение: /channel/invite/<code> или /group/invite/<code> ---------- */
+  const inviteMatch = path.match(/^\/(?:channel|group)\/invite\/([^/?#]+)/);
+  const inviteChatId = inviteMatch ? decodeURIComponent(inviteMatch[1]) : null;
+  const [inviteOpenChatId, setInviteOpenChatId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!inviteChatId || !session || !profile) return;
+    let alive = true;
+    (async () => {
+      try {
+        const res = await getChatByInvite(inviteChatId);
+        if (!alive) return;
+        if (!res.ok || !res.chat) return;
+        const chat = res.chat;
+        // Добавляем в чат участника (группу/подписку), если ещё нет.
+        try {
+          await supabase.from("chat_members").insert({
+            chat_id: chat.id,
+            user_id: session.user.id,
+            role: chat.isGroup ? "member" : "subscriber",
+          });
+        } catch {
+          /* уже участник — игнорируем */
+        }
+        if (alive) setInviteOpenChatId(chat.id);
+      } catch {
+        /* ссылка невалидна — просто игнорируем */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [inviteChatId, session, profile]);
 
   /* ---------- OOBE: приветствия (телефоны − автоматически, ПК − по адресу) ---------- */
   const oobeForceUpdate = path.startsWith("/oobe_update");
@@ -137,6 +181,16 @@ export default function App() {
     }
   }, []);
 
+  /* Сохраняем выбранный стиль OOBE (You / Liquid Glass). */
+  useEffect(() => {
+    try {
+      if (oobeTheme) localStorage.setItem("winchat_oobe_theme", oobeTheme);
+      else localStorage.removeItem("winchat_oobe_theme");
+    } catch {
+      /* no-op */
+    }
+  }, [oobeTheme]);
+
 
   useEffect(() => {
     let alive = true;
@@ -159,6 +213,20 @@ export default function App() {
       setSession(data.session);
       setBooting(false);
       void requestNotifyPermission();
+
+      /* Access-token живёт ~1 час: после перезагрузки ПК/браузера или просто
+       * повторного входа на сайт он мог устареть — принудительно обновляем
+       * сессию, чтобы пользователь не вылетал из аккаунта. */
+      if (data.session) {
+        try {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          if (!alive) return;
+          if (refreshed.session) setSession(refreshed.session);
+        } catch {
+          /* refreshSession сам дошлёт SIGNED_OUT через onAuthStateChange —
+           * здесь просто не оставляем «висящий» промис без обработки. */
+        }
+      }
     })();
 
     const {
@@ -429,8 +497,17 @@ export default function App() {
   if (booting || (session && !profile)) {
     /* OOBE первого скачивания: приветствие «Установка завершена» и форма — вместо splash */
     if (!banned && showInstallOobe) {
+      if (!oobeTheme) {
+        return <OobeThemeChooser onChoose={setOobeTheme} />;
+      }
       return (
-        <OobeInstall hasSession={!!session} profile={null} onFinish={finishInstallOobe} />
+        <OobeInstall
+          hasSession={!!session}
+          profile={null}
+          onFinish={finishInstallOobe}
+          variant={oobeTheme}
+          onThemeSwitch={setOobeTheme}
+        />
       );
     }
     return <Splash />;
@@ -439,16 +516,30 @@ export default function App() {
   /* ---------- OOBE: приветствия WinChat 5.0 (обновление / установка) ---------- */
   if (showInstallOobe) {
     document.title = "Добро пожаловать в WinChat";
+    if (!oobeTheme) {
+      return <OobeThemeChooser onChoose={setOobeTheme} />;
+    }
     return (
-      <OobeInstall hasSession={!!session} profile={profile} onFinish={finishInstallOobe} />
+      <OobeInstall
+        hasSession={!!session}
+        profile={profile}
+        onFinish={finishInstallOobe}
+        variant={oobeTheme}
+        onThemeSwitch={setOobeTheme}
+      />
     );
   }
   if (showUpdateOobe) {
     document.title = "WinChat 5.0";
+    if (!oobeTheme) {
+      return <OobeThemeChooser onChoose={setOobeTheme} />;
+    }
     return (
       <OobeUpdate
         winPro={profile ? isWinProActive(profile) : session ? null : false}
         onFinish={finishUpdateOobe}
+        variant={oobeTheme}
+        onThemeSwitch={setOobeTheme}
       />
     );
   }
@@ -586,6 +677,7 @@ export default function App() {
       onYouSettingsClosed={() => {
         if (themedMode) navigate(`${themeRoutePrefix}/chat`);
       }}
+      inviteChatId={inviteOpenChatId}
     />
   );
 }

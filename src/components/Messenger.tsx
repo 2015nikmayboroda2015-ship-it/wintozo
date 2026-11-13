@@ -70,6 +70,8 @@ interface Props {
   onOpenYouSettings?: () => void;
   /** Настройки закрыли — вернуть адрес на /themes/you/chat. */
   onYouSettingsClosed?: () => void;
+  /** Открыть чат по id из ссылки-приглашения (/channel/invite/<code>, /group/invite/<code>). */
+  inviteChatId?: string | null;
 }
 
 function Placeholder({ youMode }: { youMode?: boolean }) {
@@ -120,6 +122,7 @@ export default function Messenger({
   onExitYou,
   onOpenYouSettings,
   onYouSettingsClosed,
+  inviteChatId = null,
 }: Props) {
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [loadingChats, setLoadingChats] = useState(true);
@@ -231,6 +234,7 @@ export default function Messenger({
           verified: !!c.verified,
           myRole: roleByChat.get(c.id) ?? null,
           memberRoles: memberRolesByChat.get(c.id) ?? {},
+          invite_code: c.invite_code ?? null,
           title: c.is_group ? c.title || (c.is_channel ? "Канал" : "Группа") : (other?.nickname ?? "Диалог"),
           description: c.is_group ? c.description : (other?.bio ?? null),
           avatarUrl: c.is_group ? c.avatar_url : (other?.avatar_url ?? null),
@@ -383,6 +387,13 @@ export default function Messenger({
     setActiveId(null);
     if (youMode) onYouChatRoute?.(null);
   }, [youMode, onYouChatRoute]);
+
+  /* ---------- Ссылка-приглашение: открыть чат по inviteChatId ---------- */
+  useEffect(() => {
+    if (!inviteChatId) return;
+    const found = chats.find((c) => c.id === inviteChatId);
+    if (found) selectChat(found);
+  }, [inviteChatId, chats, selectChat]);
 
   return (
     <div

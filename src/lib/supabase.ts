@@ -5,6 +5,13 @@ export const SUPABASE_KEY = "sb_publishable_uEwTj3pmRCCbVg4HaQFeOg_GFmVoaHl";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   realtime: { params: { eventsPerSecond: 10 } },
+  auth: {
+    /** Сессия должна переживать перезагрузку ПК/браузера и «возврат на сайт» —
+     *  иначе после рестарта пользователя выкидывает из аккаунта. */
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
 });
 
 /** Синтетическая почта из username — Supabase Auth требует email. */
@@ -82,6 +89,8 @@ export interface ChatRow {
   is_official?: boolean | null;
   /** Синяя галочка канала/группы. */
   verified?: boolean | null;
+  /** Случайный код приглашения в группу/канал (ссылка /channel/invite/<code>). */
+  invite_code?: string | null;
 }
 
 export interface ChatItem {
@@ -97,6 +106,8 @@ export interface ChatItem {
   myRole?: string | null;
   /** Роли участников: user_id → role. */
   memberRoles?: Record<string, string>;
+  /** Случайный код приглашения в группу/канал (для шаринга). */
+  invite_code?: string | null;
   /** Отображаемое имя: никнейм собеседника или название группы */
   title: string;
   description: string | null;
@@ -233,6 +244,31 @@ export async function findWinpass(winpass: string): Promise<{
   const { data, error } = await supabase.rpc("login_by_winpass", { _winpass: winpass });
   if (error) throw error;
   return data as any;
+}
+
+/* ============================================================ */
+/*  Приглашения в группы/каналы                                   */
+/* ============================================================ */
+
+/** RPC: найти чат по коду приглашения. */
+export async function getChatByInvite(inviteCode: string): Promise<{
+  ok: boolean;
+  chat?: ChatItem | null;
+  error?: string;
+}> {
+  const { data, error } = await supabase.rpc("get_chat_by_invite", { _invite_code: inviteCode });
+  if (error) throw error;
+  const d = (data as any) ?? {};
+  if (!d.ok) return { ok: false, error: d.error || "not_found" };
+  return { ok: true, chat: (d.chat ?? null) as ChatItem | null };
+}
+
+/** Сгенерировать случайный числовой код приглашения. */
+export function genInviteCode(): string {
+  const min = 10000;
+  const max = 330357;
+  const n = min + Math.floor(Math.random() * Math.floor(max - min + 1));
+  return String(n);
 }
 
 /**

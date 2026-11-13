@@ -1070,7 +1070,7 @@ export default function ChatView({
       {/* Шапка */}
       <header
         className={cn(
-          "flex items-center gap-3 px-4 py-3 backdrop-blur",
+          "flex items-center gap-2 px-3 py-2 backdrop-blur sm:gap-3 sm:px-4 sm:py-3",
           youMode
             ? "you-appbar rounded-b-[24px] border-b"
             : "border-b border-black/8 bg-white/70"
@@ -1255,7 +1255,7 @@ export default function ChatView({
       {/* Ввод */}
       <footer
         className={cn(
-          "px-4 py-3 backdrop-blur sm:px-8",
+          "px-3 py-2.5 backdrop-blur sm:px-8",
           youMode
             ? "you-bottombar rounded-t-[28px] border-t"
             : "border-t border-black/8 bg-white/70"
@@ -1457,7 +1457,7 @@ export default function ChatView({
                   onClick={() => send()}
                   disabled={sending || compressing}
                   className={cn(
-                    "flex h-11 w-11 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-25",
+                    "flex h-10 w-10 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-25 sm:h-11 sm:w-11",
                     youMode ? "you-fab" : "rounded-full bg-ink text-white hover:bg-black"
                   )}
                   aria-label="Отправить сообщение"
@@ -1474,7 +1474,7 @@ export default function ChatView({
                     onClick={startVideoRecording}
                     disabled={sending || compressing}
                     className={cn(
-                      "flex h-11 w-11 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-40",
+                      "flex h-10 w-10 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-40 sm:h-11 sm:w-11",
                       youMode
                         ? "you-fab-tonal"
                         : "rounded-full bg-purple-500 text-white hover:bg-purple-600"
@@ -1488,7 +1488,7 @@ export default function ChatView({
                     onClick={startRecording}
                     disabled={sending || compressing}
                     className={cn(
-                      "flex h-11 w-11 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-40",
+                      "flex h-10 w-10 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-40 sm:h-11 sm:w-11",
                       youMode ? "you-fab" : "rounded-full bg-ink text-white hover:bg-black"
                     )}
                     aria-label="Записать голосовое сообщение"
