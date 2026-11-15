@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { isGlobalAdmin, isWinProActive, getChatByInvite, supabase, type Profile } from "./lib/supabase";
+import { isGlassGranted, isWinProActive, getChatByInvite, supabase, type Profile } from "./lib/supabase";
 import { checkBanned } from "./lib/adminApi";
 import {
   applyTheme,
@@ -91,11 +91,11 @@ export default function App() {
   /* OOBE: приветствия после обновления и при первом скачивании */
   const [oobeUpdateShown, setOobeUpdateShown] = useState(true);
   const [oobeInstallShown, setOobeInstallShown] = useState(true);
-  /* Стиль OOBE: выбирает пользователь при первом запуске (You / Liquid Glass). */
+  /* Стиль OOBE: выбирает пользователь при первом запуске (You). */
   const [oobeTheme, setOobeTheme] = useState<OobeVariant | null>(() => {
     try {
       const v = localStorage.getItem("winchat_oobe_theme");
-      return v === "you" || v === "liquid" ? v : null;
+      return v === "you" ? v : null;
     } catch {
       return null;
     }
@@ -109,7 +109,8 @@ export default function App() {
     : null;
   const wasYou = useRef(false);
 
-  /* WinChat Glass — отдельный режим-маршрут /themes/glass/* */
+  /* WinChat Glass — отдельный режим-маршрут /themes/glass/*.
+     Доступен только тем, кому админ выдал Glass (/give glass). */
   const glassMode = isGlassPath(path);
   const glassChatId = glassMode
     ? path.match(/^\/themes\/glass\/chat\/([^/?#]+)/)?.[1] ?? null
@@ -181,7 +182,7 @@ export default function App() {
     }
   }, []);
 
-  /* Сохраняем выбранный стиль OOBE (You / Liquid Glass). */
+  /* Сохраняем выбранный стиль OOBE (You). */
   useEffect(() => {
     try {
       if (oobeTheme) localStorage.setItem("winchat_oobe_theme", oobeTheme);
@@ -364,13 +365,6 @@ export default function App() {
     window.dispatchEvent(new PopStateEvent("popstate"));
   }, [path]);
 
-  /* ---------- WinChat Glass: короткий адрес → чат ---------- */
-  useEffect(() => {
-    if (path !== GLASS_PREFIX) return;
-    window.history.replaceState({}, "", `${GLASS_PREFIX}/chat`);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  }, [path]);
-
   /* ---------- WinChat You: включение/выключение режима ---------- */
   useEffect(() => {
     if (!profile) return;
@@ -432,10 +426,17 @@ export default function App() {
     document.title = "WinChat";
   }, [profile, youMode, path]);
 
-  /* ---------- WinChat Glass: включение/выключение режима ---------- */
+  /* ---------- WinChat Glass: короткий адрес → чат ---------- */
+  useEffect(() => {
+    if (path !== GLASS_PREFIX) return;
+    window.history.replaceState({}, "", `${GLASS_PREFIX}/chat`);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, [path]);
+
+  /* ---------- WinChat Glass: включение/выключение режима (только по флагу админа) ---------- */
   useEffect(() => {
     if (!profile) return;
-    const allowed = isWinProActive(profile) || isGlobalAdmin(profile);
+    const allowed = isGlassGranted(profile);
     const active = glassMode && allowed;
     const savedId = (getCurrentTheme() as { id?: string }).id ?? THEMES[0].id;
 
@@ -488,7 +489,7 @@ export default function App() {
     } catch {
       /* no-op */
     }
-    if (isWinProTheme(prev) && !allowed) prev = THEMES[0].id;
+    if (isWinProTheme(prev) && !isWinProActive(profile)) prev = THEMES[0].id;
     saveThemeId(prev);
     applyTheme(getThemeById(prev) ?? THEMES[0]);
     if (!themedMode) document.title = "WinChat";
@@ -505,15 +506,14 @@ export default function App() {
           hasSession={!!session}
           profile={null}
           onFinish={finishInstallOobe}
-          variant={oobeTheme}
-          onThemeSwitch={setOobeTheme}
+          variant={oobeTheme ?? "you"}
         />
       );
     }
     return <Splash />;
   }
 
-  /* ---------- OOBE: приветствия WinChat 5.0 (обновление / установка) ---------- */
+  /* ---------- OOBE: приветствия WinChat 6.0 (обновление / установка) ---------- */
   if (showInstallOobe) {
     document.title = "Добро пожаловать в WinChat";
     if (!oobeTheme) {
@@ -524,13 +524,12 @@ export default function App() {
         hasSession={!!session}
         profile={profile}
         onFinish={finishInstallOobe}
-        variant={oobeTheme}
-        onThemeSwitch={setOobeTheme}
+        variant={oobeTheme ?? "you"}
       />
     );
   }
   if (showUpdateOobe) {
-    document.title = "WinChat 5.0";
+    document.title = "WinChat 6.0";
     if (!oobeTheme) {
       return <OobeThemeChooser onChoose={setOobeTheme} />;
     }
@@ -538,8 +537,7 @@ export default function App() {
       <OobeUpdate
         winPro={profile ? isWinProActive(profile) : session ? null : false}
         onFinish={finishUpdateOobe}
-        variant={oobeTheme}
-        onThemeSwitch={setOobeTheme}
+        variant={oobeTheme ?? "you"}
       />
     );
   }
@@ -633,13 +631,12 @@ export default function App() {
     );
   }
 
-  /* ---------- /themes/glass/* — WinChat Glass (WinPro или админ) ---------- */
-  if (glassMode && !isWinProActive(profile) && !isGlobalAdmin(profile)) {
+  /* ---------- /themes/glass/* — WinChat Glass (только по флагу админа) ---------- */
+  if (glassMode && !isGlassGranted(profile)) {
     return (
       <GlassLocked
         me={profile}
         onBack={() => navigate("/chats")}
-        onGetWinPro={() => navigate("/settings/status/winpro")}
       />
     );
   }

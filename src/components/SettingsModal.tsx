@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell, Camera, Check, CircleAlert, History, Loader2, Lock, LogOut, Palette, Sparkles, ShieldCheck, User, X } from "lucide-react";
-import { isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
+import { isGlassGranted, isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
 import { filesUpload } from "../lib/blobStorage";
 import { badgeCodes, BADGE_IMAGES, BADGE_LABELS } from "../lib/badges";
 import { normalizeWinpass, validateBio, validateNickname, validatePassword } from "../lib/utils";
@@ -236,6 +236,8 @@ export default function SettingsModal({
 
   const showTab = (t: Tab) => (activeTab === t ? "animate-fade-in" : "hidden");
   const you = youMode || currentId === YOU_THEME_ID;
+  /** WinChat Glass виден в кастомизации только если админ выдал его (/give glass). */
+  const glassAllowed = isGlassGranted(me);
   const myBadges = badgeCodes(me);
 
   return (
@@ -524,7 +526,7 @@ export default function SettingsModal({
               </div>
 
               <div className="mt-3 grid grid-cols-3 gap-3">
-                {WINPRO_THEMES.map((t) => {
+                {WINPRO_THEMES.filter((t) => t.id !== GLASS_THEME_ID || glassAllowed).map((t) => {
                   const active = currentId === t.id;
                   const isYou = t.id === YOU_THEME_ID;
                   const isGlass = t.id === GLASS_THEME_ID;
@@ -533,7 +535,10 @@ export default function SettingsModal({
                       key={t.id}
                       type="button"
                       onClick={() => {
-                        if (!winPro) {
+                        if (isGlass) {
+                          // Glass выдаётся админом (/give glass), WinPro не требуется.
+                          if (!glassAllowed) return;
+                        } else if (!winPro) {
                           setActiveTab("winpro");
                           scrollRef.current?.scrollTo({ top: 0 });
                           return;
@@ -556,11 +561,11 @@ export default function SettingsModal({
                         active
                           ? "border-accent shadow-lg shadow-accent/20"
                           : "border-transparent hover:border-black/15",
-                        !winPro && "opacity-60"
+                        !winPro && !isGlass && "opacity-60"
                       )}
                       style={{ background: t.chatBg }}
                     >
-                      {!winPro && (
+                      {!winPro && !isGlass && (
                         <span className="absolute inset-0 z-10 flex items-center justify-center bg-black/35 backdrop-blur-[1px]">
                           <Lock className="h-4 w-4 text-white" />
                         </span>

@@ -210,6 +210,8 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             { type: "info", text: "/get winpass @username      — WinPass аккаунта (восстановление)" },
             { type: "info", text: "/give wintozopro @username X — Выдать WinPro на X дней" },
             { type: "info", text: "/delete wintozopro @username — Удалить WinPro" },
+            { type: "info", text: "/give glass @username — Выдать WinChat Glass (флаг is_winchat_glass_true)" },
+            { type: "info", text: "/delete glass @username — Снять WinChat Glass (флаг is_winchat_glass_no)" },
             { type: "info", text: "/give badge @username <1|2|3> — Выдать бейдж (1 — Дизайнер, 2 — Тестер, 3 — Олд)" },
             { type: "info", text: "/get badges @username — Получить бейджи пользователя" },
             { type: "info", text: "/channel list — Список каналов (id, название, подписчики)" },
@@ -780,6 +782,35 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             }
             break;
           }
+          if (feature === "glass") {
+            const glassUsername = parts[2]?.replace("@", "");
+            if (!glassUsername) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: "Использование: /give glass @username" },
+              ]);
+              break;
+            }
+
+            const { data, error } = await supabase.rpc("give_glass", {
+              _admin_id: me.id,
+              _target_username: glassUsername,
+            });
+
+            if (error) {
+              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+              break;
+            }
+
+            const res = data as { ok: boolean; message?: string; error?: string };
+            if (res.ok) {
+              setHistory((prev) => [...prev, { type: "success", text: `✓ ${res.message}` }]);
+              onProfileUpdated();
+            } else {
+              setHistory((prev) => [...prev, { type: "error", text: `✗ ${res.error}` }]);
+            }
+            break;
+          }
           if (feature !== "wintozopro") {
             setHistory((prev) => [
               ...prev,
@@ -820,6 +851,35 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
 
         case "/delete": {
           const feature = parts[1];
+          if (feature === "glass") {
+            const glassUsername = parts[2]?.replace("@", "");
+            if (!glassUsername) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: "Использование: /delete glass @username" },
+              ]);
+              break;
+            }
+
+            const { data, error } = await supabase.rpc("delete_glass", {
+              _admin_id: me.id,
+              _target_username: glassUsername,
+            });
+
+            if (error) {
+              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+              break;
+            }
+
+            const res = data as { ok: boolean; message?: string; error?: string };
+            if (res.ok) {
+              setHistory((prev) => [...prev, { type: "success", text: `✓ ${res.message}` }]);
+              onProfileUpdated();
+            } else {
+              setHistory((prev) => [...prev, { type: "error", text: `✗ ${res.error}` }]);
+            }
+            break;
+          }
           if (feature !== "wintozopro") {
             setHistory((prev) => [
               ...prev,

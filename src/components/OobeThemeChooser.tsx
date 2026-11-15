@@ -1,15 +1,14 @@
 /**
- * Окно выбора стиля OOBE: WinChat You (Material You) или Liquid Glass.
+ * Окно выбора стиля OOBE: WinChat You (Material You).
  *
  * Само окно выполнено в стиле WinChat You: живой фон (YouBackdrop),
  * тональные поверхности, filled-кнопка. Выбор сохраняется в localStorage
  * (winchat_oobe_theme) и передаётся в OobeUpdate / OobeInstall через variant.
  */
-import { ArrowRight, Layers, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import YouBackdrop from "./YouBackdrop";
-import { cn } from "../utils/cn";
 
-export type OobeVariant = "you" | "liquid";
+export type OobeVariant = "you";
 
 interface Props {
   onChoose: (variant: OobeVariant) => void;
@@ -37,13 +36,13 @@ export default function OobeThemeChooser({ onChoose }: Props) {
         </div>
 
         <h1 className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_0.15s_both] mt-7 text-[32px] leading-tight font-extrabold tracking-tight oobe-you-title">
-          WinChat 5.0
+          WinChat 6.0
         </h1>
         <p className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_0.28s_both] mt-2 text-[16px] font-bold oobe-you-subtitle">
           Выберите стиль приветствия
         </p>
         <p className="animate-[oobe-rise_0.65s_cubic-bezier(0.22,1.2,0.4,1)_0.4s_both] mt-3 max-w-[340px] text-[13px] leading-relaxed font-medium oobe-you-subtitle">
-          Весь OOBE подстроится под выбранную тему: WinChat You или Liquid Glass.
+          Весь OOBE подстроится под выбранную тему: WinChat You.
         </p>
 
         <div className="animate-[oobe-rise_0.7s_cubic-bezier(0.22,1.2,0.4,1)_0.5s_both] mt-9 w-full max-w-[360px] space-y-3">
@@ -55,20 +54,6 @@ export default function OobeThemeChooser({ onChoose }: Props) {
           >
             <Sparkles className="h-4 w-4" />
             OOBE You
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </button>
-
-          {/* OOBE Liquid — outlined */}
-          <button
-            type="button"
-            onClick={pick("liquid")}
-            className={cn(
-              "oobe-you-btn-outline group flex w-full items-center justify-center gap-2 bg-white/70 px-6 py-4 text-[15px] font-extrabold tracking-wide transition active:scale-[0.98]",
-              "backdrop-blur-md"
-            )}
-          >
-            <Layers className="h-4 w-4" />
-            OOBE Liquid
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
         </div>

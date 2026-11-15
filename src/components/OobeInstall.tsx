@@ -14,7 +14,7 @@ import { mapAuthError } from "./Auth";
 import { rememberLegacyPassword } from "./LegacyScreen";
 import { normalizeWinpass, validateNickname, validatePassword, validateUsername } from "../lib/utils";
 import { cn } from "../utils/cn";
-import { OobeButton, OobeThemeToggle } from "./OobeUpdate";
+import { OobeButton } from "./OobeUpdate";
 import YouBackdrop from "./YouBackdrop";
 import type { OobeVariant } from "./OobeThemeChooser";
 import type { Profile } from "../lib/supabase";
@@ -26,23 +26,21 @@ interface Props {
   profile: Profile | null;
   /** Завершить OOBE и открыть мессенджер. */
   onFinish: () => void;
-  /** Стиль OOBE: You (Material You) или Liquid Glass. */
+  /** Стиль OOBE: You (Material You). */
   variant?: OobeVariant;
-  /** Переключить стиль OOBE на лету (кнопка сверху). */
-  onThemeSwitch?: (variant: OobeVariant) => void;
 }
 
 type Step = "welcome" | "auth" | "winpass" | "checking" | "success";
 
 /**
- * OOBE первого скачивания WinChat: приветствие → Liquid Glass регистрация
+ * OOBE первого скачивания WinChat: приветствие → регистрация
  * / вход → экран «Проверка..» → финал «WinChat · Продолжить».
  * Показывается на телефонах при первом запуске; на ПК — по /install_oobe.
  */
-export default function OobeInstall({ hasSession, profile, onFinish, variant = "liquid", onThemeSwitch }: Props) {
+export default function OobeInstall({ hasSession, profile, onFinish, variant = "you" }: Props) {
   const [step, setStep] = useState<Step>(() => (hasSession ? "checking" : "welcome"));
   const [mode, setMode] = useState<"register" | "login">("register");
-  /** Настоящий Material You (не перекраска Liquid). */
+  /** Стиль Material You (Material 3). */
   const you = variant === "you";
 
   const [nickname, setNickname] = useState("");
@@ -181,11 +179,6 @@ export default function OobeInstall({ hasSession, profile, onFinish, variant = "
       {/* Живой фон Material You */}
       {you && <YouBackdrop />}
 
-      {/* Переключатель стиля OOBE: You ↔ Liquid */}
-      {onThemeSwitch && (
-        <OobeThemeToggle variant={variant} onSwitch={onThemeSwitch} />
-      )}
-
       {/* ============ ШАГ: ПРИВЕТСТВИЕ УСТАНОВКИ ============ */}
       {step === "welcome" && (
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[520px] flex-col items-center justify-center px-6 text-center">
@@ -220,7 +213,7 @@ export default function OobeInstall({ hasSession, profile, onFinish, variant = "
         </div>
       )}
 
-      {/* ============ ШАГ: РЕГИСТРАЦИЯ ИЛИ ВХОД (Liquid Glass) ============ */}
+      {/* ============ ШАГ: РЕГИСТРАЦИЯ ИЛИ ВХОД ============ */}
       {step === "auth" && (
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[440px] flex-col justify-center px-5 py-12">
           {/* Шапка */}
@@ -337,7 +330,7 @@ export default function OobeInstall({ hasSession, profile, onFinish, variant = "
           </div>
 
           {/* Вход по WinPass — сворачиваемая секция */}
-          <WinpassGlass
+          <WinpassSection
             onSubmit={submitWinpass}
             value={wpInput}
             onChange={setWpInput}
@@ -495,7 +488,7 @@ function OobeField({
 }
 
 /* ---------- Вход по WinPass (сворачиваемая секция) ---------- */
-function WinpassGlass({
+function WinpassSection({
   onSubmit,
   value,
   onChange,
