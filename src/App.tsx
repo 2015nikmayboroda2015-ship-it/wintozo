@@ -14,15 +14,15 @@ import {
 } from "./lib/themes";
 import { getAnimationId } from "./lib/animations";
 import { initSecureAccountStore, rememberAccount } from "./lib/secureAccountStore";
-import { requestNotifyPermission } from "./lib/notify";
 import { applyLegacyGate, declineLegacyUi, isLegacyUi, resetLegacyChoice } from "./lib/checkVersion";
 import { reportDeviceStatus, isAndroidWebLite } from "./lib/ota";
 import {
+  getOobeUpdateExpectedKey,
   isPhoneDevice,
   markOobeInstallDone,
   markOobeUpdateDone,
   OOBE_INSTALL_KEY,
-  OOBE_UPDATE_KEY,
+  readOobeUpdateKey,
 } from "./lib/oobe";
 import { navigate } from "./lib/router";
 import Auth from "./components/Auth";
@@ -175,7 +175,9 @@ export default function App() {
 
   useEffect(() => {
     try {
-      setOobeUpdateShown(localStorage.getItem(OOBE_UPDATE_KEY) === "1");
+      // OOBE обновления показываем, пока пользователь не дошёл ключом
+      // до текущей версии: 0 — не обновлялся, 1 — прошёл 5.0, 2 — прошёл 6.0 и т.д.
+      setOobeUpdateShown(readOobeUpdateKey() >= getOobeUpdateExpectedKey());
       setOobeInstallShown(localStorage.getItem(OOBE_INSTALL_KEY) === "1");
     } catch {
       /* no-op */
@@ -213,7 +215,6 @@ export default function App() {
       if (!alive) return;
       setSession(data.session);
       setBooting(false);
-      void requestNotifyPermission();
 
       /* Access-token живёт ~1 час: после перезагрузки ПК/браузера или просто
        * повторного входа на сайт он мог устареть — принудительно обновляем

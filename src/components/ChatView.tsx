@@ -37,7 +37,6 @@ import { dateLabel, formatDuration, formatTime, isCircleVideoUrl, sameDay, uuid 
 import { filesUpload } from "../lib/blobStorage";
 import { compressVideo } from "../lib/videoCompress";
 import { loadSavedNotes, notifySavedNotesChanged, persistSavedNotes } from "../lib/savedNotes";
-import { showMessageNotificationIfHidden } from "../lib/notify";
 import { useCalls } from "../hooks/useCalls";
 import { downloadMedia } from "../lib/mediaDownload";
 import CallOverlay from "./CallOverlay";
@@ -216,20 +215,6 @@ export default function ChatView({
           setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
           setTypingName(null);
           onActivity(m);
-
-          const sender = memberById.get(m.sender_id) ?? chat.other ?? null;
-          const senderName = sender?.nickname || "Собеседник";
-          const chatTitle = chat.isGroup ? chat.title : "";
-          const preview = m.sticker_url ? "Стикер" : m.audio_url ? "Голосовое" : m.video_url ? "Видео" : m.image_url ? "Фото" : "";
-          const body = m.content || preview || "Новое сообщение";
-
-          showMessageNotificationIfHidden({
-            title: chatTitle ? `${chatTitle} · ${senderName}` : senderName,
-            body,
-            tag: `chat-${chatId}`,
-            url: `/chats`,
-            chatId,
-          });
         }
       )
       .on(

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, Camera, Check, CircleAlert, History, Loader2, Lock, LogOut, Palette, Sparkles, ShieldCheck, User, X } from "lucide-react";
+import { Camera, Check, CircleAlert, History, Loader2, Lock, LogOut, Palette, Sparkles, ShieldCheck, User, X } from "lucide-react";
 import { isGlassGranted, isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
 import { filesUpload } from "../lib/blobStorage";
 import { badgeCodes, BADGE_IMAGES, BADGE_LABELS } from "../lib/badges";
@@ -23,7 +23,6 @@ import {
 import { navigate } from "../lib/router";
 import { hasWinPro, winproDaysLeft, winproExpiresLabel } from "../lib/winpro";
 import { ANIMATIONS, getAnimationId, saveAnimationId } from "../lib/animations";
-import { initPush, savePushSubscription, subscribeWebPush, unsubscribeWebPush, getPlatform } from "../lib/push";
 
 interface Props {
   me: Profile;
@@ -75,30 +74,6 @@ export default function SettingsModal({
   const winPro = hasWinPro(me);
   const [animId, setAnimId] = useState<string>(() => getAnimationId());
   const [celebrate, setCelebrate] = useState(false);
-
-  /* --- Пуш-уведомления --- */
-  const [pushSubscribed, setPushSubscribed] = useState(false);
-  const [pushLoading, setPushLoading] = useState(false);
-  const [pushError, setPushError] = useState<string | null>(null);
-  const [pushSupported, setPushSupported] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const platform = getPlatform();
-      const supported = platform === "web" && typeof window !== "undefined" && "PushManager" in window && !!import.meta.env.VITE_PUBLIC_VAPID_KEY;
-      setPushSupported(supported);
-      if (supported && !cancelled) {
-        try {
-          const subscribed = await initPush();
-          setPushSubscribed(!!subscribed.subscribed);
-        } catch {
-          /* no-op */
-        }
-      }
-      return () => { cancelled = true; };
-    })();
-  }, []);
 
   /* --- Палитра --- */
   const [currentId, setCurrentId] = useState<string>(
@@ -209,30 +184,6 @@ export default function SettingsModal({
     { id: "winpro", label: "WinPro", icon: Sparkles },
   ];
 
-
-  /* --- Пуш-уведомления: обработчики --- */
-  const togglePush = async () => {
-    if (!pushSupported) {
-      setPushError("Пуш-уведомления недоступны в этом браузере или не задан VITE_PUBLIC_VAPID_KEY");
-      return;
-    }
-    setPushLoading(true);
-    setPushError(null);
-    try {
-      if (pushSubscribed) {
-        await unsubscribeWebPush();
-        setPushSubscribed(false);
-      } else {
-        const sub = await subscribeWebPush();
-        await savePushSubscription(sub.endpoint, sub.p256dh, sub.auth, navigator.userAgent);
-        setPushSubscribed(true);
-      }
-    } catch (err: any) {
-      setPushError(err?.message || "Не удалось изменить подписку на пуш-уведомления");
-    } finally {
-      setPushLoading(false);
-    }
-  };
 
   const showTab = (t: Tab) => (activeTab === t ? "animate-fade-in" : "hidden");
   const you = youMode || currentId === YOU_THEME_ID;
@@ -915,53 +866,6 @@ export default function SettingsModal({
               <p className="mt-1.5 text-[11px] font-medium leading-relaxed text-black/40">
                 Сохраните код — он поможет войти, если вы забудете пароль.
               </p>
-            </div>
-
-            {/* --- Пуш-уведомления --- */}
-            <div className="mt-6">
-              <span className="mb-1.5 flex items-center gap-2 font-mono text-[11px] font-semibold tracking-[0.16em] text-black/45 uppercase">
-                <Bell className="h-3.5 w-3.5" />
-                Пуш-уведомления
-              </span>
-              {!pushSupported ? (
-                <div className="rounded-xl border border-dashed border-black/20 bg-black/5 px-4 py-3 text-[12px] text-black/50">
-                  Пуш-уведомления недоступны: браузер не поддерживает Push API или не задан
-                  VITE_PUBLIC_VAPID_KEY.
-                </div>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={togglePush}
-                    disabled={pushLoading}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition",
-                      pushSubscribed ? "border-green-400 bg-green-400/5 text-green-700" : "border-black/8 bg-white/60 hover:border-black/15"
-                    )}
-                  >
-                    <span className="flex flex-col">
-                      <span className="text-[12px] font-bold">
-                        {pushSubscribed ? "Пуш включён" : "Включить пуш-уведомления"}
-                      </span>
-                      <span className="text-[10px] font-medium text-black/40">
-                        {pushSubscribed ? "Вы будете получать уведомления о сообщениях" : "Разрешить уведомления о новых сообщениях"}
-                      </span>
-                    </span>
-                    {pushLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      pushSubscribed ? (
-                        <Check className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Bell className="h-4 w-4" />
-                      )
-                    )}
-                  </button>
-                  {pushError && (
-                    <p className="mt-1.5 text-[11px] font-medium text-red-600">{pushError}</p>
-                  )}
-                </>
-              )}
             </div>
 
             <button
