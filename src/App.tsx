@@ -110,7 +110,7 @@ export default function App() {
   const wasYou = useRef(false);
 
   /* WinChat Glass — отдельный режим-маршрут /themes/glass/*.
-     Доступен только тем, кому админ выдал Glass (/give glass). */
+     Доступен только тем, у кого есть доступ к Glass (флаг профиля). */
   const glassMode = isGlassPath(path);
   const glassChatId = glassMode
     ? path.match(/^\/themes\/glass\/chat\/([^/?#]+)/)?.[1] ?? null

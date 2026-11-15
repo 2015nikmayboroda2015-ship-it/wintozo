@@ -196,7 +196,7 @@ export const CHANGELOGS: Record<string, ChangelogEntry> = {
     version: "6.0.0",
     title: "В версии 6.0.0 были добавлены функции",
     items: [
-      "1. WinChat Glass теперь выдаётся только через админ-терминал (/give glass)",
+      "1. Обновлённая OOBE и новые анимации",
       "2. OOBE теперь только в стиле Material You",
       "3. Шрифт Google Sans добавлен в Material You",
       "4. Исправлены баги",

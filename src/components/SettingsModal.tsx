@@ -187,7 +187,7 @@ export default function SettingsModal({
 
   const showTab = (t: Tab) => (activeTab === t ? "animate-fade-in" : "hidden");
   const you = youMode || currentId === YOU_THEME_ID;
-  /** WinChat Glass виден в кастомизации только если админ выдал его (/give glass). */
+  /** WinChat Glass виден в кастомизации только тем, у кого есть доступ (флаг профиля). */
   const glassAllowed = isGlassGranted(me);
   const myBadges = badgeCodes(me);
 
@@ -487,7 +487,7 @@ export default function SettingsModal({
                       type="button"
                       onClick={() => {
                         if (isGlass) {
-                          // Glass выдаётся админом (/give glass), WinPro не требуется.
+                          // Glass открывается по флагу профиля, WinPro не требуется.
                           if (!glassAllowed) return;
                         } else if (!winPro) {
                           setActiveTab("winpro");

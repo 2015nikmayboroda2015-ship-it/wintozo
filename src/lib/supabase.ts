@@ -29,7 +29,7 @@ export interface Profile {
   verify_status?: VerifyLevel;
   winpass?: string | null;
   winpro_until?: string | null;
-  /** WinChat Glass: 'is_winchat_glass_true' — выдан админом, иначе 'is_winchat_glass_no'. */
+  /** WinChat Glass: 'is_winchat_glass_true' — доступ есть, иначе 'is_winchat_glass_no'. */
   is_winchat_glass?: string | null;
   /** Выданные бейджи: коды через запятую, например «1» или «1,2». */
   badges?: string | null;
@@ -45,7 +45,7 @@ export const isWinProActive = (p?: Profile | null): boolean => {
   return new Date(p.winpro_until) > new Date();
 };
 
-/** Выдан ли WinChat Glass админом (через /give glass в терминале). */
+/** Есть ли у профиля доступ к WinChat Glass (флаг профиля). */
 export const isGlassGranted = (p?: Profile | null): boolean =>
   p?.is_winchat_glass === "is_winchat_glass_true";
 
