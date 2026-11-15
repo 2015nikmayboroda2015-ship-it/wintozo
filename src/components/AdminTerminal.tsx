@@ -225,6 +225,8 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             { type: "info", text: '/set ota [@username] "<ссылка>" [версия] [@target|*] — OTA для Android' },
             { type: "info", text: "/set ota off                — Отключить OTA" },
             { type: "info", text: "/get ota                    — Текущая OTA-настройка" },
+            { type: "info", text: '/set oobe @username "<X.Y>" — Показать пользователю OOBE версии (5.0 / 6.0) при следующем входе' },
+            { type: "info", text: "/set oobe @username off     — Вернуть обычную логику OOBE" },
             { type: "info", text: "/get devices                — Устройства, которые запускали приложение" },
             { type: "info", text: "/gui                       — Графический интерфейс админ-терминала (кнопки)" },
             { type: "info", text: "/help                       — Эта справка" },
@@ -497,10 +499,56 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             break;
           }
 
+          if (what === "oobe") {
+            const username = parts[2]?.replace(/^@/, "").replace(/["']/g, "");
+            // Версию берём из исходной строки (вдруг с кавычками): "5.0" или 6.0
+            const rawVer = trimmed
+              .replace(/^\/set\s+oobe\s*/i, "")
+              .replace(/^@[^\s"']+\s*/i, "")
+              .trim()
+              .replace(/^["']|["']$/g, "");
+            if (!username) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: 'Использование: /set oobe @username "<X.Y>" (например 5.0 или 6.0) | /set oobe @username off' },
+              ]);
+              break;
+            }
+
+            let version: string | null = rawVer || null;
+            if (!version || /^(off|clear|remove|none|нет)$/i.test(version)) {
+              version = null; // снять назначенную OOBE — вернётся обычная логика
+            } else if (!/^\d+\.\d+$/.test(version)) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: 'Неверный формат версии. Пример: /set oobe @username "5.0" или /set oobe @username 6.0' },
+              ]);
+              break;
+            }
+
+            const { data, error } = await supabase.rpc("set_oobe", {
+              _admin_id: me.id,
+              _target_username: username,
+              _version: version,
+            });
+            if (error) {
+              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+              break;
+            }
+            const res = data as { ok: boolean; message?: string; error?: string };
+            if (res.ok) {
+              setHistory((prev) => [...prev, { type: "success", text: `✓ ${res.message}` }]);
+              onProfileUpdated();
+            } else {
+              setHistory((prev) => [...prev, { type: "error", text: `✗ ${res.error}` }]);
+            }
+            break;
+          }
+
           if (what !== "version") {
             setHistory((prev) => [
               ...prev,
-              { type: "error", text: 'Использование: /set version <X.Y.Z[-beta]> | /set ota [@username] "<ссылка>" [версия]' },
+              { type: "error", text: 'Использование: /set version <X.Y.Z[-beta]> | /set ota [@username] "<ссылка>" [версия] | /set oobe @username "<X.Y>"' },
             ]);
             return;
           }

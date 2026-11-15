@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, Sparkles, X } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import {
   APP_VERSION,
   isVersionNewer,
@@ -9,27 +9,22 @@ import {
   shouldShowWhatsNew,
   markWhatsNewSeen,
 } from "../lib/checkVersion";
-import {
-  initDeviceOta,
-  installOta,
-  onOtaStatus,
-  isOtaDismissed,
-  dismissOta,
-  type OtaInfo,
-  type OtaState,
-} from "../lib/ota";
+import { canInstallOta, initDeviceOta } from "../lib/ota";
 
+/**
+ * Проверка версии при запуске:
+ *  - отправляет статус устройства на сервер и узнаёт версию сервера;
+ *  - веб-пользователям показывает баннер «Доступна версия X»;
+ *  - на нативном Android баннера нет: обновление (OTA) ставится
+ *    вручную — Настройки → «О приложении» → «Проверить обновления».
+ */
 export default function CheckVersion() {
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
-  const [ota, setOta] = useState<OtaInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [otaDismissed, setOtaDismissed] = useState(false);
-  const [otaBusy, setOtaBusy] = useState(false);
-  const [otaState, setOtaState] = useState<OtaState | null>(null);
 
-  /* Статус устройства + check_version + поиск OTA при запуске */
+  /* Статус устройства + check_version при запуске */
   useEffect(() => {
     let cancelled = false;
 
@@ -37,15 +32,9 @@ export default function CheckVersion() {
       .then((res) => {
         if (cancelled) return;
         setLatestVersion(res.latestVersion);
-        setOta(res.ota);
         setLoading(false);
 
-        if (res.ota) {
-          if (isOtaDismissed(res.ota.url)) setOtaDismissed(true);
-          return;
-        }
-
-        /* Баннер обновления по версии */
+        /* Баннер обновления по версии (только для веба — без нативного OTA) */
         if (res.latestVersion && shouldShowUpdateBanner(res.latestVersion)) {
           return;
         }
@@ -64,26 +53,8 @@ export default function CheckVersion() {
     };
   }, []);
 
-  /* Прогресс нативного установщика */
-  useEffect(() => {
-    let dispose: (() => void) | undefined;
-    void onOtaStatus((event) => {
-      setOtaState(event.state);
-      if (event.state === "error" || event.state === "installing") {
-        setOtaBusy(false);
-      }
-      if (event.state === "downloading" || event.state === "permission") {
-        setOtaBusy(true);
-      }
-    }).then((fn) => {
-      dispose = fn;
-    });
-    return () => dispose?.();
-  }, []);
-
   const newer = latestVersion && isVersionNewer(latestVersion, APP_VERSION);
-  const showOta = Boolean(ota) && !otaDismissed;
-  const showVersionBanner = Boolean(newer) && !ota;
+  const showVersionBanner = Boolean(newer) && !canInstallOta();
 
   function dismissUpdate() {
     setDismissed(true);
@@ -95,87 +66,33 @@ export default function CheckVersion() {
     markWhatsNewSeen();
   }
 
-  function dismissOtaBanner() {
-    setOtaDismissed(true);
-    if (ota) dismissOta(ota.url);
-  }
-
-  async function startOta() {
-    if (!ota || otaBusy) return;
-    setOtaBusy(true);
-    setOtaState("downloading");
-    try {
-      const res = await installOta(ota.url);
-      if (res.fallback) {
-        setOtaBusy(false);
-        setOtaState(null);
-      }
-    } catch {
-      setOtaBusy(false);
-      setOtaState("error");
-    }
-  }
-
-  function otaSubtitle(): string {
-    if (otaState === "permission") {
-      return "Разрешите установку из этого источника и вернитесь в приложение";
-    }
-    if (otaState === "error") {
-      return "Не удалось скачать обновление. Попробуйте ещё раз";
-    }
-    if (otaState === "installing") {
-      return "Открываем системный установщик…";
-    }
-    if (otaBusy || otaState === "downloading") {
-      return "Загрузка обновления…";
-    }
-    return "Нажмите «Установить», чтобы обновить приложение";
-  }
-
   if (loading) return null;
   if (dismissed) return null;
 
   return (
     <>
-      {/* Баннер OTA / обновления версии */}
-      {(showOta || showVersionBanner) && (
+      {/* Баннер обновления версии (веб; на Android обновление — в настройках) */}
+      {showVersionBanner && (
         <div className="fixed inset-x-0 top-0 z-[200] animate-fade-in">
           <div className="mx-auto my-2 max-w-md rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 p-3 px-4 shadow-lg">
             <div className="flex items-center gap-3">
               <Sparkles className="h-5 w-5 shrink-0 text-amber-900" />
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-extrabold text-amber-900">
-                  {showOta
-                    ? `Доступно обновление${ota?.version ? ` ${ota.version}` : ""}`
-                    : `Доступна версия ${latestVersion}`}
+                  {`Доступна версия ${latestVersion}`}
                 </p>
                 <p className="text-[11px] font-medium text-amber-800/75">
-                  {showOta
-                    ? otaSubtitle()
-                    : `Текущая: ${APP_VERSION} — обновите для новых функций`}
+                  {`Текущая: ${APP_VERSION} — обновите для новых функций`}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-1.5">
-                {showOta && (
-                  <button
-                    type="button"
-                    onClick={startOta}
-                    disabled={otaBusy}
-                    className="flex items-center gap-1 rounded-xl bg-amber-900/20 px-3 py-1.5 text-[11px] font-bold text-amber-900 transition hover:bg-amber-900/30 disabled:opacity-60"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    {otaBusy ? "Загрузка…" : "Установить"}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={showOta ? dismissOtaBanner : dismissUpdate}
-                  className="rounded-full p-1 text-amber-900/60 transition hover:bg-amber-900/15 hover:text-amber-900"
-                  aria-label="Закрыть"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={dismissUpdate}
+                className="rounded-full p-1 text-amber-900/60 transition hover:bg-amber-900/15 hover:text-amber-900"
+                aria-label="Закрыть"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>

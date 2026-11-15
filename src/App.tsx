@@ -31,9 +31,12 @@ import LiteMessenger from "./components/LiteMessenger";
 import LegacyScreen from "./components/LegacyScreen";
 import YouLocked from "./components/YouLocked";
 import GlassLocked from "./components/GlassLocked";
-import OobeUpdate from "./components/OobeUpdate";
-import OobeInstall from "./components/OobeInstall";
-import OobeThemeChooser, { type OobeVariant } from "./components/OobeThemeChooser";
+import OobeUpdate from "./components/oobe/OobeUpdate";
+import OobeInstall from "./components/oobe/OobeInstall";
+import OobeThemeChooser, { type OobeVariant } from "./components/oobe/OobeThemeChooser";
+/* OOBE прошлых версий (например 5.0) — назначается через терминал (/set oobe). */
+import OobeUpdate5 from "./components/oobe/OobeUpdate5";
+import type { OobeVariant as OobeVariant5 } from "./components/oobe/OobeThemeChooser5";
 
 /* ============================================================
    Лёгкий роутер (как в старом Wintozo)
@@ -91,11 +94,11 @@ export default function App() {
   /* OOBE: приветствия после обновления и при первом скачивании */
   const [oobeUpdateShown, setOobeUpdateShown] = useState(true);
   const [oobeInstallShown, setOobeInstallShown] = useState(true);
-  /* Стиль OOBE: выбирает пользователь при первом запуске (You). */
+  /* Стиль OOBE: выбирает пользователь при первом запуске (You или Liquid в 5.0). */
   const [oobeTheme, setOobeTheme] = useState<OobeVariant | null>(() => {
     try {
       const v = localStorage.getItem("winchat_oobe_theme");
-      return v === "you" ? v : null;
+      return v === "you" || v === "liquid" ? v : null;
     } catch {
       return null;
     }
@@ -157,15 +160,30 @@ export default function App() {
   /* ---------- OOBE: приветствия (телефоны − автоматически, ПК − по адресу) ---------- */
   const oobeForceUpdate = path.startsWith("/oobe_update");
   const oobeForceInstall = path.startsWith("/install_oobe");
+  /* OOBE какой версии назначена пользователю через терминал (/set oobe):
+     «5.0» или «6.0» — покажется при следующем входе даже без обновления. */
+  const forcedOobeVersion = (profile?.oobe_version ?? "").trim();
   const showInstallOobe =
     oobeForceInstall || (isPhoneDevice() && !oobeInstallShown && !banned);
   const showUpdateOobe =
-    oobeForceUpdate || (isPhoneDevice() && !oobeUpdateShown && !!profile && !banned);
+    oobeForceUpdate ||
+    (!!forcedOobeVersion && !banned) ||
+    (isPhoneDevice() && !oobeUpdateShown && !!profile && !banned);
 
   const finishUpdateOobe = () => {
     markOobeUpdateDone();
     setOobeUpdateShown(true);
     navigate(profile ? "/chats" : "/login");
+    /* OOBE была назначена через терминал (/set oobe) — снимаем её, чтобы
+       при следующих входах снова работала обычная логика приветствий. */
+    if (profile?.oobe_version) {
+      setProfile({ ...profile, oobe_version: null });
+      void supabase
+        .from("profiles")
+        .update({ oobe_version: null })
+        .eq("id", profile.id)
+        .then(undefined, () => undefined);
+    }
   };
   const finishInstallOobe = () => {
     markOobeInstallDone();
@@ -530,6 +548,19 @@ export default function App() {
     );
   }
   if (showUpdateOobe) {
+    /* OOBE версии 5.0 — оригинальное приветствие пятой версии (Liquid Glass
+     * доступен, переключение стиля кнопкой сверху). */
+    if (forcedOobeVersion === "5.0") {
+      document.title = "WinChat 5.0";
+      return (
+        <OobeUpdate5
+          winPro={profile ? isWinProActive(profile) : session ? null : false}
+          onFinish={finishUpdateOobe}
+          variant={(oobeTheme as OobeVariant5) ?? "liquid"}
+          onThemeSwitch={setOobeTheme}
+        />
+      );
+    }
     document.title = "WinChat 6.0";
     if (!oobeTheme) {
       return <OobeThemeChooser onChoose={setOobeTheme} />;

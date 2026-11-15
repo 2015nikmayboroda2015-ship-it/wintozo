@@ -9,15 +9,15 @@ import {
   Loader2,
   UserRound,
 } from "lucide-react";
-import { emailFor, loginByWinpass, supabase } from "../lib/supabase";
-import { mapAuthError } from "./Auth";
-import { rememberLegacyPassword } from "./LegacyScreen";
-import { normalizeWinpass, validateNickname, validatePassword, validateUsername } from "../lib/utils";
-import { cn } from "../utils/cn";
+import { emailFor, loginByWinpass, supabase } from "../../lib/supabase";
+import { mapAuthError } from "../Auth";
+import { rememberLegacyPassword } from "../LegacyScreen";
+import { normalizeWinpass, validateNickname, validatePassword, validateUsername } from "../../lib/utils";
+import { cn } from "../../utils/cn";
 import { OobeButton } from "./OobeUpdate";
-import YouBackdrop from "./YouBackdrop";
+import YouBackdrop from "../YouBackdrop";
 import type { OobeVariant } from "./OobeThemeChooser";
-import type { Profile } from "../lib/supabase";
+import type { Profile } from "../../lib/supabase";
 
 interface Props {
   /** Есть ли сессия (во время проверки профиля профиль ещё null). */

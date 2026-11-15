@@ -31,6 +31,9 @@ export interface Profile {
   winpro_until?: string | null;
   /** WinChat Glass: 'is_winchat_glass_true' — доступ есть, иначе 'is_winchat_glass_no'. */
   is_winchat_glass?: string | null;
+  /** OOBE какой версии показать пользователю при следующем входе
+   *  («5.0», «6.0» и т.д.). Пусто/null — обычная логика OOBE. */
+  oobe_version?: string | null;
   /** Выданные бейджи: коды через запятую, например «1» или «1,2». */
   badges?: string | null;
   created_at: string;

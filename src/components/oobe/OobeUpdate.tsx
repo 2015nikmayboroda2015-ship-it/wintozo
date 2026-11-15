@@ -1,10 +1,10 @@
 ﻿import { useEffect, useState } from "react";
 import { ArrowRight, CheckCheck, Palette, Play, Sparkles } from "lucide-react";
-import { cn } from "../utils/cn";
-import YouBackdrop from "./YouBackdrop";
+import { cn } from "../../utils/cn";
+import YouBackdrop from "../YouBackdrop";
 import type { OobeVariant } from "./OobeThemeChooser";
-import { applyTheme, getThemeById, saveThemeId, THEMES, YOU_THEME_ID } from "../lib/themes";
-import { applyYouPalette, getYouSeedId } from "../lib/materialYou";
+import { applyTheme, getThemeById, saveThemeId, THEMES, YOU_THEME_ID } from "../../lib/themes";
+import { applyYouPalette, getYouSeedId } from "../../lib/materialYou";
 
 interface Props {
   /** Активен ли WinPro у пользователя (null — ещё проверяется). */
