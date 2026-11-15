@@ -10,6 +10,24 @@ import { directKey, uuid } from "../lib/utils";
 import Sidebar from "./Sidebar";
 import ChatView from "./ChatView";
 import SettingsModal from "./SettingsModal";
+import AndroidSettings from "./AndroidSettings";
+import { Capacitor } from "@capacitor/core";
+import { isPhoneDevice } from "../lib/oobe";
+
+/** Нативное Android-приложение? Для него настройки — полноэкранные. */
+function isNativeAndroid(): boolean {
+  try {
+    return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
+  } catch {
+    return false;
+  }
+}
+
+/** Настройки на весь экран: нативный Android и все телефоны
+ *  с маленьким экраном (Android/iPhone в браузере — тоже). */
+function isPhoneSettings(): boolean {
+  return isNativeAndroid() || isPhoneDevice();
+}
 import CreateGroupModal from "./CreateGroupModal";
 import ChatInfoModal from "./ChatInfoModal";
 import AdminPanel from "./AdminPanel";
@@ -58,6 +76,8 @@ interface Props {
   initialSettingsOpen?: boolean;
   /** Роут /settings/status/winpro — открыть настройки на вкладке WinPro. */
   initialSettingsTab?: "profile" | "customization" | "security" | "winpro";
+  /** Форсировать полноэкранные Android-настройки (отладка на ПК: /setting_phone=1). */
+  forcePhoneSettings?: boolean;
   /** Режим WinChat You (Material You). */
   youMode?: boolean;
   /** Чат из адреса /themes/you/chat/:id. */
@@ -116,6 +136,7 @@ export default function Messenger({
   onShowLegacy,
   initialSettingsOpen = false,
   initialSettingsTab,
+  forcePhoneSettings = false,
   youMode = false,
   initialChatId = null,
   onYouChatRoute,
@@ -455,20 +476,40 @@ export default function Messenger({
         )}
       </main>
 
-      {settingsOpen && (
-        <SettingsModal
-          me={me}
-          onClose={() => {
-            setSettingsOpen(false);
-            if (youMode) onYouSettingsClosed?.();
-          }}
-          onSaved={onProfileSaved}
-          onLogout={onLogout}
-          onShowLegacy={onShowLegacy}
-          initialTab={initialSettingsTab}
-          youMode={youMode}
-        />
-      )}
+      {settingsOpen &&
+        ((isPhoneSettings() || forcePhoneSettings) ? (
+          <AndroidSettings
+            me={me}
+            onClose={() => {
+              setSettingsOpen(false);
+              if (youMode) onYouSettingsClosed?.();
+            }}
+            onSaved={onProfileSaved}
+            onLogout={onLogout}
+            onShowLegacy={onShowLegacy}
+            initialView={
+              initialSettingsTab === "winpro"
+                ? "winpro"
+                : initialSettingsTab === "customization"
+                  ? "customization"
+                  : "menu"
+            }
+            youMode={youMode}
+          />
+        ) : (
+          <SettingsModal
+            me={me}
+            onClose={() => {
+              setSettingsOpen(false);
+              if (youMode) onYouSettingsClosed?.();
+            }}
+            onSaved={onProfileSaved}
+            onLogout={onLogout}
+            onShowLegacy={onShowLegacy}
+            initialTab={initialSettingsTab}
+            youMode={youMode}
+          />
+        ))}
 
       {groupOpen && (
         <CreateGroupModal

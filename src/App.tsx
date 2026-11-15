@@ -15,7 +15,7 @@ import {
 import { getAnimationId } from "./lib/animations";
 import { initSecureAccountStore, rememberAccount } from "./lib/secureAccountStore";
 import { applyLegacyGate, declineLegacyUi, isLegacyUi, resetLegacyChoice } from "./lib/checkVersion";
-import { reportDeviceStatus, isAndroidWebLite } from "./lib/ota";
+import { reportDeviceStatus } from "./lib/ota";
 import {
   getOobeUpdateExpectedKey,
   isPhoneDevice,
@@ -27,7 +27,6 @@ import {
 import { navigate } from "./lib/router";
 import Auth from "./components/Auth";
 import Messenger from "./components/Messenger";
-import LiteMessenger from "./components/LiteMessenger";
 import LegacyScreen from "./components/LegacyScreen";
 import YouLocked from "./components/YouLocked";
 import GlassLocked from "./components/GlassLocked";
@@ -625,12 +624,6 @@ export default function App() {
       </div>
     );
 
-  /* ---------- Android-телефон в браузере → урезанная Lite-версия ---------- */
-  if (isAndroidWebLite()) {
-    document.title = "WinChat Lite";
-    return <LiteMessenger me={profile} onLogout={() => supabase.auth.signOut()} />;
-  }
-
   if (isLegacyUi())
     return (
       <LegacyScreen
@@ -685,6 +678,13 @@ export default function App() {
           ? "customization" as const
           : null;
 
+  /* Отладка на ПК: /setting_phone=1 (и в темах You/Glass) — открыть
+     полноэкранные Android-настройки */
+  const phoneSettingsRoute =
+    path.startsWith("/setting_phone") ||
+    path.startsWith("/themes/you/setting_phone") ||
+    path.startsWith("/themes/glass/setting_phone");
+
   return (
     <Messenger
       me={profile}
@@ -694,8 +694,9 @@ export default function App() {
         resetLegacyChoice(); // сбрасываем «user_declined» — плашка снова доступна
         setLegacyAsk(true);
       }}
-      initialSettingsOpen={!!settingsTab}
+      initialSettingsOpen={!!settingsTab || phoneSettingsRoute}
       initialSettingsTab={settingsTab ?? undefined}
+      forcePhoneSettings={phoneSettingsRoute}
       youMode={themedMode}
       initialChatId={youMode ? youChatId : glassMode ? glassChatId : null}
       onYouChatRoute={(id) =>
