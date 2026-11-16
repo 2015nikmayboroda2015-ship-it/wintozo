@@ -104,15 +104,10 @@ function Placeholder({ youMode }: { youMode?: boolean }) {
     >
       <div
         className={cn(
-          "flex h-20 w-20 items-center justify-center overflow-hidden rounded-[26px] text-3xl font-extrabold shadow-xl",
-          youMode ? "you-logo" : "bg-ink text-white"
+          "flex h-20 w-20 items-center justify-center overflow-hidden rounded-[26px] text-3xl font-extrabold shadow-xl"
         )}
       >
-        {youMode ? (
-          <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
-        ) : (
-          "W"
-        )}
+        <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
       </div>
       <div>
         <p className="text-xl font-extrabold tracking-tight">WinChat</p>

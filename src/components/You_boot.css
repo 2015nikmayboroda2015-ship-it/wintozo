@@ -1,0 +1,371 @@
+/* ============================================================
+   WinChat You — boot animation (Material You, Material 3 Expressive)
+
+   Логотип непрерывно перетекает между expressive-формами:
+   закруглённая плитка → арка → мягкий квадрат → круг →
+   органичный «выветренный» блоб. Фон — пастельные тона
+   выбранной палитры с мягким зерном. Когда сервер готов,
+   силуэт фиксируется и снизу выезжает «WinChat You».
+   ============================================================ */
+
+.youboot {
+  --yb-unit: min(78vw, 330px);
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--yb-surface-low, #f7f0ff);
+  color: var(--yb-on-surface, #1d1233);
+  font-family: "Google Sans", "Google Sans Text", "Product Sans", "Outfit",
+    "Roboto", ui-sans-serif, system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  animation: youboot-in 340ms ease both;
+}
+
+.youboot[data-phase="exit"] {
+  animation: youboot-out 460ms ease both;
+}
+
+/* ---------------- Живой тональный фон ---------------- */
+
+.youboot__ambient {
+  position: absolute;
+  inset: -14%;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      72% 54% at 48% 44%,
+      color-mix(in srgb, var(--yb-tertiary-container, #d7f5b0) 38%, transparent) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      58% 44% at 78% 82%,
+      color-mix(in srgb, var(--yb-secondary-container, #ffdad4) 34%, transparent) 0%,
+      transparent 74%
+    ),
+    linear-gradient(
+      168deg,
+      var(--yb-surface-low, #f7f0ff) 0%,
+      var(--yb-surface, #efe5ff) 52%,
+      var(--yb-surface-high, #e8dcff) 100%
+    );
+}
+
+/* Мягкое зерно как в Material 3 Expressive — убирает «пластик». */
+.youboot__grain {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.045;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+}
+
+.youboot__ambient::before,
+.youboot__ambient::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(48px) saturate(1.12);
+}
+
+.youboot__ambient::before {
+  width: 64vmax;
+  height: 64vmax;
+  left: -22vmax;
+  top: -26vmax;
+  background: radial-gradient(
+    circle at 42% 42%,
+    var(--yb-primary-container, #e4d7ff) 0%,
+    transparent 68%
+  );
+  animation: youboot-drift-a 18s ease-in-out infinite alternate;
+}
+
+.youboot__ambient::after {
+  width: 58vmax;
+  height: 58vmax;
+  right: -22vmax;
+  bottom: -20vmax;
+  background: radial-gradient(
+    circle at 56% 46%,
+    var(--yb-secondary-container, #ffdad4) 0%,
+    transparent 70%
+  );
+  animation: youboot-drift-b 22s ease-in-out infinite alternate;
+}
+
+/* ---------------- Сцена ---------------- */
+
+.youboot__stage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--yb-unit);
+  height: var(--yb-unit);
+  transition:
+    opacity 460ms ease,
+    transform 460ms cubic-bezier(0.4, 0, 0.2, 1),
+    filter 460ms ease;
+}
+
+.youboot__halo {
+  position: absolute;
+  width: calc(var(--yb-unit) * 0.66);
+  height: calc(var(--yb-unit) * 0.66);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--yb-primary, #7c4dff) 34%, transparent) 0%,
+    transparent 68%
+  );
+  filter: blur(26px);
+  opacity: 0.65;
+  transform: scale(0.9);
+  transition: opacity 600ms ease;
+  animation: youboot-halo 4.2s ease-in-out infinite;
+}
+
+.youboot[data-phase="reveal"] .youboot__halo,
+.youboot[data-phase="exit"] .youboot__halo {
+  opacity: 1;
+}
+
+/* ---------------- Логотип: expressive-формы ---------------- */
+
+.youboot__shape {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: calc(var(--yb-unit) * 0.68);
+  aspect-ratio: 1;
+  isolation: isolate;
+  transition:
+    transform 620ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 620ms ease;
+  animation: youboot-sway 3.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+.youboot__blob {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(
+      0 30px 54px
+        color-mix(in srgb, var(--yb-primary-strong, #5b2ee0) 26%, transparent)
+    )
+    drop-shadow(
+      0 10px 20px color-mix(in srgb, var(--yb-outline, #8873a3) 16%, transparent)
+    );
+}
+
+/* Белая «W» из иконки: инверсия + multiply оставляют только знак,
+   фон иконки растворяется в пастельном силуэте. */
+.youboot__mark {
+  position: absolute;
+  width: 42%;
+  height: 42%;
+  object-fit: contain;
+  filter: invert(1) brightness(1.08) contrast(1.04);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Готово: силуэт мягко «садится» в expressive-плитку. */
+.youboot[data-phase="settle"] .youboot__shape,
+.youboot[data-phase="reveal"] .youboot__shape,
+.youboot[data-phase="exit"] .youboot__shape {
+  animation: none;
+  transform: scale(1.05);
+}
+
+/* Уход: заставка растворяется. */
+.youboot[data-phase="exit"] .youboot__stage {
+  opacity: 0;
+  transform: scale(1.08);
+  filter: blur(7px);
+}
+
+/* ---------------- Надпись WinChat You ---------------- */
+
+.youboot__word {
+  position: absolute;
+  top: calc(50% + var(--yb-unit) * 0.34 + 30px);
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 0.22em;
+  transform: translate(-50%, 16px);
+  font-size: clamp(20px, 5.6vmin, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  white-space: nowrap;
+  opacity: 0;
+  filter: blur(8px);
+  will-change: transform, opacity, filter;
+}
+
+.youboot__word-main {
+  color: var(--yb-on-surface, #1d1233);
+}
+
+.youboot__word-you {
+  background: linear-gradient(
+    100deg,
+    var(--yb-primary, #7c4dff),
+    var(--yb-secondary, #ff7a6b)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.youboot[data-phase="reveal"] .youboot__word {
+  animation: youboot-word-in 1000ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
+}
+
+.youboot[data-phase="exit"] .youboot__word {
+  animation: youboot-word-out 320ms ease both;
+}
+
+/* ---------------- Ключевые кадры ---------------- */
+
+@keyframes youboot-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes youboot-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Силуэт рисуется из компонента (SVG path), поэтому все expressive-формы
+   успевают проиграть даже при быстрой загрузке. */
+@keyframes youboot-sway {
+  0%,
+  6% {
+    transform: rotate(0deg) scale(1);
+  }
+  26% {
+    transform: rotate(-2deg) scale(0.985);
+  }
+  46% {
+    transform: rotate(3deg) scale(0.965);
+  }
+  66% {
+    transform: rotate(-4deg) scale(1.03);
+  }
+  82% {
+    transform: rotate(2deg) scale(1.01);
+  }
+  94%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes youboot-halo {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes youboot-word-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 18px);
+    filter: blur(8px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    filter: blur(0);
+  }
+}
+
+@keyframes youboot-word-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+}
+
+@keyframes youboot-drift-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(4vmax, 3vmax, 0) scale(1.08);
+  }
+}
+
+@keyframes youboot-drift-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.04);
+  }
+  to {
+    transform: translate3d(-4vmax, -3vmax, 0) scale(0.96);
+  }
+}
+
+/* ---------------- Доступность ---------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .youboot,
+  .youboot[data-phase="exit"] {
+    animation-duration: 180ms;
+  }
+
+  .youboot__ambient::before,
+  .youboot__ambient::after,
+  .youboot__halo,
+  .youboot__shape {
+    animation: none;
+  }
+
+  .youboot__shape {
+    transition-duration: 0ms;
+  }
+
+  .youboot[data-phase="reveal"] .youboot__word {
+    animation-duration: 300ms;
+    animation-delay: 0ms;
+  }
+}

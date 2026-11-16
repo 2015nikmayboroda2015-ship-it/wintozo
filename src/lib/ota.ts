@@ -13,7 +13,7 @@
  */
 import { Capacitor, registerPlugin, type PluginListenerHandle } from "@capacitor/core";
 import { supabase } from "./supabase";
-import { APP_VERSION, fetchLatestVersion } from "./checkVersion";
+import { APP_VERSION, fetchLatestVersion, isVersionNewer } from "./checkVersion";
 
 /* ============================================================
    Нативный плагин (android/app/.../WinChatOtaPlugin.java)
@@ -181,6 +181,8 @@ export interface OtaInfo {
   url: string;
   version: string | null;
   target: string;
+  /** Когда админ перезалил запись OTA (пересборка APK с той же версией). */
+  updatedAt: string | null;
 }
 
 export interface OtaInitResult {
@@ -201,13 +203,31 @@ export async function searchOta(deviceId: string): Promise<OtaInfo | null> {
       url?: string | null;
       version?: string | null;
       target?: string | null;
+      updated_at?: string | null;
     };
     if (!res.ok || !res.available || !res.url) return null;
-    return {
+    const ota: OtaInfo = {
       url: res.url,
       version: res.version ?? null,
       target: res.target ?? "*",
+      updatedAt: res.updated_at ?? null,
     };
+    // На нативном Android фильтруем по версии (versionName из APK),
+    // только если админ указал версию у OTA. Без версии OTA работает
+    // как push-канал: плашка видна, пока админ не снял запись.
+    // Если версия указана и не новее установленной — запись всё равно
+    // считается новой, когда админ перезаливал её (updated_at изменился
+    // с момента прошлой установки): так пересборка APK с той же строкой
+    // версии снова предлагает установку.
+    // В вебе не фильтруем: там APK просто скачивается по ссылке.
+    if (ota.version && canInstallOta()) {
+      const info = await getDeviceInfo();
+      const installed = info.appVersion || APP_VERSION;
+      if (!isVersionNewer(ota.version, installed)) {
+        if (!ota.updatedAt || ota.updatedAt === getOtaSeenStamp()) return null;
+      }
+    }
+    return ota;
   } catch {
     return null;
   }
@@ -287,6 +307,30 @@ export async function onOtaStatus(
     };
   } catch {
     return () => {};
+  }
+}
+
+/* ============================================================
+   Отметка «эту запись OTA уже ставили» (для пересборок с той же
+   версией): храним updated_at последней установленной записи.
+   ============================================================ */
+
+const OTA_SEEN_KEY = "winchat_ota_seen_stamp";
+
+function getOtaSeenStamp(): string | null {
+  try {
+    return localStorage.getItem(OTA_SEEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Запомнить, что пользователь начал установку этой записи OTA. */
+export function markOtaSeen(ota: OtaInfo): void {
+  try {
+    if (ota.updatedAt) localStorage.setItem(OTA_SEEN_KEY, ota.updatedAt);
+  } catch {
+    /* no-op */
   }
 }
 

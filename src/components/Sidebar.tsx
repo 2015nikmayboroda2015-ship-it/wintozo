@@ -236,14 +236,10 @@ export default function Sidebar({
             <div
               className={cn(
                 "flex items-center justify-center overflow-hidden font-extrabold",
-                youMode ? "you-logo h-10 w-10 rounded-[16px]" : "h-9 w-9 rounded-xl bg-ink"
+                youMode ? "you-logo h-10 w-10 rounded-[16px]" : "h-9 w-9 rounded-xl"
               )}
             >
-              {youMode ? (
-                <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
-              ) : (
-                "W"
-              )}
+              <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0">
               <p className="text-[18px] leading-none font-extrabold tracking-tight">WinChat</p>

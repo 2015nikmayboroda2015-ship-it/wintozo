@@ -23,6 +23,8 @@ import {
 import { navigate } from "../lib/router";
 import { hasWinPro, winproDaysLeft, winproExpiresLabel } from "../lib/winpro";
 import { ANIMATIONS, getAnimationId, saveAnimationId } from "../lib/animations";
+import { getBootStyle, saveBootStyle, type BootStyle } from "../lib/bootAnimation";
+import BootStylePicker from "./BootStylePicker";
 import {
   APP_VERSION,
   DOWNLOAD_URL,
@@ -33,6 +35,7 @@ import {
 import {
   getDeviceInfo,
   installOta,
+  markOtaSeen,
   onOtaStatus,
   reportDeviceStatus,
   searchOta,
@@ -96,6 +99,8 @@ export default function SettingsModal({
   const [currentId, setCurrentId] = useState<string>(
     () => localStorage.getItem("winchat_theme_id") || "ink-blue"
   );
+  /* --- Бут-анимация --- */
+  const [bootStyle, setBootStyle] = useState<BootStyle>(() => getBootStyle());
   /* --- WinChat You --- */
   const [youSeed, setYouSeed] = useState<string>(() => getYouSeedId());
   const [youShape, setYouShape] = useState<YouShape>(() => getYouShape());
@@ -166,6 +171,9 @@ export default function SettingsModal({
     if (!aboutOta || otaBusy) return;
     setOtaBusy(true);
     setOtaState("downloading");
+    // Запоминаем запись OTA как установленную: пересборка с той же
+    // версией предложится снова только после следующей перезаливки.
+    markOtaSeen(aboutOta);
     try {
       const res = await installOta(aboutOta.url);
       if (res.fallback) {
@@ -819,6 +827,27 @@ export default function SettingsModal({
                   </div>
                 </div>
               )}
+
+              {/* ===== Бут-анимация ===== */}
+              <div className="mt-5">
+                <span
+                  className={cn(
+                    "mb-3 flex items-center gap-2 text-[12px] font-bold",
+                    you ? "text-[var(--you-on-surface-variant)]" : "text-black/45"
+                  )}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Бут-анимация
+                </span>
+                <BootStylePicker
+                  value={bootStyle}
+                  you={you}
+                  onChange={(id) => {
+                    saveBootStyle(id);
+                    setBootStyle(id);
+                  }}
+                />
+              </div>
             </div>
           </div>
 

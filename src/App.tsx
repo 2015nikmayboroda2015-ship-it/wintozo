@@ -14,7 +14,7 @@ import {
 } from "./lib/themes";
 import { getAnimationId } from "./lib/animations";
 import { initSecureAccountStore, rememberAccount } from "./lib/secureAccountStore";
-import { applyLegacyGate, declineLegacyUi, isLegacyUi, resetLegacyChoice } from "./lib/checkVersion";
+import { APP_VERSION, applyLegacyGate, declineLegacyUi, isLegacyUi, resetLegacyChoice } from "./lib/checkVersion";
 import { reportDeviceStatus } from "./lib/ota";
 import {
   getOobeUpdateExpectedKey,
@@ -26,6 +26,15 @@ import {
 } from "./lib/oobe";
 import { navigate } from "./lib/router";
 import Auth from "./components/Auth";
+import BootAnimation from "./components/BootAnimation";
+import BootAnimationYou from "./components/BootAnimation_you";
+import YouBootPrompt from "./components/YouBootPrompt";
+import {
+  getBootStyle,
+  isYouBootAsked,
+  markYouBootAsked,
+  saveBootStyle,
+} from "./lib/bootAnimation";
 import Messenger from "./components/Messenger";
 import LegacyScreen from "./components/LegacyScreen";
 import YouLocked from "./components/YouLocked";
@@ -51,6 +60,8 @@ const YOU_PREFIX = "/themes/you";
 const YOU_PREV_THEME_KEY = "winchat_you_prev_theme";
 const GLASS_PREFIX = "/themes/glass";
 const GLASS_PREV_THEME_KEY = "winchat_glass_prev_theme";
+/** Версия, при первом запуске которой уже показали долгий boot-сплэш. */
+const BOOT_LONG_VERSION_KEY = "winchat_boot_long_version";
 
 function isYouPath(path: string): boolean {
   return path === YOU_PREFIX || path.startsWith(`${YOU_PREFIX}/`);
@@ -72,22 +83,26 @@ function useRoute(): string {
 
 export { navigate } from "./lib/router";
 
-function Splash() {
-  return (
-    <div className="font-app flex min-h-dvh items-center justify-center bg-paper">
-      <div className="flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-ink text-2xl font-extrabold text-white">
-        W
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [booting, setBooting] = useState(true);
   const [banned, setBanned] = useState(false);
   const [banReason, setBanReason] = useState("");
+  /* Стартовая анимация: показываем, пока она сама не доиграет до конца. */
+  const [splashDone, setSplashDone] = useState(false);
+  /* Первый запуск после установки или обновления — сплэш крутится дольше (10–13 с). */
+  const [longBoot] = useState(() => {
+    try {
+      return localStorage.getItem(BOOT_LONG_VERSION_KEY) !== APP_VERSION;
+    } catch {
+      return false;
+    }
+  });
+  /* Выбранный стиль стартовой заставки (читается один раз на запуск). */
+  const [bootStyle] = useState(() => getBootStyle());
+  /* Плашка «переключить заставку на You-стиль?» после активации темы. */
+  const [youBootAsk, setYouBootAsk] = useState(false);
   /* Ивент «Память о Wintozo»: показывать ли legacy-экран выбора/старый UI */
   const [legacyAsk, setLegacyAsk] = useState(false);
   /* OOBE: приветствия после обновления и при первом скачивании */
@@ -210,6 +225,33 @@ export default function App() {
       /* no-op */
     }
   }, [oobeTheme]);
+
+  /* Долгий boot-сплэш показываем один раз на версию приложения. */
+  useEffect(() => {
+    if (!longBoot) return;
+    try {
+      localStorage.setItem(BOOT_LONG_VERSION_KEY, APP_VERSION);
+    } catch {
+      /* no-op */
+    }
+  }, [longBoot]);
+
+  /* Активировали тему You — предлагаем You-заставку (один раз). */
+  useEffect(() => {
+    if (!splashDone || booting) return;
+
+    const check = () => {
+      const id = (getCurrentTheme() as { id?: string }).id;
+      if (id !== YOU_THEME_ID) return;
+      if (getBootStyle() === "you") return;
+      if (isYouBootAsked()) return;
+      setYouBootAsk(true);
+    };
+
+    check();
+    window.addEventListener("winchat-theme-change", check);
+    return () => window.removeEventListener("winchat-theme-change", check);
+  }, [splashDone, booting]);
 
 
   useEffect(() => {
@@ -513,7 +555,7 @@ export default function App() {
     if (!themedMode) document.title = "WinChat";
   }, [profile, glassMode, path, youMode, themedMode]);
 
-  if (booting || (session && !profile)) {
+  if (!splashDone || booting || (session && !profile)) {
     /* OOBE первого скачивания: приветствие «Установка завершена» и форма — вместо splash */
     if (!banned && showInstallOobe) {
       if (!oobeTheme) {
@@ -528,7 +570,20 @@ export default function App() {
         />
       );
     }
-    return <Splash />;
+    return bootStyle === "you" ? (
+      <BootAnimationYou
+        ready={!booting && !(session && !profile)}
+        long={longBoot}
+        onDone={() => setSplashDone(true)}
+      />
+    ) : (
+      <BootAnimation
+        ready={!booting && !(session && !profile)}
+        long={longBoot}
+        variant={bootStyle}
+        onDone={() => setSplashDone(true)}
+      />
+    );
   }
 
   /* ---------- OOBE: приветствия WinChat 6.0 (обновление / установка) ---------- */
@@ -686,28 +741,43 @@ export default function App() {
     path.startsWith("/themes/glass/setting_phone");
 
   return (
-    <Messenger
-      me={profile}
-      onProfileSaved={setProfile}
-      onLogout={() => supabase.auth.signOut()}
-      onShowLegacy={() => {
-        resetLegacyChoice(); // сбрасываем «user_declined» — плашка снова доступна
-        setLegacyAsk(true);
-      }}
-      initialSettingsOpen={!!settingsTab || phoneSettingsRoute}
-      initialSettingsTab={settingsTab ?? undefined}
-      forcePhoneSettings={phoneSettingsRoute}
-      youMode={themedMode}
-      initialChatId={youMode ? youChatId : glassMode ? glassChatId : null}
-      onYouChatRoute={(id) =>
-        navigate(id ? `${themeRoutePrefix}/chat/${id}` : `${themeRoutePrefix}/chat`)
-      }
-      onExitYou={() => navigate("/chats")}
-      onOpenYouSettings={() => navigate(`${themeRoutePrefix}/settings`)}
-      onYouSettingsClosed={() => {
-        if (themedMode) navigate(`${themeRoutePrefix}/chat`);
-      }}
-      inviteChatId={inviteOpenChatId}
-    />
+    <>
+      <Messenger
+        me={profile}
+        onProfileSaved={setProfile}
+        onLogout={() => supabase.auth.signOut()}
+        onShowLegacy={() => {
+          resetLegacyChoice(); // сбрасываем «user_declined» — плашка снова доступна
+          setLegacyAsk(true);
+        }}
+        initialSettingsOpen={!!settingsTab || phoneSettingsRoute}
+        initialSettingsTab={settingsTab ?? undefined}
+        forcePhoneSettings={phoneSettingsRoute}
+        youMode={themedMode}
+        initialChatId={youMode ? youChatId : glassMode ? glassChatId : null}
+        onYouChatRoute={(id) =>
+          navigate(id ? `${themeRoutePrefix}/chat/${id}` : `${themeRoutePrefix}/chat`)
+        }
+        onExitYou={() => navigate("/chats")}
+        onOpenYouSettings={() => navigate(`${themeRoutePrefix}/settings`)}
+        onYouSettingsClosed={() => {
+          if (themedMode) navigate(`${themeRoutePrefix}/chat`);
+        }}
+        inviteChatId={inviteOpenChatId}
+      />
+
+      <YouBootPrompt
+        open={youBootAsk}
+        onAccept={() => {
+          saveBootStyle("you");
+          markYouBootAsked();
+          setYouBootAsk(false);
+        }}
+        onDecline={() => {
+          markYouBootAsked();
+          setYouBootAsk(false);
+        }}
+      />
+    </>
   );
 }
