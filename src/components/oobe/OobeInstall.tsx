@@ -33,6 +33,7 @@ import {
   OobeYouButton,
   OobeYouSteps,
   OobeYouTopBar,
+  useOobeShell,
   youPaletteStyle,
 } from "./OobeYouKit";
 
@@ -79,6 +80,9 @@ export default function OobeInstall({
   const [issuedWinpass, setIssuedWinpass] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [checkPhase, setCheckPhase] = useState(0);
+
+  /* Пока OOBE открыт — гасим фоновые анимации WinPro на <html>. */
+  useOobeShell();
 
   /* Уже вошли (сессия сохранена) → сразу проверка. */
   useEffect(() => {

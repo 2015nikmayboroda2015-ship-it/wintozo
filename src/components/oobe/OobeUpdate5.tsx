@@ -3,6 +3,7 @@ import { ArrowRight, CheckCheck, Palette, Sparkles } from "lucide-react";
 import { cn } from "../../utils/cn";
 import YouBackdrop from "../YouBackdrop";
 import type { OobeVariant } from "./OobeThemeChooser5";
+import { useOobeShell } from "./OobeYouKit";
 
 interface Props {
   /** Активен ли WinPro у пользователя (null — ещё проверяется). */
@@ -34,6 +35,9 @@ export default function OobeUpdate({ winPro, onFinish, variant = "liquid", onThe
   const [checksDone, setChecksDone] = useState(false);
   /** Настоящий Material You (не перекраска Liquid). */
   const you = variant === "you";
+
+  /* Пока OOBE открыт — гасим фоновые анимации WinPro на <html>. */
+  useOobeShell();
 
   /* Реалистичная последовательность «проверок» на шаге 2: суммарно ~4–9 с. */
   useEffect(() => {

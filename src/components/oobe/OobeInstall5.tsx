@@ -18,6 +18,7 @@ import { OobeButton, OobeThemeToggle } from "./OobeUpdate5";
 import YouBackdrop from "../YouBackdrop";
 import type { OobeVariant } from "./OobeThemeChooser5";
 import type { Profile } from "../../lib/supabase";
+import { useOobeShell } from "./OobeYouKit";
 
 interface Props {
   /** Есть ли сессия (во время проверки профиля профиль ещё null). */
@@ -44,6 +45,9 @@ export default function OobeInstall({ hasSession, profile, onFinish, variant = "
   const [mode, setMode] = useState<"register" | "login">("register");
   /** Настоящий Material You (не перекраска Liquid). */
   const you = variant === "you";
+
+  /* Пока OOBE открыт — гасим фоновые анимации WinPro на <html>. */
+  useOobeShell();
 
   const [nickname, setNickname] = useState("");
   const [username, setUsername] = useState("");

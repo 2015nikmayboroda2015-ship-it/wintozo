@@ -11,7 +11,11 @@ initDevLogs();
 applyMono();
 devLog("rendering app");
 
-createRoot(document.getElementById("root")!).render(
+const rootEl = document.getElementById("root")!;
+/* Убираем статичную заглушку из index.html перед первым рендером. */
+rootEl.replaceChildren();
+
+createRoot(rootEl).render(
   <StrictMode>
     <App />
   </StrictMode>

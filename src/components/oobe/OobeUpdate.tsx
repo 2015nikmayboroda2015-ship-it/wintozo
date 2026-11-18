@@ -4,6 +4,7 @@ import {
   CheckCheck,
   Palette,
   Play,
+  Scale,
   ShieldCheck,
   Sparkles,
   WandSparkles,
@@ -23,6 +24,7 @@ import {
   OobeYouButton,
   OobeYouSteps,
   OobeYouTopBar,
+  useOobeShell,
   youPaletteStyle,
 } from "./OobeYouKit";
 
@@ -56,6 +58,9 @@ export default function OobeUpdate({
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [activated, setActivated] = useState(false);
   const palette = useMemo(() => youPaletteStyle(), []);
+
+  /* Пока OOBE открыт — гасим фоновые анимации WinPro на <html>. */
+  useOobeShell();
 
   const stepLabel =
     step === 1 ? "Обновление" : step === 2 ? "Живое превью" : "Что нового";
@@ -129,22 +134,17 @@ export default function OobeUpdate({
           </section>
         )}
 
-        {/* ================================================== ШАГ 2: Видео-превью + активация */}
+        {/* ================================================== ШАГ 2: Превью + Сравнение */}
         {step === 2 && (
           <section key="update-2" className="oobe-you-step oobe-you-stack">
-            <div className="oobe-you-video">
-              <video
-                src="/Preview_you.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="block h-auto w-full"
-              />
-              <span className="oobe-you-video-tag">
-                <Play />
-                Живое превью
-              </span>
+            <span className="oobe-you-kicker">
+              <Scale />
+              Сравнение
+            </span>
+
+            <div className="oobe-you-video-grid">
+              <OobeYouVideo src="/Preview_you.mp4" caption="WinChat You 2.0–5.0" />
+              <OobeYouVideo src="/winchat_new_prewiew.mp4" caption="WinChat 6.0" />
             </div>
 
             <span className="oobe-you-eyebrow">
@@ -154,7 +154,7 @@ export default function OobeUpdate({
 
             <h1 className="oobe-you-h2">
               WinChat 6.0
-              <span className="oobe-you-grad">в стиле Material You</span>
+              <span className="oobe-you-grad">Встречайте новый улучшенный WinChat You</span>
             </h1>
 
             <p className="oobe-you-lead">
@@ -234,6 +234,30 @@ export default function OobeUpdate({
           </section>
         )}
       </main>
+    </div>
+  );
+}
+
+/* ---------- Превью в «Сравнении»: старый и новый ролик ---------- */
+
+function OobeYouVideo({ src, caption }: { src: string; caption: string }) {
+  return (
+    <div className="oobe-you-video-item">
+      <div className="oobe-you-video">
+        <video
+          src={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="block h-auto w-full"
+        />
+        <span className="oobe-you-video-tag">
+          <Play />
+          Живое превью
+        </span>
+      </div>
+      <p className="oobe-you-video-caption">{caption}</p>
     </div>
   );
 }

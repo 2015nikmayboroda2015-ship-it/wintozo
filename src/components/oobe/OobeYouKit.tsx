@@ -1,6 +1,7 @@
 import {
   useEffect,
   useId,
+  useMemo,
   useRef,
   type CSSProperties,
   type ReactNode,
@@ -14,8 +15,21 @@ import {
   type ShapeSpec,
 } from "../../lib/youShapes";
 import { getYouSeed, getYouSeedId } from "../../lib/materialYou";
+import { useLiteMotion } from "../../lib/devicePerf";
 import { cn } from "../../utils/cn";
 import "./oobe-you.css";
+
+/**
+ * Пока открыт OOBE, гасим фоновые анимации WinPro на <html>: их полноэкранный
+ * слой рисуется поверх страницы и на телефонах выглядит как мерцание цветами.
+ */
+export function useOobeShell() {
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("oobe-active");
+    return () => root.classList.remove("oobe-active");
+  }, []);
+}
 
 /* ============================================================
    OOBE You — общий Material You-набор для приветственных экранов.
@@ -89,15 +103,27 @@ const SPARKS = [
 export function OobeYouBackdrop() {
   const uid = useId().replace(/:/g, "");
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
+  const lite = useLiteMotion();
+  /* На телефонах оставляем два статичных силуэта вместо четырёх живых. */
+  const layers = useMemo(
+    () => (lite ? ORB_LAYERS.slice(0, 2) : ORB_LAYERS),
+    [lite],
+  );
 
   useEffect(() => {
     const paths = pathRefs.current;
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-    if (reduced) {
-      ORB_LAYERS.forEach((layer, i) => {
-        const spec = SHAPE_SEQUENCE[Math.floor(layer.offset * SHAPE_SEQUENCE.length) % SHAPE_SEQUENCE.length];
-        paths[i]?.setAttribute("d", shapePath(spec, 200, 6, layer.samples));
+    if (reduced || lite) {
+      layers.forEach((layer, i) => {
+        const spec =
+          SHAPE_SEQUENCE[
+            Math.floor(layer.offset * SHAPE_SEQUENCE.length) % SHAPE_SEQUENCE.length
+          ];
+        paths[i]?.setAttribute(
+          "d",
+          shapePath(spec, 200, 6, lite ? 44 : layer.samples),
+        );
       });
       return;
     }
@@ -111,7 +137,7 @@ export function OobeYouBackdrop() {
         last = now;
         const elapsed = now - start;
 
-        ORB_LAYERS.forEach((layer, i) => {
+        layers.forEach((layer, i) => {
           const total = SHAPE_SEQUENCE.length;
           const pos = ((elapsed / layer.period + layer.offset) % 1) * total;
           const index = Math.floor(pos);
@@ -131,11 +157,11 @@ export function OobeYouBackdrop() {
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [lite, layers]);
 
   return (
     <div className="oobe-you-bg" aria-hidden>
-      {ORB_LAYERS.map((layer, i) => {
+      {layers.map((layer, i) => {
         const gradientId = `${uid}-orb-${i}`;
         const isOutline = layer.cls === "oobe-you-orb-outline";
         return (
@@ -222,15 +248,27 @@ export function OobeMorphMark({
   const pathRef = useRef<SVGPathElement>(null);
   const settleRef = useRef(settle);
   settleRef.current = settle;
+  const lite = useLiteMotion();
+  /* Телефонам хватает 96 точек контура — визуально то же, работы втрое меньше. */
+  const samples = lite ? 96 : 220;
 
-  const initialPath = shapePath(SHAPE_SEQUENCE[0], 200, 4, 220);
+  const initialPath = useMemo(
+    () => shapePath(settleRef.current ? TILE_SPEC : SHAPE_SEQUENCE[0], 200, 4, samples),
+    [samples],
+  );
 
   useEffect(() => {
     const path = pathRef.current;
     if (!path) return;
 
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      path.setAttribute("d", shapePath(settleRef.current ? TILE_SPEC : SHAPE_SEQUENCE[0], 200, 4, 220));
+    if (
+      lite ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    ) {
+      path.setAttribute(
+        "d",
+        shapePath(settleRef.current ? TILE_SPEC : SHAPE_SEQUENCE[0], 200, 4, samples),
+      );
       return;
     }
 
@@ -268,13 +306,13 @@ export function OobeMorphMark({
         lastSpec = spec;
       }
 
-      path.setAttribute("d", shapePath(spec, 200, 4, 220));
+      path.setAttribute("d", shapePath(spec, 200, 4, samples));
       if (!fixed) raf = requestAnimationFrame(tick);
     };
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [lite, samples]);
 
   return (
     <div className={cn("oobe-you-mark", className)} aria-hidden>
@@ -285,18 +323,9 @@ export function OobeMorphMark({
       <svg className="oobe-you-mark-svg" viewBox="0 0 200 200">
         <defs>
           <linearGradient id={gradientId} x1="10%" y1="0%" x2="92%" y2="100%">
-            <stop
-              offset="0%"
-              stopColor="color-mix(in srgb, var(--you-primary) 58%, var(--you-primary-container))"
-            />
-            <stop
-              offset="52%"
-              stopColor="color-mix(in srgb, var(--you-secondary) 36%, var(--you-secondary-container))"
-            />
-            <stop
-              offset="100%"
-              stopColor="color-mix(in srgb, var(--you-tertiary) 26%, var(--you-tertiary-container))"
-            />
+            <stop offset="0%" stopColor="var(--you-primary)" stopOpacity="0.94" />
+            <stop offset="52%" stopColor="var(--you-secondary)" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="var(--you-tertiary)" stopOpacity="0.88" />
           </linearGradient>
           <radialGradient id={glowId} cx="30%" cy="18%" r="82%">
             <stop offset="0%" stopColor="#ffffff" stopOpacity="0.56" />
@@ -332,7 +361,8 @@ export function OobeMorphMark({
         <use
           href={`#${pathId}`}
           fill="none"
-          stroke="color-mix(in srgb, var(--you-on-surface) 22%, transparent)"
+          stroke="var(--you-on-surface)"
+          strokeOpacity="0.22"
           strokeWidth="1.3"
         />
       </svg>
@@ -355,7 +385,17 @@ export function OobeYouTopBar({
     <header className="oobe-you-topbar">
       <div className="oobe-you-brand">
         <span className="oobe-you-brand-logo">
-          <img src="/logo.jpg" alt="" />
+          <img
+            src="/logo.jpg"
+            alt=""
+            width={42}
+            height={42}
+            decoding="async"
+            onError={(e) => {
+              /* Логотип не загрузился — остаётся градиентная плитка, без «белого квадрата». */
+              e.currentTarget.style.display = "none";
+            }}
+          />
         </span>
         <span className="oobe-you-brand-text">
           <strong>WinChat</strong>

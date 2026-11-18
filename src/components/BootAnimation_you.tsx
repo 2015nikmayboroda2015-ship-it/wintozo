@@ -6,6 +6,7 @@ import {
   shapePath,
   type ShapeSpec,
 } from "../lib/youShapes";
+import { useLiteMotion } from "../lib/devicePerf";
 import "./You_boot.css";
 
 type Phase = "loading" | "settle" | "reveal" | "exit";
@@ -54,6 +55,9 @@ const MIN_LOAD_MS = 3800;
 /** Первый запуск / запуск после обновления — форма перетекает ~10 секунд. */
 const LONG_LOAD_MIN_MS = 9600;
 const LONG_LOAD_MAX_MS = 10000;
+/** На телефонах долгую заставку сокращаем — иначе кажется, что приложение зависло. */
+const LITE_LONG_LOAD_MIN_MS = 4800;
+const LITE_LONG_LOAD_MAX_MS = 5600;
 const SETTLE_MS = 620;
 const REVEAL_MS = 1900;
 const EXIT_MS = 460;
@@ -83,15 +87,16 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
   const glowId = `you-glow-${uid}`;
   const clipId = `you-clip-${uid}`;
   const pathId = `you-path-${uid}`;
+  /* Телефоны: меньше точек контура, реже кадры, короче долгий запуск. */
+  const lite = useLiteMotion();
 
   /* Длительность фиксируем на маунт (около 10 с при первом запуске/обновлении). */
-  const minWaitMs = useMemo(
-    () =>
-      long
-        ? LONG_LOAD_MIN_MS + Math.random() * (LONG_LOAD_MAX_MS - LONG_LOAD_MIN_MS)
-        : MIN_LOAD_MS,
-    [long],
-  );
+  const minWaitMs = useMemo(() => {
+    if (!long) return MIN_LOAD_MS;
+    const min = lite ? LITE_LONG_LOAD_MIN_MS : LONG_LOAD_MIN_MS;
+    const max = lite ? LITE_LONG_LOAD_MAX_MS : LONG_LOAD_MAX_MS;
+    return min + Math.random() * (max - min);
+  }, [long, lite]);
   const startedAt = useRef(Date.now());
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
@@ -100,7 +105,11 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
 
-  const initialPath = useMemo(() => shapePath(SHAPE_SEQUENCE[0]), []);
+  const samples = lite ? 112 : 252;
+  const initialPath = useMemo(
+    () => shapePath(SHAPE_SEQUENCE[0], VIEW, 4, samples),
+    [samples],
+  );
 
 
   /* Живой силуэт: перетекание форм, затем мягкая фиксация в плитку. */
@@ -109,18 +118,31 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
     if (!path) return;
 
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      path.setAttribute("d", shapePath(TILE_SPEC));
+      path.setAttribute("d", shapePath(TILE_SPEC, VIEW, 4, samples));
       return;
     }
 
     const start = performance.now();
+    const minFrameMs = lite ? 40 : 0;
     let settleFrom: ShapeSpec | null = null;
     let settleAt = 0;
     let settled = false;
     let lastSpec = SHAPE_SEQUENCE[0];
+    let lastFrame = 0;
     let raf = 0;
 
     const tick = (now: number) => {
+      /* На телефонах ограничиваем частоту пересчёта контура до ~25 fps. */
+      if (
+        minFrameMs > 0 &&
+        phaseRef.current === "loading" &&
+        now - lastFrame < minFrameMs
+      ) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      lastFrame = now;
+
       let spec: ShapeSpec;
 
       if (phaseRef.current === "loading") {
@@ -150,13 +172,13 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
         if (k >= 1) settled = true;
       }
 
-      path.setAttribute("d", shapePath(spec));
+      path.setAttribute("d", shapePath(spec, VIEW, 4, samples));
       if (!settled) raf = requestAnimationFrame(tick);
     };
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [lite, samples]);
 
   /* Загрузка: ждём сервер, но не меньше минимума. */
   useEffect(() => {
@@ -201,27 +223,9 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
           <svg className="youboot__blob" viewBox={`0 0 ${VIEW} ${VIEW}`}>
             <defs>
               <linearGradient id={gradientId} x1="14%" y1="6%" x2="88%" y2="96%">
-                <stop
-                  offset="0%"
-                  style={{
-                    stopColor:
-                      "color-mix(in srgb, var(--yb-primary) 58%, var(--yb-primary-container))",
-                  }}
-                />
-                <stop
-                  offset="52%"
-                  style={{
-                    stopColor:
-                      "color-mix(in srgb, var(--yb-secondary) 36%, var(--yb-secondary-container))",
-                  }}
-                />
-                <stop
-                  offset="100%"
-                  style={{
-                    stopColor:
-                      "color-mix(in srgb, var(--yb-tertiary) 26%, var(--yb-tertiary-container))",
-                  }}
-                />
+                <stop offset="0%" stopColor="var(--yb-primary)" stopOpacity="0.95" />
+                <stop offset="52%" stopColor="var(--yb-secondary)" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="var(--yb-tertiary)" stopOpacity="0.86" />
               </linearGradient>
               <radialGradient id={glowId} cx="32%" cy="16%" r="78%">
                 <stop offset="0%" stopColor="#ffffff" stopOpacity="0.62" />

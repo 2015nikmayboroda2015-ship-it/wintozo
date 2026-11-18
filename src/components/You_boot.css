@@ -357,6 +357,42 @@
   }
 }
 
+/* ============================================================
+   Телефоны: лёгкая заставка.
+   Убираем blur на огромных псевдоэлементах, blend-зерно и
+   drop-shadow у morph-силуэта — именно они перегружают GPU
+   Android WebView и дают мерцание/белые квадраты.
+   ============================================================ */
+
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  .youboot__grain {
+    display: none;
+  }
+
+  .youboot__ambient::before,
+  .youboot__ambient::after {
+    filter: none;
+    animation: none;
+  }
+
+  .youboot__blob {
+    filter: none;
+  }
+
+  .youboot__halo {
+    filter: blur(14px);
+  }
+
+  .youboot__shape {
+    animation: none;
+    will-change: auto;
+  }
+
+  .youboot__word {
+    will-change: auto;
+  }
+}
+
 /* ---------------- Доступность ---------------- */
 
 @media (prefers-reduced-motion: reduce) {

@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f9ff" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -23,9 +24,63 @@
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
     <title>WinChat</title>
+    <!--
+      Статичная заглушка до загрузки бандла.
+      На телефонах приложение весит несколько мегабайт, и без неё
+      WebView успевает показать белый экран — выглядит как «не грузится».
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #f6f9ff;
+      }
+      #boot-static {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(
+            70% 55% at 50% 42%,
+            #c8f0ee 0%,
+            transparent 70%
+          ),
+          linear-gradient(168deg, #f6f9ff 0%, #eef4fd 52%, #e1ecfb 100%);
+        font-family: Roboto, ui-sans-serif, system-ui, sans-serif;
+      }
+      #boot-static i {
+        display: grid;
+        place-items: center;
+        width: 108px;
+        height: 108px;
+        border-radius: 38%;
+        background: linear-gradient(140deg, #d3e3fd, #c2e7ff);
+        box-shadow: 0 26px 60px -34px rgba(11, 87, 208, 0.7);
+        animation: boot-static-pulse 1.8s ease-in-out infinite;
+      }
+      #boot-static span {
+        font-size: 54px;
+        font-weight: 800;
+        letter-spacing: -4px;
+        line-height: 1;
+        color: #0b1a2b;
+      }
+      @keyframes boot-static-pulse {
+        50% {
+          transform: scale(1.045);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-static i {
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-static" aria-hidden="true"><i><span>W</span></i></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -295,6 +295,15 @@ body {
   z-index: 0;
 }
 
+/* OOBE: фоновые анимации WinPro поверх приветствия не нужны.
+   На телефонах их полноэкранный слой выглядит как мерцание цветами
+   и перегружает GPU вместе с backdrop-filter карточек. */
+html.oobe-active::after,
+html.oobe-active .winpro-glow-overlay {
+  display: none !important;
+  animation: none !important;
+}
+
 /* ===================== ЗОЛОТАЯ ПЫЛЬ — яркая, плотная ===================== */
 .winpro-bg-gold-dust::after {
   background-image:
