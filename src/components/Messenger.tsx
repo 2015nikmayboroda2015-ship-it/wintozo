@@ -13,6 +13,7 @@ import SettingsModal from "./SettingsModal";
 import AndroidSettings from "./AndroidSettings";
 import { Capacitor } from "@capacitor/core";
 import { isPhoneDevice } from "../lib/oobe";
+import { devLog } from "../lib/devLogs";
 
 /** Нативное Android-приложение? Для него настройки — полноэкранные. */
 function isNativeAndroid(): boolean {
@@ -203,6 +204,7 @@ export default function Messenger({
     if (!ids.length) {
       setChats([savedItem]);
       setLoadingChats(false);
+      devLog("chats loaded: 1 (saved only)");
       return;
     }
 
@@ -265,6 +267,7 @@ export default function Messenger({
 
     setChats([savedItem, ...serverItems].sort(bySavedThenDate));
     setLoadingChats(false);
+    devLog(`chats loaded: ${serverItems.length + 1}`);
   }, []);
 
   useEffect(() => {
@@ -392,6 +395,7 @@ export default function Messenger({
   /** Выбор чата: обновляет и интерфейс, и адрес /themes/you/chat/:id. */
   const selectChat = useCallback(
     (chat: ChatItem) => {
+      devLog(`opening chat ${chat.id} (${chat.isGroup ? "group" : "direct"})`);
       setActiveId(chat.id);
       if (youMode) onYouChatRoute?.(chat.id);
     },

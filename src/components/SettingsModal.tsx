@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Check, CircleAlert, History, Info, Loader2, Lock, LogOut, Palette, RefreshCw, Sparkles, ShieldCheck, User, X } from "lucide-react";
+import { Bug, Camera, Check, CircleAlert, History, Info, Loader2, Lock, LogOut, Palette, RefreshCw, Sparkles, ShieldCheck, User, X } from "lucide-react";
 import { isGlassGranted, isVerified, supabase, type Profile, type VerifyLevel } from "../lib/supabase";
 import { filesUpload } from "../lib/blobStorage";
 import { badgeCodes, BADGE_IMAGES, BADGE_LABELS } from "../lib/badges";
@@ -11,13 +11,10 @@ import { cn } from "../utils/cn";
 import { ALL_THEMES, applyTheme, getThemeById, GLASS_THEME_ID, saveThemeId, THEMES, WINPRO_THEMES, YOU_THEME_ID } from "../lib/themes";
 import {
   YOU_SEEDS,
-  YOU_SHAPES,
   applyYouPalette,
-  applyYouShape,
   getYouSeedId,
   getYouShape,
   saveYouSeedId,
-  saveYouShape,
   type YouShape,
 } from "../lib/materialYou";
 import { navigate } from "../lib/router";
@@ -25,6 +22,7 @@ import { hasWinPro, winproDaysLeft, winproExpiresLabel } from "../lib/winpro";
 import { ANIMATIONS, getAnimationId, saveAnimationId } from "../lib/animations";
 import { getBootStyle, saveBootStyle, type BootStyle } from "../lib/bootAnimation";
 import BootStylePicker from "./BootStylePicker";
+import YouShapePicker from "./YouShapePicker";
 import {
   APP_VERSION,
   DOWNLOAD_URL,
@@ -43,6 +41,14 @@ import {
   type OtaInfo,
   type OtaState,
 } from "../lib/ota";
+import DevModePanel from "./DevModePanel";
+import {
+  isDevMode,
+  registerVersionTap,
+  setDevMode,
+  subscribeDevMode,
+} from "../lib/devMode";
+import { devLog } from "../lib/devLogs";
 
 interface Props {
   me: Profile;
@@ -55,7 +61,7 @@ interface Props {
   youMode?: boolean;
 }
 
-type Tab = "profile" | "customization" | "security" | "winpro" | "about";
+type Tab = "profile" | "customization" | "security" | "winpro" | "about" | "dev";
 
 /** Получить уровень галочки для профиля (вынесено из компонента) */
 const badgeLevel = (p?: Profile | null): Exclude<VerifyLevel, "user"> => {
@@ -83,6 +89,8 @@ export default function SettingsModal({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [wpCopied, setWpCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+  /** Скрытый режим разработчика (4 нажатия на версию приложения). */
+  const [devMode, setDevModeState] = useState<boolean>(() => isDevMode());
 
   /* --- Смена пароля --- */
   const [newPw, setNewPw] = useState("");
@@ -140,6 +148,12 @@ export default function SettingsModal({
     });
     return () => dispose?.();
   }, []);
+
+  /* Скрытый режим разработчика: следим за флагом. */
+  useEffect(() => subscribeDevMode(() => setDevModeState(isDevMode())), []);
+  useEffect(() => {
+    if (!devMode && activeTab === "dev") setActiveTab("about");
+  }, [devMode, activeTab]);
 
   /** Проверить обновления: статус устройства + версия сервера + поиск OTA. */
   async function checkUpdates() {
@@ -331,7 +345,18 @@ export default function SettingsModal({
     { id: "security", label: "Безопасность", icon: ShieldCheck },
     { id: "winpro", label: "WinPro", icon: Sparkles },
     { id: "about", label: "О приложении", icon: Info },
+    ...(devMode ? [{ id: "dev" as Tab, label: "Разработчик", icon: Bug }] : []),
   ];
+
+  /** 4 нажатия на версию приложения открывают режим разработчика. */
+  function handleVersionTap() {
+    if (!registerVersionTap()) return;
+    devLog("developer mode unlocked by version taps");
+    setDevMode(true);
+    setDevModeState(true);
+    setActiveTab("dev");
+    scrollRef.current?.scrollTo({ top: 0 });
+  }
 
 
   const showTab = (t: Tab) => (activeTab === t ? "animate-fade-in" : "hidden");
@@ -784,45 +809,9 @@ export default function SettingsModal({
 
                     <div className="mt-5">
                       <p className="mb-2 text-[12px] font-bold text-[var(--you-on-surface-variant)]">
-                        Форма
+                        Форма кнопок
                       </p>
-                      <div className="grid grid-cols-4 gap-2">
-                        {YOU_SHAPES.map((sh) => {
-                          const on = youShape === sh.id;
-                          return (
-                            <button
-                              key={sh.id}
-                              type="button"
-                              onClick={() => {
-                                saveYouShape(sh.id);
-                                setYouShape(sh.id);
-                                applyYouShape(sh.id);
-                              }}
-                              className={cn(
-                                "flex flex-col items-center gap-2 p-2.5 transition active:scale-95",
-                                on
-                                  ? "bg-[var(--you-surface-highest)] ring-2 ring-[var(--you-on-surface)]"
-                                  : "bg-[var(--you-surface-low)]/70 ring-1 ring-black/5"
-                              )}
-                              style={{ borderRadius: "var(--you-r-sm)" }}
-                            >
-                              <span
-                                className="h-8 w-full"
-                                style={{
-                                  borderRadius: sh.r,
-                                  background: on
-                                    ? "linear-gradient(135deg, var(--you-primary), var(--you-primary-strong))"
-                                    : "var(--you-surface-highest)",
-                                  boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--you-outline-variant) 60%, transparent)",
-                                }}
-                              />
-                              <span className="text-[10px] font-bold text-[var(--you-on-surface)]">
-                                {sh.name}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <YouShapePicker value={youShape} onChange={setYouShape} />
                     </div>
                   </div>
                 </div>
@@ -1061,6 +1050,11 @@ export default function SettingsModal({
             )}
           </div>
 
+          {/* ================= ТАБ: РЕЖИМ РАЗРАБОТЧИКА ================= */}
+          <div className={showTab("dev")}>
+            <DevModePanel you={you} />
+          </div>
+
           {/* ================= ТАБ: О ПРИЛОЖЕНИИ ================= */}
           <div className={showTab("about")}>
             {/* Устройство и версии */}
@@ -1076,20 +1070,41 @@ export default function SettingsModal({
                   { label: "Версия приложения WinChat", value: device?.appVersion || APP_VERSION },
                   { label: "Версия сервера WinChat", value: serverVersion ?? "…" },
                   { label: "Самая новая версия", value: latestVersion ?? "—" },
-                ].map((row, i) => (
-                  <div
-                    key={row.label}
-                    className={cn(
-                      "flex items-center justify-between gap-3 px-4 py-3",
-                      i > 0 && "border-t border-black/5"
-                    )}
-                  >
-                    <span className="shrink-0 text-[12px] font-bold text-black/45">{row.label}</span>
-                    <span className="truncate text-right font-mono text-[13px] font-bold text-ink">
-                      {row.value}
-                    </span>
-                  </div>
-                ))}
+                ].map((row, i) => {
+                  const isVersion = row.label === "Версия приложения WinChat";
+                  const content = (
+                    <>
+                      <span className="shrink-0 text-[12px] font-bold text-black/45">{row.label}</span>
+                      <span className="truncate text-right font-mono text-[13px] font-bold text-ink">
+                        {row.value}
+                      </span>
+                    </>
+                  );
+                  return isVersion ? (
+                    <button
+                      key={row.label}
+                      type="button"
+                      onClick={handleVersionTap}
+                      title="Версия приложения"
+                      className={cn(
+                        "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition active:bg-black/5",
+                        i > 0 && "border-t border-black/5"
+                      )}
+                    >
+                      {content}
+                    </button>
+                  ) : (
+                    <div
+                      key={row.label}
+                      className={cn(
+                        "flex items-center justify-between gap-3 px-4 py-3",
+                        i > 0 && "border-t border-black/5"
+                      )}
+                    >
+                      {content}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

@@ -1,151 +1,66 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
-import { getYouSeed } from "../lib/materialYou";
+import {
+  SHAPE_SEQUENCE,
+  TILE_SPEC,
+  lerpSpec,
+  shapePath,
+  type ShapeSpec,
+} from "../lib/youShapes";
 import "./You_boot.css";
 
 type Phase = "loading" | "settle" | "reveal" | "exit";
 
 /* ============================================================
-   Material 3 Expressive: силуэт логотипа continuously перетекает
-   между формами — закруглённая плитка → арка → мягкий квадрат →
-   круг → органичный «выветренный» блоб (cookie).
+   Material 3 Expressive boot.
+
+   Силуэт перетекает между настоящими формами Material You:
+   squircle → arch → diamond → circle → cookie 4 → clover 4 →
+   cookie 7 → soft burst (12 лучей) → cookie 9.
+
+   Внутри силуэта — простая чёрная буква «W» (знак WinChat),
+   обрезанная формой. Вся заставка держится в голубой
+   Material You-палитре (Google Blue).
    ============================================================ */
 
-interface ShapeSpec {
-  /** Показатель суперэллипса: 2 — круг, больше — квадратнее. */
-  n: number;
-  /** Показатель для нижней половины (арка: сверху кругло, снизу квадратно). */
-  nBottom: number;
-  /** Амплитуда четырёх лепестков (cookie). */
-  lobe: number;
-  lobePhase: number;
-  /** Мягкие органичные волны силуэта. */
-  wobble: number;
-  wobblePhase: number;
-}
+/* ---------------- Голубая палитра (M3, light) ---------------- */
 
-const SHAPE_SEQUENCE: ShapeSpec[] = [
-  /* Закруглённая плитка */
-  { n: 3.3, nBottom: 3.3, lobe: 0, lobePhase: 0, wobble: 0, wobblePhase: 0 },
-  /* Арка: сверху кругло, снизу почти квадрат */
-  { n: 2.1, nBottom: 6.5, lobe: 0, lobePhase: 0, wobble: 0, wobblePhase: 0 },
-  /* Мягкий квадрат */
-  { n: 5, nBottom: 5, lobe: 0, lobePhase: 0, wobble: 0, wobblePhase: 0 },
-  /* Круг */
-  { n: 2, nBottom: 2, lobe: 0, lobePhase: 0, wobble: 0, wobblePhase: 0 },
-  /* «Выветренный» блоб-печенька */
-  {
-    n: 2.45,
-    nBottom: 2.45,
-    lobe: 0.13,
-    lobePhase: 0.35,
-    wobble: 0.045,
-    wobblePhase: 1.1,
-  },
-];
+const BLUE_VARS = {
+  "--yb-primary": "#0b57d0",
+  "--yb-on-primary": "#ffffff",
+  "--yb-primary-strong": "#0842a0",
+  "--yb-primary-container": "#d3e3fd",
+  "--yb-secondary": "#00639b",
+  "--yb-secondary-container": "#c2e7ff",
+  "--yb-tertiary": "#006a6a",
+  "--yb-tertiary-container": "#c8f0ee",
+  "--yb-surface": "#eef4fd",
+  "--yb-surface-low": "#f6f9ff",
+  "--yb-surface-high": "#e1ecfb",
+  "--yb-on-surface": "#0f1c2c",
+  "--yb-on-surface-variant": "#3e4c60",
+  "--yb-outline": "#6b7b90",
+} as CSSProperties;
 
-/** Куда форма «садится», когда приложение готово. */
-const TILE_SPEC: ShapeSpec = {
-  n: 3.6,
-  nBottom: 3.6,
-  lobe: 0,
-  lobePhase: 0,
-  wobble: 0,
-  wobblePhase: 0,
-};
+/* ---------------- Геометрия экспрессивных форм ---------------- */
+/* Силуэты и математика общие с кастомизацией You — lib/youShapes.ts. */
 
-const SHAPE_STEP_MS = 500;
+const SHAPE_STEP_MS = 400;
 /** Доля шага, когда форма стоит на месте, — чтобы глаз успел её прочитать. */
 const SHAPE_HOLD = 0.28;
-const SAMPLES = 72;
 const VIEW = 200;
-const PAD = 4;
 
 /** Минимум, чтобы все формы успели проиграть до фиксации. */
-const MIN_LOAD_MS = 2600;
-/** Первый запуск / запуск после обновления — вся заставка ~10–13 с. */
+const MIN_LOAD_MS = 3800;
+/** Первый запуск / запуск после обновления — вся заставка ~8–11 с. */
 const LONG_LOAD_MIN_MS = 7000;
 const LONG_LOAD_MAX_MS = 10000;
 const SETTLE_MS = 620;
 const REVEAL_MS = 1900;
 const EXIT_MS = 460;
 
-const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-
-/** Радиус суперэллипса для угла t. */
-function superRadius(t: number, n: number): number {
-  const c = Math.abs(Math.cos(t));
-  const s = Math.abs(Math.sin(t));
-  return Math.pow(Math.pow(c, n) + Math.pow(s, n), -1 / n);
-}
-
-function lerpSpec(a: ShapeSpec, b: ShapeSpec, k: number): ShapeSpec {
-  return {
-    n: a.n + (b.n - a.n) * k,
-    nBottom: a.nBottom + (b.nBottom - a.nBottom) * k,
-    lobe: a.lobe + (b.lobe - a.lobe) * k,
-    lobePhase: a.lobePhase + (b.lobePhase - a.lobePhase) * k,
-    wobble: a.wobble + (b.wobble - a.wobble) * k,
-    wobblePhase: a.wobblePhase + (b.wobblePhase - a.wobblePhase) * k,
-  };
-}
-
-/**
- * Строит замкнутый сглаженный путь по силуэту и вписывает его
- * в квадрат VIEW×VIEW, чтобы все формы были одного размера.
- */
-function shapePath(spec: ShapeSpec): string {
-  const points: [number, number][] = [];
-
-  for (let i = 0; i < SAMPLES; i += 1) {
-    const t = (i / SAMPLES) * Math.PI * 2;
-    const sin = Math.sin(t);
-    const n =
-      sin > 0
-        ? spec.n + (spec.nBottom - spec.n) * smoothstep(Math.min(1, sin))
-        : spec.n;
-    let r = superRadius(t, n);
-    r *= 1 + spec.lobe * Math.cos(4 * t + spec.lobePhase);
-    r *= 1 + spec.wobble * Math.cos(3 * t + spec.wobblePhase);
-    points.push([Math.cos(t) * r, sin * r]);
-  }
-
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (const [x, y] of points) {
-    if (x < minX) minX = x;
-    if (x > maxX) maxX = x;
-    if (y < minY) minY = y;
-    if (y > maxY) maxY = y;
-  }
-  const scale = (VIEW - PAD * 2) / Math.max(maxX - minX, maxY - minY);
-  const cx = (minX + maxX) / 2;
-  const cy = (minY + maxY) / 2;
-  const p = points.map(
-    ([x, y]) =>
-      [
-        (x - cx) * scale + VIEW / 2,
-        (y - cy) * scale + VIEW / 2,
-      ] as [number, number],
-  );
-
-  /* Квадратичные кривые через середины рёбер — гладкий замкнутый контур. */
-  const mid = (a: [number, number], b: [number, number]): [number, number] => [
-    (a[0] + b[0]) / 2,
-    (a[1] + b[1]) / 2,
-  ];
-  const start = mid(p[p.length - 1], p[0]);
-  let d = `M ${start[0].toFixed(2)} ${start[1].toFixed(2)}`;
-  for (let i = 0; i < p.length; i += 1) {
-    const next = mid(p[i], p[(i + 1) % p.length]);
-    d += ` Q ${p[i][0].toFixed(2)} ${p[i][1].toFixed(2)} ${next[0].toFixed(2)} ${next[1].toFixed(2)}`;
-  }
-  return `${d} Z`;
-}
 
 interface Props {
   /** Сервер готов — форма фиксируется и выезжает «WinChat You». */
@@ -156,14 +71,13 @@ interface Props {
 }
 
 /**
- * Заставка WinChat You (Material 3 Expressive): пастельный тональный фон
- * выбранной палитры, а логотип непрерывно перетекает между expressive-
- * формами. Когда приложение готово, силуэт мягко садится в плитку и снизу
- * проявляется «WinChat You».
+ * Заставка WinChat You (Material 3 Expressive): голубой тональный фон,
+ * чёрная буква «W» внутри силуэта, который непрерывно перетекает между
+ * формами Material You. Когда приложение готово, силуэт мягко садится
+ * в squircle-плитку и снизу проявляется «WinChat You».
  */
 export default function BootAnimationYou({ ready, long = false, onDone }: Props) {
   const [phase, setPhase] = useState<Phase>("loading");
-  const seed = useMemo(() => getYouSeed(), []);
   const uid = useId().replace(/:/g, "");
   const gradientId = `you-grad-${uid}`;
   const glowId = `you-glow-${uid}`;
@@ -188,26 +102,6 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
 
   const initialPath = useMemo(() => shapePath(SHAPE_SEQUENCE[0]), []);
 
-  const vars = useMemo(
-    () =>
-      ({
-        "--yb-primary": seed.primary,
-        "--yb-on-primary": seed.onPrimary,
-        "--yb-primary-strong": seed.primaryStrong,
-        "--yb-primary-container": seed.primaryContainer,
-        "--yb-secondary": seed.secondary,
-        "--yb-secondary-container": seed.secondaryContainer,
-        "--yb-tertiary": seed.tertiary,
-        "--yb-tertiary-container": seed.tertiaryContainer,
-        "--yb-surface": seed.surface,
-        "--yb-surface-low": seed.surfaceLow,
-        "--yb-surface-high": seed.surfaceHigh,
-        "--yb-on-surface": seed.onSurface,
-        "--yb-on-surface-variant": seed.onSurfaceVariant,
-        "--yb-outline": seed.outline,
-      }) as CSSProperties,
-    [seed],
-  );
 
   /* Живой силуэт: перетекание форм, затем мягкая фиксация в плитку. */
   useEffect(() => {
@@ -230,7 +124,10 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
       let spec: ShapeSpec;
 
       if (phaseRef.current === "loading") {
-        const pos = ((now - start) / SHAPE_STEP_MS) % SHAPE_SEQUENCE.length;
+        /* Первый rAF-таймстамп может быть чуть раньше start — не даём
+           индексу уйти в -1 (иначе форма пропадает). */
+        const elapsed = Math.max(0, now - start);
+        const pos = (elapsed / SHAPE_STEP_MS) % SHAPE_SEQUENCE.length;
         const index = Math.floor(pos);
         const f = pos - index;
         const k =
@@ -238,8 +135,8 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
             ? 0
             : easeInOutCubic((f - SHAPE_HOLD) / (1 - SHAPE_HOLD));
         spec = lerpSpec(
-          SHAPE_SEQUENCE[index],
-          SHAPE_SEQUENCE[(index + 1) % SHAPE_SEQUENCE.length],
+          SHAPE_SEQUENCE[index] ?? SHAPE_SEQUENCE[0],
+          SHAPE_SEQUENCE[(index + 1) % SHAPE_SEQUENCE.length] ?? SHAPE_SEQUENCE[0],
           k,
         );
         lastSpec = spec;
@@ -290,7 +187,7 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
     <div
       className="youboot"
       data-phase={phase}
-      style={vars}
+      style={BLUE_VARS}
       role="status"
       aria-live="polite"
       aria-label="Загрузка WinChat You"
@@ -315,19 +212,19 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
                   offset="52%"
                   style={{
                     stopColor:
-                      "color-mix(in srgb, var(--yb-secondary) 38%, var(--yb-secondary-container))",
+                      "color-mix(in srgb, var(--yb-secondary) 36%, var(--yb-secondary-container))",
                   }}
                 />
                 <stop
                   offset="100%"
                   style={{
                     stopColor:
-                      "color-mix(in srgb, var(--yb-tertiary) 30%, var(--yb-tertiary-container))",
+                      "color-mix(in srgb, var(--yb-tertiary) 26%, var(--yb-tertiary-container))",
                   }}
                 />
               </linearGradient>
               <radialGradient id={glowId} cx="32%" cy="16%" r="78%">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.72" />
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.62" />
                 <stop offset="52%" stopColor="#ffffff" stopOpacity="0.12" />
                 <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
               </radialGradient>
@@ -344,15 +241,20 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
             />
             <g clipPath={`url(#${clipId})`}>
               <rect width={VIEW} height={VIEW} fill={`url(#${glowId})`} />
+              <text
+                className="youboot__logo"
+                x={VIEW / 2}
+                y={VIEW / 2}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={VIEW * 0.56}
+                fontWeight={800}
+                letterSpacing="-0.02em"
+              >
+                W
+              </text>
             </g>
           </svg>
-
-          <img
-            className="youboot__mark"
-            src="/splash-icon.png"
-            alt=""
-            draggable={false}
-          />
         </div>
       </div>
 

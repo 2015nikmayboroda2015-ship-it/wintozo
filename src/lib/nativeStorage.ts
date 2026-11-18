@@ -33,6 +33,7 @@ interface WinChatStoragePlugin {
   saveSettings(options: { data: string }): Promise<{ saved: boolean; path?: string }>;
   loadSettings(): Promise<{ data: string | null; exists: boolean; path?: string; error?: string }>;
   clearSettings(): Promise<{ cleared: boolean }>;
+  saveLogs(options: { content: string }): Promise<{ saved: boolean; path?: string; error?: string }>;
 }
 
 const WinChatStorage = registerPlugin<WinChatStoragePlugin>("WinChatStorage");
@@ -94,5 +95,21 @@ export async function clearSettingsNative(): Promise<boolean> {
     return !!res.cleared;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Сохранить лог-файл на устройстве.
+ * Приоритет — /sdcard/WinChat/logs/log.txt; если система не разрешает запись
+ * в корень карты (Android 10+), плагин отдаёт доступный путь.
+ */
+export async function saveLogsNative(
+  content: string
+): Promise<{ saved: boolean; path?: string; error?: string } | null> {
+  if (!isNativeStorageAvailable()) return null;
+  try {
+    return await WinChatStorage.saveLogs({ content });
+  } catch (err) {
+    return { saved: false, error: err instanceof Error ? err.message : String(err) };
   }
 }

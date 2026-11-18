@@ -7,6 +7,15 @@
  * лайм), крупные формы и тональные поверхности.
  */
 
+import {
+  DEFAULT_YOU_SHAPE,
+  getYouShapeOption,
+  normalizeYouShape,
+  type YouShape,
+} from "./youShapes";
+
+export { YOU_SHAPES, type YouShape } from "./youShapes";
+
 export interface YouSeed {
   id: string;
   name: string;
@@ -334,24 +343,13 @@ export function getYouSeed(id = getYouSeedId()): YouSeed {
   return YOU_SEEDS.find((s) => s.id === id) ?? YOU_SEEDS[0];
 }
 
-export type YouShape = "pill" | "rounded" | "soft" | "square";
-
-export const YOU_SHAPES: { id: YouShape; name: string; r: string; rSm: string; rLg: string }[] = [
-  { id: "pill", name: "Пилюли", r: "28px", rSm: "20px", rLg: "999px" },
-  { id: "rounded", name: "Закруглённая", r: "22px", rSm: "14px", rLg: "28px" },
-  { id: "soft", name: "Мягкая", r: "14px", rSm: "10px", rLg: "18px" },
-  { id: "square", name: "Квадратная", r: "8px", rSm: "6px", rLg: "10px" },
-];
-
 const SHAPE_KEY = "winchat_you_shape";
-const DEFAULT_SHAPE: YouShape = "rounded";
 
 export function getYouShape(): YouShape {
   try {
-    const v = localStorage.getItem(SHAPE_KEY) as YouShape | null;
-    return YOU_SHAPES.some((s) => s.id === v) ? (v as YouShape) : DEFAULT_SHAPE;
+    return normalizeYouShape(localStorage.getItem(SHAPE_KEY));
   } catch {
-    return DEFAULT_SHAPE;
+    return DEFAULT_YOU_SHAPE;
   }
 }
 
@@ -364,11 +362,13 @@ export function saveYouShape(id: YouShape): void {
 }
 
 export function applyYouShape(id = getYouShape()): YouShape {
-  const s = YOU_SHAPES.find((x) => x.id === id) ?? YOU_SHAPES[1];
+  const s = getYouShapeOption(id);
   const r = document.documentElement.style;
   r.setProperty("--you-r", s.r);
   r.setProperty("--you-r-sm", s.rSm);
   r.setProperty("--you-r-lg", s.rLg);
+  // Силуэт из бут-анимации: кнопки You обрезаются этим clip-path.
+  r.setProperty("--you-shape-clip", s.clip);
   document.documentElement.dataset.youShape = s.id;
   window.dispatchEvent(new Event("winchat-you-shape-change"));
   return s.id;

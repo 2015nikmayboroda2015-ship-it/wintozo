@@ -4,8 +4,8 @@
    • classic — старая «переливающаяся» заставка из первых релизов:
      логотип по центру с бегущим блеском;
    • dots — новая: чёрные точки слетаются в логотип;
-   • you — WinChat You (Material You): ровный тональный фон и иконка
-     приложения по центру, палитра из выбранной You-темы.
+   • you — WinChat You (Material You): голубой тональный фон,
+     настоящий логотип и перетекающие формы Material 3 Expressive.
    ============================================================ */
 
 export type BootStyle = "classic" | "dots" | "you";
@@ -35,7 +35,7 @@ export const BOOT_STYLES: { id: BootStyle; name: string; description: string }[]
   {
     id: "you",
     name: "WinChat You",
-    description: "Иконка на тональном фоне темы",
+    description: "Голубой фон и формы Material You",
   },
 ];
 

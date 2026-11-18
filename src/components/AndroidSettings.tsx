@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Bug,
   Camera,
   Check,
   ChevronRight,
@@ -38,13 +39,10 @@ import {
 } from "../lib/themes";
 import {
   YOU_SEEDS,
-  YOU_SHAPES,
   applyYouPalette,
-  applyYouShape,
   getYouSeedId,
   getYouShape,
   saveYouSeedId,
-  saveYouShape,
   type YouShape,
 } from "../lib/materialYou";
 import { navigate } from "../lib/router";
@@ -52,6 +50,7 @@ import { hasWinPro, winproDaysLeft, winproExpiresLabel } from "../lib/winpro";
 import { ANIMATIONS, getAnimationId, saveAnimationId } from "../lib/animations";
 import { getBootStyle, saveBootStyle, type BootStyle } from "../lib/bootAnimation";
 import BootStylePicker from "./BootStylePicker";
+import YouShapePicker from "./YouShapePicker";
 import {
   APP_VERSION,
   DOWNLOAD_URL,
@@ -70,8 +69,16 @@ import {
   type OtaInfo,
   type OtaState,
 } from "../lib/ota";
+import DevModePanel from "./DevModePanel";
+import {
+  isDevMode,
+  registerVersionTap,
+  setDevMode,
+  subscribeDevMode,
+} from "../lib/devMode";
+import { devLog } from "../lib/devLogs";
 
-type View = "menu" | "winpro" | "about" | "customization" | "security";
+type View = "menu" | "winpro" | "about" | "customization" | "security" | "dev";
 
 interface Props {
   me: Profile;
@@ -103,6 +110,8 @@ export default function AndroidSettings({
   youMode = false,
 }: Props) {
   const [view, setView] = useState<View>(initialView);
+  /** Скрытый режим разработчика (4 нажатия на версию приложения). */
+  const [devMode, setDevModeState] = useState<boolean>(() => isDevMode());
 
   /* --- Профиль --- */
   const [editing, setEditing] = useState(false);
@@ -155,6 +164,12 @@ export default function AndroidSettings({
       alive = false;
     };
   }, []);
+
+  /* Скрытый режим разработчика: следим за флагом. */
+  useEffect(() => subscribeDevMode(() => setDevModeState(isDevMode())), []);
+  useEffect(() => {
+    if (!devMode && view === "dev") setView("menu");
+  }, [devMode, view]);
 
   /* Прогресс нативного установщика APK. */
   useEffect(() => {
@@ -379,12 +394,35 @@ export default function AndroidSettings({
     { id: "security", label: "Безопасность", sub: "пароль и WinPass", icon: ShieldCheck },
   ];
 
+  /* Режим разработчика добавляет скрытый пункт в конец меню. */
+  const menuItems: typeof MENU = devMode
+    ? [
+        ...MENU,
+        {
+          id: "dev",
+          label: "Режим разработчика",
+          sub: "логи и монохром",
+          icon: Bug,
+        },
+      ]
+    : MENU;
+
   const TITLES: Record<Exclude<View, "menu">, string> = {
     winpro: "Статус WinPro",
     about: "О приложении",
     customization: "Кастомизация",
     security: "Безопасность",
+    dev: "Режим разработчика",
   };
+
+  /** 4 нажатия на версию приложения открывают режим разработчика. */
+  function handleVersionTap() {
+    if (!registerVersionTap()) return;
+    devLog("developer mode unlocked by version taps");
+    setDevMode(true);
+    setDevModeState(true);
+    setView("dev");
+  }
 
   return (
     <div className="fixed inset-0 z-[80] flex flex-col bg-paper animate-fade-in">
@@ -537,7 +575,7 @@ export default function AndroidSettings({
 
               {/* Четыре пункта настроек */}
               <div className="mt-6 overflow-hidden rounded-2xl border border-black/8 bg-white/60">
-                {MENU.map((item, i) => (
+                {menuItems.map((item, i) => (
                   <button
                     key={item.id}
                     type="button"
@@ -665,6 +703,13 @@ export default function AndroidSettings({
             </div>
           )}
 
+          {/* ---------------- РЕЖИМ РАЗРАБОТЧИКА ---------------- */}
+          {view === "dev" && (
+            <div className="animate-fade-in">
+              <DevModePanel you={you} />
+            </div>
+          )}
+
           {/* ---------------- О ПРИЛОЖЕНИИ ---------------- */}
           {view === "about" && (
             <div className="animate-fade-in">
@@ -675,20 +720,41 @@ export default function AndroidSettings({
                   { label: "Версия приложения WinChat", value: device?.appVersion || APP_VERSION },
                   { label: "Версия сервера WinChat", value: serverVersion ?? "…" },
                   { label: "Самая новая версия", value: latestVersion ?? "—" },
-                ].map((row, i) => (
-                  <div
-                    key={row.label}
-                    className={cn(
-                      "flex items-center justify-between gap-3 px-4 py-3",
-                      i > 0 && "border-t border-black/5"
-                    )}
-                  >
-                    <span className="shrink-0 text-[12px] font-bold text-black/45">{row.label}</span>
-                    <span className="truncate text-right font-mono text-[13px] font-bold text-ink">
-                      {row.value}
-                    </span>
-                  </div>
-                ))}
+                ].map((row, i) => {
+                  const isVersion = row.label === "Версия приложения WinChat";
+                  const content = (
+                    <>
+                      <span className="shrink-0 text-[12px] font-bold text-black/45">{row.label}</span>
+                      <span className="truncate text-right font-mono text-[13px] font-bold text-ink">
+                        {row.value}
+                      </span>
+                    </>
+                  );
+                  return isVersion ? (
+                    <button
+                      key={row.label}
+                      type="button"
+                      onClick={handleVersionTap}
+                      title="Версия приложения"
+                      className={cn(
+                        "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition active:bg-black/5",
+                        i > 0 && "border-t border-black/5"
+                      )}
+                    >
+                      {content}
+                    </button>
+                  ) : (
+                    <div
+                      key={row.label}
+                      className={cn(
+                        "flex items-center justify-between gap-3 px-4 py-3",
+                        i > 0 && "border-t border-black/5"
+                      )}
+                    >
+                      {content}
+                    </div>
+                  );
+                })}
               </div>
 
               <button
@@ -905,44 +971,8 @@ export default function AndroidSettings({
                     </div>
 
                     <div className="mt-5">
-                      <p className="mb-2 text-[12px] font-bold text-[var(--you-on-surface-variant)]">Форма</p>
-                      <div className="grid grid-cols-4 gap-2">
-                        {YOU_SHAPES.map((sh) => {
-                          const on = youShape === sh.id;
-                          return (
-                            <button
-                              key={sh.id}
-                              type="button"
-                              onClick={() => {
-                                saveYouShape(sh.id);
-                                setYouShape(sh.id);
-                                applyYouShape(sh.id);
-                              }}
-                              className={cn(
-                                "flex flex-col items-center gap-2 p-2.5 transition active:scale-95",
-                                on
-                                  ? "bg-[var(--you-surface-highest)] ring-2 ring-[var(--you-on-surface)]"
-                                  : "bg-[var(--you-surface-low)]/70 ring-1 ring-black/5"
-                              )}
-                              style={{ borderRadius: "var(--you-r-sm)" }}
-                            >
-                              <span
-                                className="h-8 w-full"
-                                style={{
-                                  borderRadius: sh.r,
-                                  background: on
-                                    ? "linear-gradient(135deg, var(--you-primary), var(--you-primary-strong))"
-                                    : "var(--you-surface-highest)",
-                                  boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--you-outline-variant) 60%, transparent)",
-                                }}
-                              />
-                              <span className="text-[10px] font-bold text-[var(--you-on-surface)]">
-                                {sh.name}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <p className="mb-2 text-[12px] font-bold text-[var(--you-on-surface-variant)]">Форма кнопок</p>
+                      <YouShapePicker value={youShape} onChange={setYouShape} />
                     </div>
                   </div>
                 </div>

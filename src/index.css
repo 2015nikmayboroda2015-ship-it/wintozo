@@ -575,6 +575,7 @@ body {
   --you-r: 24px;
   --you-r-sm: 16px;
   --you-r-lg: 32px;
+  --you-shape-clip: none;
 }
 
 .theme-you body {
@@ -1063,6 +1064,20 @@ body {
   color: var(--you-on-primary);
   font-weight: 800;
   box-shadow: 0 12px 26px -14px color-mix(in srgb, var(--you-primary) 95%, transparent);
+}
+
+/* ---------- Expressive-формы из бут-анимации ----------
+   applyYouShape() кладёт в --you-shape-clip силуэт (polygon),
+   поэтому кнопки получают те же формы, что и заставка:
+   squircle → arch → diamond → circle → cookie → clover → burst.
+   У стандартных форм значение none — остаются обычные радиусы. */
+.theme-you .you-fab,
+.theme-you .you-fab-tonal,
+.theme-you .you-pill,
+.theme-you .you-pill-primary,
+.theme-you .you-logo {
+  -webkit-clip-path: var(--you-shape-clip, none);
+  clip-path: var(--you-shape-clip, none);
 }
 
 /* ---------- Экран /themes/you ---------- */
@@ -2658,4 +2673,12 @@ body {
   .oobe-aurora *::after {
     animation: none !important;
   }
+}
+
+/* ============================================================
+   Режим разработчика: однотонный (монохромный) интерфейс
+   ============================================================ */
+html.dev-mono {
+  filter: grayscale(1);
+  background: #f4f4f4;
 }

@@ -1,11 +1,12 @@
 /* ============================================================
    WinChat You — boot animation (Material You, Material 3 Expressive)
 
-   Логотип непрерывно перетекает между expressive-формами:
-   закруглённая плитка → арка → мягкий квадрат → круг →
-   органичный «выветренный» блоб. Фон — пастельные тона
-   выбранной палитры с мягким зерном. Когда сервер готов,
-   силуэт фиксируется и снизу выезжает «WinChat You».
+   Чёрная буква «W» внутри силуэта, который непрерывно
+   перетекает между формами Material You: squircle → arch →
+   diamond → circle → cookie 4 → clover 4 → cookie 7 →
+   soft burst → cookie 9. Фон — голубая M3-палитра с мягким
+   зерном. Когда сервер готов, силуэт фиксируется в плитку и
+   снизу выезжает «WinChat You».
    ============================================================ */
 
 .youboot {
@@ -17,8 +18,8 @@
   place-items: center;
   overflow: hidden;
   isolation: isolate;
-  background: var(--yb-surface-low, #f7f0ff);
-  color: var(--yb-on-surface, #1d1233);
+  background: var(--yb-surface-low, #f6f9ff);
+  color: var(--yb-on-surface, #0f1c2c);
   font-family: "Google Sans", "Google Sans Text", "Product Sans", "Outfit",
     "Roboto", ui-sans-serif, system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
@@ -41,19 +42,19 @@
   background:
     radial-gradient(
       72% 54% at 48% 44%,
-      color-mix(in srgb, var(--yb-tertiary-container, #d7f5b0) 38%, transparent) 0%,
+      color-mix(in srgb, var(--yb-tertiary-container, #c8f0ee) 46%, transparent) 0%,
       transparent 70%
     ),
     radial-gradient(
       58% 44% at 78% 82%,
-      color-mix(in srgb, var(--yb-secondary-container, #ffdad4) 34%, transparent) 0%,
+      color-mix(in srgb, var(--yb-secondary-container, #c2e7ff) 52%, transparent) 0%,
       transparent 74%
     ),
     linear-gradient(
       168deg,
-      var(--yb-surface-low, #f7f0ff) 0%,
-      var(--yb-surface, #efe5ff) 52%,
-      var(--yb-surface-high, #e8dcff) 100%
+      var(--yb-surface-low, #f6f9ff) 0%,
+      var(--yb-surface, #eef4fd) 52%,
+      var(--yb-surface-high, #e1ecfb) 100%
     );
 }
 
@@ -83,7 +84,7 @@
   top: -26vmax;
   background: radial-gradient(
     circle at 42% 42%,
-    var(--yb-primary-container, #e4d7ff) 0%,
+    var(--yb-primary-container, #d3e3fd) 0%,
     transparent 68%
   );
   animation: youboot-drift-a 18s ease-in-out infinite alternate;
@@ -96,7 +97,7 @@
   bottom: -20vmax;
   background: radial-gradient(
     circle at 56% 46%,
-    var(--yb-secondary-container, #ffdad4) 0%,
+    var(--yb-secondary-container, #c2e7ff) 0%,
     transparent 70%
   );
   animation: youboot-drift-b 22s ease-in-out infinite alternate;
@@ -124,7 +125,7 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    color-mix(in srgb, var(--yb-primary, #7c4dff) 34%, transparent) 0%,
+    color-mix(in srgb, var(--yb-primary, #0b57d0) 32%, transparent) 0%,
     transparent 68%
   );
   filter: blur(26px);
@@ -163,22 +164,22 @@
   overflow: visible;
   filter: drop-shadow(
       0 30px 54px
-        color-mix(in srgb, var(--yb-primary-strong, #5b2ee0) 26%, transparent)
+        color-mix(in srgb, var(--yb-primary-strong, #0842a0) 28%, transparent)
     )
     drop-shadow(
-      0 10px 20px color-mix(in srgb, var(--yb-outline, #8873a3) 16%, transparent)
+      0 10px 22px color-mix(in srgb, var(--yb-outline, #6b7b90) 18%, transparent)
     );
 }
 
-/* Белая «W» из иконки: инверсия + multiply оставляют только знак,
-   фон иконки растворяется в пастельном силуэте. */
-.youboot__mark {
-  position: absolute;
-  width: 42%;
-  height: 42%;
-  object-fit: contain;
-  filter: invert(1) brightness(1.08) contrast(1.04);
-  mix-blend-mode: multiply;
+/* Знак WinChat — простая чёрная буква «W» внутри силуэта.
+   Клип формы задаётся в SVG (см. компонент). */
+.youboot__logo {
+  fill: #0b1a2b;
+  font-family: "Google Sans", "Google Sans Text", "Product Sans", "Outfit",
+    "Roboto", ui-sans-serif, system-ui, sans-serif;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: youboot-logo-in 760ms cubic-bezier(0.16, 1, 0.3, 1) 160ms both;
   pointer-events: none;
   user-select: none;
 }
@@ -220,14 +221,14 @@
 }
 
 .youboot__word-main {
-  color: var(--yb-on-surface, #1d1233);
+  color: var(--yb-on-surface, #0f1c2c);
 }
 
 .youboot__word-you {
   background: linear-gradient(
     100deg,
-    var(--yb-primary, #7c4dff),
-    var(--yb-secondary, #ff7a6b)
+    var(--yb-primary, #0b57d0),
+    var(--yb-secondary, #00639b)
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -264,6 +265,17 @@
 
 /* Силуэт рисуется из компонента (SVG path), поэтому все expressive-формы
    успевают проиграть даже при быстрой загрузке. */
+@keyframes youboot-logo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes youboot-sway {
   0%,
   6% {
@@ -362,6 +374,11 @@
 
   .youboot__shape {
     transition-duration: 0ms;
+  }
+
+  .youboot__logo {
+    animation-duration: 180ms;
+    animation-delay: 0ms;
   }
 
   .youboot[data-phase="reveal"] .youboot__word {

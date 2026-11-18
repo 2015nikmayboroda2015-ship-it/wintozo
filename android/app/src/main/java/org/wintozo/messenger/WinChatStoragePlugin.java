@@ -45,6 +45,7 @@ import javax.crypto.spec.GCMParameterSpec;
  *   WinChatStorage.saveSettings({ data })
  *   WinChatStorage.loadSettings()
  *   WinChatStorage.clearSettings()
+ *   WinChatStorage.saveLogs({ content })
  */
 @CapacitorPlugin(name = "WinChatStorage")
 public class WinChatStoragePlugin extends Plugin {
@@ -327,6 +328,106 @@ public class WinChatStoragePlugin extends Plugin {
             output.write(buffer, 0, read);
         }
         output.flush();
+    }
+
+    /* ============================================================
+       Логи режима разработчика
+       ============================================================ */
+
+    /**
+     * Сохраняет log.txt. Основной путь — /sdcard/WinChat/logs/log.txt.
+     * Android 10+ не разрешает писать в корень карты, поэтому есть запасные
+     * варианты: Download/WinChat/logs (через MediaStore) и приватная папка
+     * приложения. В ответе всегда отдаём фактический путь.
+     */
+    @PluginMethod
+    public void saveLogs(PluginCall call) {
+        String content = call.getString("content");
+        byte[] data = (content == null ? "" : content).getBytes(StandardCharsets.UTF_8);
+        JSObject ret = new JSObject();
+
+        // 1. Прямая запись в /sdcard/WinChat/logs/ (Android 9 и ниже / полный доступ).
+        try {
+            File root = Environment.getExternalStorageDirectory();
+            File dir = new File(root, "WinChat/logs");
+            if (dir.exists() || dir.mkdirs()) {
+                File target = new File(dir, "log.txt");
+                try (OutputStream out = new FileOutputStream(target)) {
+                    out.write(data);
+                    out.flush();
+                }
+                ret.put("saved", true);
+                ret.put("path", target.getAbsolutePath());
+                call.resolve(ret);
+                return;
+            }
+        } catch (Exception ignored) {
+            // Пробуем следующий вариант.
+        }
+
+        // 2. MediaStore Downloads: /sdcard/Download/WinChat/logs/log.txt
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                ContentResolver resolver = getContext().getContentResolver();
+                Uri collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+                String relative = Environment.DIRECTORY_DOWNLOADS + "/WinChat/logs/";
+
+                try {
+                    resolver.delete(
+                        collection,
+                        MediaStore.MediaColumns.RELATIVE_PATH + "=? AND " + MediaStore.MediaColumns.DISPLAY_NAME + "=?",
+                        new String[]{relative, "log.txt"}
+                    );
+                } catch (Exception ignored) {
+                    // Старый файл перезапишется новым.
+                }
+
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, "log.txt");
+                values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, relative);
+                values.put(MediaStore.MediaColumns.IS_PENDING, 1);
+
+                Uri uri = resolver.insert(collection, values);
+                if (uri != null) {
+                    try (OutputStream out = resolver.openOutputStream(uri)) {
+                        if (out != null) out.write(data);
+                    }
+                    ContentValues done = new ContentValues();
+                    done.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                    resolver.update(uri, done, null, null);
+
+                    ret.put("saved", true);
+                    ret.put("path", "/sdcard/" + relative + "log.txt");
+                    call.resolve(ret);
+                    return;
+                }
+            } catch (Exception ignored) {
+                // Пробуем следующий вариант.
+            }
+        }
+
+        // 3. Приватная папка приложения — работает всегда.
+        try {
+            File base = getContext().getExternalFilesDir(null);
+            if (base == null) base = getContext().getFilesDir();
+            File dir = new File(base, "WinChat/logs");
+            if (!dir.exists() && !dir.mkdirs() && !dir.exists()) {
+                throw new Exception("Не удалось создать папку " + dir.getAbsolutePath());
+            }
+            File target = new File(dir, "log.txt");
+            try (OutputStream out = new FileOutputStream(target)) {
+                out.write(data);
+                out.flush();
+            }
+            ret.put("saved", true);
+            ret.put("path", target.getAbsolutePath());
+            call.resolve(ret);
+        } catch (Exception e) {
+            ret.put("saved", false);
+            ret.put("error", e.getMessage());
+            call.resolve(ret);
+        }
     }
 
     /* ============================================================

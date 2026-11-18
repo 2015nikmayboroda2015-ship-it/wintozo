@@ -40,8 +40,8 @@ public class MainActivity extends BridgeActivity {
     private void checkAndRequestPermissions() {
         List<String> required = new ArrayList<>();
         for (String permission : REQUIRED_PERMISSIONS) required.add(permission);
-        // На Android 9 и ниже запись в общую галерею требует runtime-разрешения.
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+        // На Android 9 и ниже запись в общую галерею и /sdcard/WinChat требует runtime-разрешения.
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
             required.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         }
 

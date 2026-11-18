@@ -25,6 +25,7 @@ import {
   readOobeUpdateKey,
 } from "./lib/oobe";
 import { navigate } from "./lib/router";
+import { devLog } from "./lib/devLogs";
 import Auth from "./components/Auth";
 import BootAnimation from "./components/BootAnimation";
 import BootAnimationYou from "./components/BootAnimation_you";
@@ -141,6 +142,11 @@ export default function App() {
   const inviteMatch = path.match(/^\/(?:channel|group)\/invite\/([^/?#]+)/);
   const inviteChatId = inviteMatch ? decodeURIComponent(inviteMatch[1]) : null;
   const [inviteOpenChatId, setInviteOpenChatId] = useState<string | null>(null);
+
+  /* Логи режима разработчика: текущий маршрут приложения. */
+  useEffect(() => {
+    devLog(`route: ${path}`);
+  }, [path]);
 
   useEffect(() => {
     if (!inviteChatId || !session || !profile) return;

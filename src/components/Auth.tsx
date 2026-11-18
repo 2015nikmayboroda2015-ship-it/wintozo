@@ -19,6 +19,7 @@ import { rememberLegacyPassword } from "./LegacyScreen";
 import { normalizeWinpass, validateNickname, validatePassword, validateUsername } from "../lib/utils";
 void normalizeWinpass; // канонизация в supabase.loginByWinpass
 import { cn } from "../utils/cn";
+import { devLog } from "../lib/devLogs";
 
 const inputCls =
   "w-full rounded-xl border border-black/10 bg-white py-3 pr-4 pl-11 text-[15px] font-medium outline-none transition placeholder:text-black/30 focus:border-accent focus:ring-4 focus:ring-accent/15";
@@ -129,6 +130,7 @@ export default function Auth({ initialMode }: { initialMode?: "login" | "registe
       if (mode === "register") {
         const nErr = validateNickname(nickname);
         if (nErr) return setError(nErr);
+        devLog(`auth: registering @${username.trim().toLowerCase()}`);
 
         const { data: taken } = await supabase
           .from("profiles")
@@ -182,12 +184,15 @@ export default function Auth({ initialMode }: { initialMode?: "login" | "registe
           }
           if (code) setIssuedWinpass(code);
         }
+        devLog("auth: account created");
       } else {
+        devLog(`auth: signing in @${username.trim().toLowerCase()}`);
         const { error: inErr } = await supabase.auth.signInWithPassword({
           email: emailFor(username),
           password,
         });
         if (inErr) return setError(mapAuthError(inErr));
+        devLog("auth: signed in");
       }
     } catch (errCaught) {
       setError(mapAuthError(errCaught));
@@ -206,6 +211,7 @@ export default function Auth({ initialMode }: { initialMode?: "login" | "registe
 
     setLoading(true);
     try {
+      devLog("auth: signing in with winpass");
       // Вход по WinPass без пароля — сервер сам сбрасывает пароль и выдаёт сессию
       await loginByWinpass(code);
     } catch (errCaught) {

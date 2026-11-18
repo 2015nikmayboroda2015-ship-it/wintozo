@@ -38,6 +38,7 @@ import { filesUpload } from "../lib/blobStorage";
 import { compressVideo } from "../lib/videoCompress";
 import { loadSavedNotes, notifySavedNotesChanged, persistSavedNotes } from "../lib/savedNotes";
 import { useCalls } from "../hooks/useCalls";
+import { devLog } from "../lib/devLogs";
 import { downloadMedia } from "../lib/mediaDownload";
 import CallOverlay from "./CallOverlay";
 import Avatar from "./Avatar";
@@ -155,6 +156,11 @@ export default function ChatView({
     return lvl as Exclude<VerifyLevel, "user">;
   };
 
+  /* ---------- логи режима разработчика ---------- */
+  useEffect(() => {
+    devLog(`loading chat.tsx (chat ${chatId})`);
+  }, [chatId]);
+
   /* ---------- история + realtime ---------- */
   useEffect(() => {
     let cancelled = false;
@@ -172,6 +178,7 @@ export default function ChatView({
       };
       sync();
       setLoading(false);
+      devLog(`chat.tsx loaded from notes (${messagesRef.current.length} messages)`);
       const onSaved = (e: Event) => {
         const detail = (e as CustomEvent<{ userId?: string }>).detail;
         if (!detail?.userId || detail.userId === me.id) sync();
@@ -195,6 +202,7 @@ export default function ChatView({
         if (!cancelled) {
           setMessages((data as Message[]) || []);
           setLoading(false);
+          devLog(`chat.tsx loaded (${(data as Message[] | null)?.length ?? 0} messages)`);
         }
       });
 
@@ -309,6 +317,16 @@ export default function ChatView({
     if (!content && !opts?.image && !opts?.stickerUrl && !opts?.audio && !opts?.video) return;
     if (!canPost) return flashError("В канале писать могут только администраторы");
     if (sending) return;
+    const kind = opts?.image
+      ? "photo"
+      : opts?.video
+        ? "video"
+        : opts?.audio
+          ? "voice"
+          : opts?.stickerUrl
+            ? "sticker"
+            : "text";
+    devLog(`sending message (${kind}, chat ${chatId})`);
     setSending(true);
     try {
       let image_url: string | null = null;
@@ -365,6 +383,7 @@ export default function ChatView({
         setMessages(next);
         notifySavedNotesChanged(me.id);
         onActivity(m);
+        devLog(`message sent (${kind}, chat ${chatId}, local notes)`);
         if (!opts?.audio && !opts?.video) {
           uncontrolledText.current = "";
           setHasText(false);
@@ -397,6 +416,7 @@ export default function ChatView({
       const m = data as Message;
       setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
       onActivity(m);
+      devLog(`message sent (${kind}, chat ${chatId})`);
       if (!opts?.audio && !opts?.video) {
         uncontrolledText.current = "";
         setHasText(false);
@@ -406,7 +426,13 @@ export default function ChatView({
         }
         autoResize();
       }
-    } catch {
+    } catch (err) {
+      devLog(
+        `failed to send message (${kind}, chat ${chatId}): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        "error"
+      );
       flashError(
         opts?.stickerUrl
           ? "Не удалось отправить стикер"
@@ -1240,7 +1266,7 @@ export default function ChatView({
       {/* Ввод */}
       <footer
         className={cn(
-          "px-3 py-2.5 backdrop-blur sm:px-8",
+          "px-2 py-2 backdrop-blur sm:px-8 sm:py-2.5",
           youMode
             ? "you-bottombar rounded-t-[28px] border-t"
             : "border-t border-black/8 bg-white/70"
@@ -1261,7 +1287,7 @@ export default function ChatView({
             </div>
           ) : videoRecording ? (
             /* --- Панель записи видеокружка --- */
-            <div className="animate-fade-in flex items-center gap-3 rounded-[22px] border border-purple-500/25 bg-purple-500/8 px-4 py-2.5">
+            <div className="animate-fade-in flex items-center gap-2 rounded-[22px] border border-purple-500/25 bg-purple-500/8 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
               {/* Миниатюра превью */}
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-black">
                 <video
@@ -1273,11 +1299,11 @@ export default function ChatView({
                 />
               </div>
               {/* Таймер */}
-              <span className="font-mono text-sm font-bold text-purple-600 tabular-nums">
+              <span className="shrink-0 font-mono text-sm font-bold text-purple-600 tabular-nums">
                 {formatDuration(videoRecSeconds)}
               </span>
               {/* Анимированные полоски */}
-              <span className="flex flex-1 items-center gap-[3px] overflow-hidden">
+              <span className="flex min-w-0 flex-1 items-center gap-[3px] overflow-hidden">
                 {Array.from({ length: 28 }).map((_, i) => (
                   <span
                     key={i}
@@ -1292,7 +1318,7 @@ export default function ChatView({
               {/* Отмена */}
               <button
                 onClick={cancelVideoRecording}
-                className="rounded-full p-2 text-black/45 transition hover:bg-black/5 hover:text-ink"
+                className="shrink-0 rounded-full p-1.5 text-black/45 transition hover:bg-black/5 hover:text-ink sm:p-2"
                 aria-label="Отменить запись видео"
               >
                 <X className="h-4.5 w-4.5" />
@@ -1300,19 +1326,19 @@ export default function ChatView({
               {/* Отправить */}
               <button
                 onClick={stopVideoRecording}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500 text-white transition hover:bg-purple-600 active:scale-95"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-500 text-white transition hover:bg-purple-600 active:scale-95 sm:h-10 sm:w-10"
                 aria-label="Отправить видеокружок"
               >
                 <ArrowUp className="h-5 w-5" strokeWidth={2.4} />
               </button>
             </div>
           ) : recording ? (
-            <div className="animate-fade-in flex items-center gap-3 rounded-[22px] border border-red-500/25 bg-red-500/8 px-4 py-2.5">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
-              <span className="font-mono text-sm font-bold text-red-600 tabular-nums">
+            <div className="animate-fade-in flex items-center gap-2 rounded-[22px] border border-red-500/25 bg-red-500/8 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
+              <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
+              <span className="shrink-0 font-mono text-sm font-bold text-red-600 tabular-nums">
                 {formatDuration(recSeconds)}
               </span>
-              <span className="flex flex-1 items-center gap-[3px] overflow-hidden">
+              <span className="flex min-w-0 flex-1 items-center gap-[3px] overflow-hidden">
                 {Array.from({ length: 28 }).map((_, i) => (
                   <span
                     key={i}
@@ -1326,24 +1352,24 @@ export default function ChatView({
               </span>
               <button
                 onClick={cancelRecording}
-                className="rounded-full p-2 text-black/45 transition hover:bg-black/5 hover:text-ink"
+                className="shrink-0 rounded-full p-1.5 text-black/45 transition hover:bg-black/5 hover:text-ink sm:p-2"
                 aria-label="Отменить запись"
               >
                 <X className="h-4.5 w-4.5" />
               </button>
               <button
                 onClick={stopRecording}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white transition hover:bg-red-600 active:scale-95"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500 text-white transition hover:bg-red-600 active:scale-95 sm:h-10 sm:w-10"
                 aria-label="Отправить голосовое"
               >
                 <ArrowUp className="h-5 w-5" strokeWidth={2.4} />
               </button>
             </div>
           ) : (
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-1.5 sm:gap-2">
               <div
                 className={cn(
-                  "flex flex-1 items-end gap-1 px-2 py-1.5 transition",
+                  "flex min-w-0 flex-1 items-end gap-0.5 px-1 py-1 transition sm:gap-1 sm:px-2 sm:py-1.5",
                   youMode
                     ? "you-composer"
                     : "rounded-[22px] border border-black/10 bg-white shadow-sm focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/10"
@@ -1353,7 +1379,7 @@ export default function ChatView({
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading || compressing || sending}
                   className={cn(
-                    "rounded-full p-2.5 transition disabled:opacity-50",
+                    "shrink-0 rounded-full p-2 transition disabled:opacity-50 sm:p-2.5",
                     youMode
                       ? "text-[var(--you-on-surface-variant)] hover:text-[var(--you-primary)]"
                       : "text-black/40 hover:bg-black/5 hover:text-accent"
@@ -1371,7 +1397,7 @@ export default function ChatView({
                   onClick={() => setStickerPickerOpen(true)}
                   disabled={compressing || sending}
                   className={cn(
-                    "rounded-full p-2.5 transition disabled:opacity-50",
+                    "shrink-0 rounded-full p-2 transition disabled:opacity-50 sm:p-2.5",
                     youMode
                       ? "text-[var(--you-on-surface-variant)] hover:text-[var(--you-primary)]"
                       : "text-black/40 hover:bg-black/5 hover:text-accent"
@@ -1415,7 +1441,7 @@ export default function ChatView({
                   }}
                   placeholder={chat.isSaved ? "Заметка" : "Сообщение"}
                   className={cn(
-                    "max-h-32 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] font-medium outline-none",
+                    "max-h-32 min-w-0 flex-1 resize-none bg-transparent px-1.5 py-2 text-[15px] font-medium outline-none sm:px-2",
                     youMode
                       ? "placeholder:text-[var(--you-on-surface-variant)]"
                       : "placeholder:text-black/30"
@@ -1490,7 +1516,7 @@ export default function ChatView({
             </div>
           )}
 
-          <p className="mt-2 text-center font-mono text-[10px] tracking-wide text-black/30">
+          <p className="mt-1.5 text-center font-mono text-[9px] tracking-wide text-black/30 sm:mt-2 sm:text-[10px]">
             {compressing
               ? `сжимаем видео… ${Math.round(compressPct * 100)}%`
               : uploading
