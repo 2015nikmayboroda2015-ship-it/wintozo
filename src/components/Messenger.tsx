@@ -14,6 +14,7 @@ import AndroidSettings from "./AndroidSettings";
 import { Capacitor } from "@capacitor/core";
 import { isPhoneDevice } from "../lib/oobe";
 import { devLog } from "../lib/devLogs";
+import "./you-chat.css";
 
 /** Нативное Android-приложение? Для него настройки — полноэкранные. */
 function isNativeAndroid(): boolean {
@@ -96,28 +97,38 @@ interface Props {
 }
 
 function Placeholder({ youMode }: { youMode?: boolean }) {
+  if (youMode) {
+    return (
+      <div className="yc-placeholder you-chat yc-chat h-full">
+        <span className="yc-placeholder-halo" aria-hidden />
+        <span className="yc-placeholder-orb yc-placeholder-orb-a" aria-hidden />
+        <span className="yc-placeholder-orb yc-placeholder-orb-b" aria-hidden />
+        <div className="yc-placeholder-card">
+          <div className="yc-placeholder-mark">
+            <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
+          </div>
+          <p className="yc-placeholder-title">Ваши беседы</p>
+          <p className="yc-placeholder-sub">
+            Выберите чат, найдите человека или создайте группу — всё в одном месте.
+          </p>
+          <div className="yc-placeholder-chips" aria-hidden>
+            <span>Личные</span>
+            <span>Группы</span>
+            <span>Каналы</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={cn(
-        "dot-grid-dark flex h-full flex-col items-center justify-center gap-5 text-center",
-        youMode ? "you-chat" : "bg-paper"
-      )}
-    >
-      <div
-        className={cn(
-          "flex h-20 w-20 items-center justify-center overflow-hidden rounded-[26px] text-3xl font-extrabold shadow-xl"
-        )}
-      >
+    <div className="dot-grid-dark flex h-full flex-col items-center justify-center gap-5 bg-paper text-center">
+      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[26px] text-3xl font-extrabold shadow-xl">
         <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
       </div>
       <div>
         <p className="text-xl font-extrabold tracking-tight">WinChat</p>
-        <p
-          className={cn(
-            "mt-2 max-w-[320px] text-sm leading-relaxed font-medium",
-            youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/45"
-          )}
-        >
+        <p className="mt-2 max-w-[320px] text-sm leading-relaxed font-medium text-black/45">
           Выберите чат слева, найдите человека или соберите группу
         </p>
       </div>

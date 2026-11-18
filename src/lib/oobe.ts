@@ -19,12 +19,17 @@ export const OOBE_UPDATE_KEY = "winchat_oobe_update_done";
 /** Запускалась ли OOBE «Первое скачивание» (ключ в localStorage). */
 export const OOBE_INSTALL_KEY = "winchat_oobe_install_done";
 
-/** Версии, для которых выпускалось OOBE-обновление
- *  (первая в списке — первое обновление, оно даёт ключ 1). */
-const OOBE_UPDATE_VERSIONS = ["5.0.0", "6.0.0"];
+/** Ступени OOBE-обновлений в порядке выхода.
+ *  Одна ступень = один показ приветствия. 6.0.0 уже показывали в closed
+ *  beta, поэтому релиз 6.0.0 — отдельная ступень (следующий ключ). */
+const OOBE_UPDATE_VERSIONS = ["5.0.0", "6.0.0", "6.0.0-release"];
 
 /** Ожидаемый ключ для текущей версии приложения. */
 export function getOobeUpdateExpectedKey(): number {
+  // Релизная сборка 6.0.0 — это отдельный проход OOBE после closed beta.
+  const releaseStage = OOBE_UPDATE_VERSIONS.indexOf(`${APP_VERSION}-release`);
+  if (releaseStage >= 0) return releaseStage + 1;
+
   const i = OOBE_UPDATE_VERSIONS.indexOf(APP_VERSION);
   // Версии нет в списке (например, будущая) — считаем последней известной.
   return i >= 0 ? i + 1 : OOBE_UPDATE_VERSIONS.length;

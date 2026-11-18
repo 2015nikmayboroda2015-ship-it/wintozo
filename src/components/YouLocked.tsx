@@ -44,11 +44,11 @@ export default function YouLocked({ me, onBack, onGetWinPro }: Props) {
           </p>
 
           {/* Палитра-«обои» */}
-          <div className="mt-6 flex items-center justify-center gap-2.5">
+          <div className="mx-auto mt-6 flex max-w-[320px] flex-wrap items-center justify-center gap-2">
             {YOU_SEEDS.map((s, i) => (
               <span
                 key={s.id}
-                className="you-gate-dot h-8 w-8 rounded-full shadow-sm ring-2 ring-white/70"
+                className="you-gate-dot h-7 w-7 rounded-full shadow-sm ring-2 ring-white/70"
                 style={{ background: s.primary, animationDelay: `${i * 0.12}s` }}
                 title={s.name}
               />
@@ -57,7 +57,7 @@ export default function YouLocked({ me, onBack, onGetWinPro }: Props) {
 
           <div className="mt-7 space-y-2.5 text-left">
             {[
-              "10 динамических палитр — как обои рабочего стола",
+              `${YOU_SEEDS.length} динамических палитр — как обои рабочего стола`,
               "Отдельный маршрут /themes/you/chat",
               "Крупные формы, тональные поверхности и аккуратные акценты",
             ].map((text) => (

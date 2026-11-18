@@ -1,0 +1,1948 @@
+/* ============================================================
+   WINCHAT YOU — Material You chat surface
+   Список чатов, шапка беседы, пузыри и композер.
+   Стили применяются только через .yc-* классы (youMode),
+   поэтому Liquid Glass остаётся нетронутым.
+   ============================================================ */
+
+.theme-you {
+  --yc-r-xl: 32px;
+  --yc-r-lg: 26px;
+  --yc-r-md: 20px;
+  --yc-r-sm: 14px;
+}
+
+/* ============================================================
+   1. СПИСОК ЧАТОВ
+   ============================================================ */
+
+.yc-sidebar {
+  background-image:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--you-primary) 7%, transparent),
+      transparent 34%
+    ),
+    radial-gradient(
+      ellipse 110% 55% at 0% 100%,
+      color-mix(in srgb, var(--you-tertiary) 8%, transparent),
+      transparent 70%
+    );
+}
+
+.yc-side-head {
+  padding: calc(20px + env(safe-area-inset-top)) 18px 12px;
+}
+
+/* --- Бренд --- */
+.yc-brand-logo {
+  border-radius: 16px;
+  background: linear-gradient(140deg, var(--you-primary), var(--you-primary-strong) 62%, var(--you-secondary));
+  box-shadow:
+    0 10px 22px -12px color-mix(in srgb, var(--you-primary) 90%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 24%, transparent);
+}
+
+.yc-brand-name {
+  color: var(--you-on-surface);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.yc-side-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yc-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--you-surface-container) 85%, transparent);
+  color: var(--you-on-surface-variant);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+.yc-icon-btn:hover {
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+  transform: translateY(-1px);
+}
+.yc-icon-btn:active {
+  transform: scale(0.94);
+}
+
+.yc-icon-btn-primary {
+  background: linear-gradient(135deg, var(--you-primary), var(--you-primary-strong));
+  color: var(--you-on-primary);
+  box-shadow: 0 10px 20px -12px color-mix(in srgb, var(--you-primary) 90%, transparent);
+}
+.yc-icon-btn-primary:hover {
+  background: linear-gradient(135deg, var(--you-primary), var(--you-primary-strong));
+  color: var(--you-on-primary);
+  filter: brightness(1.07);
+}
+
+/* --- Крупный заголовок --- */
+.yc-side-title {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.yc-side-title-text {
+  color: var(--you-on-surface);
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 0.94;
+  letter-spacing: -0.055em;
+}
+
+.yc-side-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: var(--you-primary-container);
+  color: var(--you-on-primary-container);
+  font-size: 12.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 8px 18px -14px color-mix(in srgb, var(--you-primary) 80%, transparent);
+}
+
+/* --- Поиск --- */
+.yc-search {
+  height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-surface-container-high, var(--you-surface-high)) 92%, transparent);
+  background-color: color-mix(in srgb, var(--you-surface-container-high, var(--you-surface-high)) 92%, transparent);
+  color: var(--you-on-surface);
+  caret-color: var(--you-primary);
+  box-shadow:
+    0 12px 26px -22px color-mix(in srgb, var(--you-primary) 75%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--you-outline-variant) 38%, transparent);
+  transition:
+    background-color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+.yc-search::placeholder {
+  color: var(--you-on-surface-variant);
+  opacity: 1;
+}
+.yc-search:focus {
+  background: var(--you-surface-high);
+  background-color: var(--you-surface-high);
+  border: 0;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--you-primary) 20%, transparent),
+    0 16px 34px -26px color-mix(in srgb, var(--you-primary) 85%, transparent);
+}
+.yc-search:-webkit-autofill,
+.yc-search:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--you-on-surface);
+  box-shadow: 0 0 0 1000px var(--you-surface-high) inset;
+}
+
+.yc-search-icon {
+  color: var(--you-on-surface-variant);
+}
+
+.yc-search-clear {
+  border-radius: 999px;
+  color: var(--you-on-surface-variant);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+.yc-search-clear:hover {
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+}
+
+/* --- Фильтры --- */
+.yc-filters {
+  display: flex;
+  gap: 7px;
+  margin-top: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.yc-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.yc-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 60%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--you-on-surface-variant);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+.yc-chip:hover {
+  background: color-mix(in srgb, var(--you-surface-container) 80%, transparent);
+  color: var(--you-on-surface);
+}
+.yc-chip:active {
+  transform: scale(0.96);
+}
+.yc-chip.is-active {
+  border-color: transparent;
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+  box-shadow: 0 8px 18px -16px color-mix(in srgb, var(--you-primary) 80%, transparent);
+}
+
+/* --- Список --- */
+.yc-list {
+  padding: 2px 10px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--you-outline) 40%, transparent) transparent;
+}
+.yc-list::-webkit-scrollbar {
+  width: 6px;
+}
+.yc-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-outline) 35%, transparent);
+}
+
+.yc-list-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 6px;
+  color: var(--you-on-surface-variant);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.yc-list-label::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--you-outline-variant) 80%, transparent),
+    transparent
+  );
+}
+
+/* --- Строка чата --- */
+.yc-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: var(--yc-r-lg);
+  background: transparent;
+  color: var(--you-on-surface);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s cubic-bezier(0.2, 1.2, 0.3, 1);
+  animation: yc-row-in 0.45s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+.yc-row:nth-child(2) { animation-delay: 0.025s; }
+.yc-row:nth-child(3) { animation-delay: 0.05s; }
+.yc-row:nth-child(4) { animation-delay: 0.075s; }
+.yc-row:nth-child(5) { animation-delay: 0.1s; }
+.yc-row:nth-child(6) { animation-delay: 0.125s; }
+.yc-row:nth-child(7) { animation-delay: 0.15s; }
+.yc-row:nth-child(8) { animation-delay: 0.175s; }
+
+.yc-row::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  width: 4px;
+  height: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--you-primary), var(--you-primary-strong));
+  transform: translateY(-50%);
+  transition: height 0.24s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+
+.yc-row:hover {
+  background: color-mix(in srgb, var(--you-surface-container) 78%, transparent);
+}
+.yc-row:active {
+  transform: scale(0.992);
+}
+
+.yc-row.is-active {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--you-primary) 16%, var(--you-surface-low)),
+      color-mix(in srgb, var(--you-primary-container) 58%, var(--you-surface-low))
+    );
+  box-shadow:
+    0 14px 30px -26px color-mix(in srgb, var(--you-primary) 90%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--you-primary) 14%, transparent);
+}
+.yc-row.is-active::before {
+  height: 28px;
+}
+
+.yc-avatar > div:first-child {
+  border-radius: 17px;
+}
+.yc-row.is-active .yc-avatar > div:first-child {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--you-primary) 32%, transparent);
+}
+.yc-avatar > span {
+  border-color: var(--you-surface-low);
+}
+
+.yc-row-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--you-on-surface);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+.yc-row.is-active .yc-row-title {
+  color: var(--you-on-primary-container);
+}
+
+.yc-row-time {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-surface-container) 74%, transparent);
+  color: var(--you-on-surface-variant);
+  font-size: 9.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.yc-row.is-active .yc-row-time {
+  background: color-mix(in srgb, var(--you-primary) 13%, transparent);
+  color: var(--you-on-primary-container);
+}
+
+.yc-row-preview {
+  margin-top: 3px;
+  color: var(--you-on-surface-variant);
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.35;
+}
+.yc-row.is-active .yc-row-preview {
+  color: color-mix(in srgb, var(--you-on-primary-container) 82%, transparent);
+}
+
+.yc-row-preview svg {
+  opacity: 0.8;
+}
+
+/* Результаты поиска людей */
+.yc-search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: var(--yc-r-md);
+  transition: background-color 0.2s ease;
+}
+.yc-search-row:hover {
+  background: color-mix(in srgb, var(--you-surface-container) 78%, transparent);
+}
+.yc-search-name {
+  color: var(--you-on-surface);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+.yc-search-handle {
+  margin-top: 2px;
+  color: var(--you-on-surface-variant);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+/* Скелетоны */
+.yc-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: var(--yc-r-lg);
+}
+.yc-skeleton-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--you-surface-high) 90%, transparent);
+}
+.yc-skeleton-line {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-surface-high) 90%, transparent);
+}
+
+/* --- Пустое состояние --- */
+.yc-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border-radius: 26px;
+  background:
+    linear-gradient(
+      145deg,
+      var(--you-primary-container),
+      color-mix(in srgb, var(--you-secondary-container) 80%, var(--you-primary-container))
+    );
+  color: var(--you-on-primary-container);
+  box-shadow: 0 18px 38px -28px color-mix(in srgb, var(--you-primary) 90%, transparent);
+}
+.yc-empty-title {
+  color: var(--you-on-surface);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+.yc-empty-sub {
+  color: var(--you-on-surface-variant);
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.5;
+}
+
+.yc-pill,
+.yc-pill-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  transition:
+    filter 0.2s ease,
+    transform 0.2s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+.yc-pill {
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+}
+.yc-pill-primary {
+  background: linear-gradient(135deg, var(--you-primary), var(--you-primary-strong));
+  color: var(--you-on-primary);
+  box-shadow: 0 12px 26px -18px color-mix(in srgb, var(--you-primary) 95%, transparent);
+}
+.yc-pill:hover,
+.yc-pill-primary:hover {
+  filter: brightness(1.05);
+}
+.yc-pill:active,
+.yc-pill-primary:active {
+  transform: scale(0.96);
+}
+
+/* --- Профиль внизу --- */
+.yc-side-foot {
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid color-mix(in srgb, var(--you-outline-variant) 55%, transparent);
+}
+
+.yc-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--yc-r-lg);
+  background: color-mix(in srgb, var(--you-surface-container) 78%, transparent);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.22s ease,
+    transform 0.22s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+.yc-profile:hover {
+  background: var(--you-secondary-container);
+}
+.yc-profile:active {
+  transform: scale(0.994);
+}
+
+.yc-profile-name {
+  color: var(--you-on-surface);
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+.yc-profile-handle {
+  color: var(--you-on-surface-variant);
+  font-size: 11px;
+  font-weight: 600;
+}
+.yc-profile-gear {
+  color: var(--you-on-surface-variant);
+  transition:
+    color 0.25s ease,
+    transform 0.4s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+.yc-profile:hover .yc-profile-gear {
+  color: var(--you-primary);
+  transform: rotate(60deg);
+}
+
+.yc-admin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--yc-r-md);
+  background: var(--you-tertiary-container);
+  color: var(--you-on-tertiary-container);
+  font-size: 13px;
+  font-weight: 750;
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+.yc-admin-btn:hover {
+  filter: brightness(1.04);
+}
+.yc-admin-btn:active {
+  transform: scale(0.99);
+}
+
+/* ============================================================
+   2. БЕСЕДА
+   ============================================================ */
+
+.yc-chat {
+  background-image:
+    radial-gradient(
+      ellipse 60% 45% at 100% 0%,
+      color-mix(in srgb, var(--you-primary) 8%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 55% 42% at 0% 100%,
+      color-mix(in srgb, var(--you-tertiary) 9%, transparent),
+      transparent 68%
+    );
+}
+
+/* --- Шапка --- */
+.yc-appbar {
+  margin: calc(9px + env(safe-area-inset-top)) 10px 0;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 42%, transparent);
+  border-radius: var(--yc-r-lg);
+  background: color-mix(in srgb, var(--you-surface-high) 76%, transparent);
+  box-shadow:
+    0 18px 42px -36px color-mix(in srgb, var(--you-primary) 90%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 10%, transparent);
+  backdrop-filter: blur(24px) saturate(1.22);
+  -webkit-backdrop-filter: blur(24px) saturate(1.22);
+}
+
+.yc-appbar-back {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: var(--you-primary-container);
+  color: var(--you-on-primary-container);
+  transition:
+    filter 0.2s ease,
+    transform 0.2s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+.yc-appbar-back:hover {
+  filter: brightness(1.04);
+}
+.yc-appbar-back:active {
+  transform: scale(0.93);
+}
+
+.yc-appbar-avatar > div:first-child {
+  border-radius: 16px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--you-primary) 16%, transparent);
+}
+
+.yc-appbar-title {
+  color: var(--you-on-surface);
+  font-size: 16.5px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.yc-appbar-title svg {
+  color: var(--you-on-surface-variant);
+}
+
+.yc-appbar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  color: var(--you-on-surface-variant);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+.yc-appbar-status.is-online,
+.yc-appbar-status.is-typing {
+  color: color-mix(in srgb, var(--you-primary) 82%, var(--you-on-surface));
+}
+
+.yc-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--you-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--you-primary) 16%, transparent);
+  animation: yc-pulse 2.2s ease-in-out infinite;
+}
+
+.yc-appbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.yc-appbar-action {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--you-on-surface-variant);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+.yc-appbar-action:hover {
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+}
+.yc-appbar-action:active {
+  transform: scale(0.93);
+}
+.yc-appbar-action-gold {
+  background: color-mix(in srgb, var(--you-tertiary-container) 65%, transparent);
+  color: color-mix(in srgb, var(--you-tertiary) 85%, var(--you-on-surface));
+}
+
+/* --- Лента --- */
+.yc-feed {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--you-outline) 34%, transparent) transparent;
+}
+.yc-feed::-webkit-scrollbar {
+  width: 7px;
+}
+.yc-feed::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-outline) 30%, transparent);
+}
+
+.yc-feed-inner {
+  width: 100%;
+}
+
+/* Дата */
+.yc-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--you-on-surface-variant);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.yc-date::before,
+.yc-date::after {
+  content: "";
+  width: 30px;
+  height: 1px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-outline-variant) 80%, transparent);
+}
+
+/* Строка сообщения */
+.yc-msg-row {
+  animation: yc-msg-in 0.44s cubic-bezier(0.22, 1.24, 0.36, 1) both;
+}
+.yc-msg-avatar > div:first-child {
+  border-radius: 14px;
+}
+.yc-msg-avatar > span {
+  border-color: var(--you-surface);
+}
+
+/* Пузыри */
+.yc-bubble {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  transition:
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    border-radius 0.25s ease;
+}
+.yc-bubble-own {
+  background: linear-gradient(
+    142deg,
+    var(--you-primary) 0%,
+    var(--you-primary-strong) 100%
+  );
+  color: var(--you-on-primary);
+  border: 1px solid transparent;
+  box-shadow:
+    0 16px 32px -26px color-mix(in srgb, var(--you-primary) 100%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 14%, transparent);
+}
+.yc-bubble-other {
+  background: color-mix(in srgb, var(--you-surface-high) 94%, transparent);
+  color: var(--you-on-surface);
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 32%, transparent);
+  box-shadow: 0 14px 30px -28px color-mix(in srgb, var(--you-on-surface) 55%, transparent);
+}
+
+.yc-tail-own {
+  border-bottom-right-radius: 7px;
+}
+.yc-tail-other {
+  border-bottom-left-radius: 7px;
+}
+.yc-stack-own {
+  border-top-right-radius: 11px;
+}
+.yc-stack-other {
+  border-top-left-radius: 11px;
+}
+
+.yc-bubble-time {
+  color: color-mix(in srgb, var(--you-on-surface-variant) 88%, transparent);
+}
+.yc-bubble-own .yc-bubble-time {
+  color: color-mix(in srgb, var(--you-on-primary) 68%, transparent);
+}
+
+.yc-sender {
+  margin-bottom: 2px;
+  color: var(--you-primary);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Действия у сообщения */
+.yc-msg-action {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-surface-container) 72%, transparent);
+  color: var(--you-on-surface-variant);
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+.yc-msg-action:hover {
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+  transform: translateY(-1px);
+}
+.yc-msg-action-danger:hover {
+  background: color-mix(in srgb, #ba1a1a 14%, transparent);
+  color: #b3261e;
+}
+
+/* Пустая беседа */
+.yc-empty-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 42% 58% 56% 44% / 48% 42% 58% 52%;
+  background: linear-gradient(
+    142deg,
+    var(--you-primary),
+    var(--you-primary-strong) 64%,
+    var(--you-secondary)
+  );
+  color: var(--you-on-primary);
+  box-shadow: 0 26px 54px -30px color-mix(in srgb, var(--you-primary) 95%, transparent);
+  animation: yc-blob 9s ease-in-out infinite alternate;
+}
+.yc-empty-mark::after {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: inherit;
+  border: 1px dashed color-mix(in srgb, var(--you-primary) 28%, transparent);
+  animation: yc-orbit 26s linear infinite;
+}
+.yc-empty-mark svg {
+  position: relative;
+  z-index: 1;
+}
+.yc-empty-title-lg {
+  color: var(--you-on-surface);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.yc-empty-sub-lg {
+  color: var(--you-on-surface-variant);
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.55;
+}
+
+/* Заглушка «выберите чат» */
+.yc-placeholder {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 28px;
+}
+
+.yc-placeholder-halo {
+  position: absolute;
+  width: min(70vw, 560px);
+  height: min(70vw, 560px);
+  border-radius: 46% 54% 58% 42% / 52% 44% 56% 48%;
+  background:
+    radial-gradient(
+      circle at 32% 28%,
+      color-mix(in srgb, var(--you-primary) 22%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      circle at 72% 74%,
+      color-mix(in srgb, var(--you-tertiary) 20%, transparent),
+      transparent 60%
+    );
+  filter: blur(6px);
+  animation: yc-blob 14s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.yc-placeholder-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 420px;
+  padding: 36px 32px;
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 46%, transparent);
+  border-radius: var(--yc-r-xl);
+  background: color-mix(in srgb, var(--you-surface-low) 74%, transparent);
+  box-shadow:
+    0 34px 80px -60px color-mix(in srgb, var(--you-primary) 90%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 12%, transparent);
+  backdrop-filter: blur(26px) saturate(1.1);
+  -webkit-backdrop-filter: blur(26px) saturate(1.1);
+  text-align: center;
+}
+
+.yc-placeholder-mark {
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 82px;
+  overflow: hidden;
+  border-radius: 28px;
+  box-shadow: 0 22px 44px -26px color-mix(in srgb, var(--you-primary) 90%, transparent);
+}
+
+.yc-placeholder-title {
+  margin-top: 20px;
+  color: var(--you-on-surface);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.yc-placeholder-sub {
+  margin-top: 8px;
+  color: var(--you-on-surface-variant);
+  font-size: 13.5px;
+  font-weight: 550;
+  line-height: 1.6;
+}
+
+.yc-placeholder-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 22px;
+}
+.yc-placeholder-chips span {
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+  font-size: 11.5px;
+  font-weight: 750;
+}
+.yc-placeholder-chips span:nth-child(2) {
+  background: var(--you-primary-container);
+  color: var(--you-on-primary-container);
+}
+.yc-placeholder-chips span:nth-child(3) {
+  background: var(--you-tertiary-container);
+  color: var(--you-on-tertiary-container);
+}
+
+/* ============================================================
+   3. КОМПОЗЕР
+   ============================================================ */
+
+.yc-bottom {
+  padding: 8px 10px calc(9px + env(safe-area-inset-bottom));
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+}
+
+.yc-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 40%, transparent);
+  border-radius: var(--yc-r-lg);
+  background: color-mix(in srgb, var(--you-surface-high) 88%, transparent);
+  box-shadow:
+    0 20px 46px -38px color-mix(in srgb, var(--you-primary) 90%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
+  transition:
+    background-color 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+.yc-composer:focus-within {
+  border-color: color-mix(in srgb, var(--you-primary) 26%, transparent);
+  background: var(--you-surface-high);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--you-primary) 17%, transparent),
+    0 24px 52px -38px color-mix(in srgb, var(--you-primary) 95%, transparent);
+}
+
+.yc-composer textarea {
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--you-on-surface) !important;
+  caret-color: var(--you-primary);
+}
+.yc-composer textarea::placeholder {
+  color: var(--you-on-surface-variant) !important;
+  opacity: 1;
+}
+
+.yc-composer-input {
+  color: var(--you-on-surface);
+}
+
+.yc-composer-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  color: var(--you-on-surface-variant);
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+.yc-composer-icon:hover {
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+}
+.yc-composer-icon:active {
+  transform: scale(0.92);
+}
+
+.yc-send {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 17px;
+  background: linear-gradient(135deg, var(--you-primary), var(--you-primary-strong));
+  color: var(--you-on-primary);
+  box-shadow: 0 14px 28px -18px color-mix(in srgb, var(--you-primary) 95%, transparent);
+  cursor: pointer;
+  transition:
+    filter 0.18s ease,
+    transform 0.18s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+.yc-send:hover {
+  filter: brightness(1.07);
+}
+.yc-send:active {
+  transform: scale(0.93);
+}
+.yc-send:disabled {
+  opacity: 0.42;
+}
+
+.yc-send-tonal {
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+  box-shadow: 0 12px 26px -20px color-mix(in srgb, var(--you-secondary) 90%, transparent);
+}
+.yc-send-tonal:hover {
+  filter: brightness(1.04);
+}
+
+.yc-hint {
+  margin-top: 7px;
+  color: var(--you-on-surface-variant);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+  line-height: 1.4;
+  opacity: 0.86;
+}
+
+.yc-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 15px 16px;
+  border-radius: var(--yc-r-md);
+  background: color-mix(in srgb, var(--you-secondary-container) 70%, transparent);
+  color: var(--you-on-secondary-container);
+  font-size: 12.5px;
+  font-weight: 650;
+  text-align: center;
+}
+
+/* Панели записи */
+.yc-record-panel {
+  border-radius: var(--yc-r-lg) !important;
+  border-color: color-mix(in srgb, var(--you-outline-variant) 40%, transparent) !important;
+  background: color-mix(in srgb, var(--you-surface-high) 90%, transparent) !important;
+  box-shadow: 0 18px 40px -34px color-mix(in srgb, var(--you-primary) 90%, transparent);
+}
+
+/* ============================================================
+   4. АНИМАЦИИ И АДАПТИВНОСТЬ
+   ============================================================ */
+
+@keyframes yc-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(9px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes yc-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.965);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes yc-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--you-primary) 14%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--you-primary) 4%, transparent);
+  }
+}
+
+@keyframes yc-blob {
+  from {
+    border-radius: 42% 58% 56% 44% / 48% 42% 58% 52%;
+    transform: rotate(-3deg) scale(1);
+  }
+  to {
+    border-radius: 58% 42% 44% 56% / 56% 54% 46% 44%;
+    transform: rotate(3deg) scale(1.04);
+  }
+}
+
+@keyframes yc-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 767px) {
+  .yc-side-head {
+    padding: calc(16px + env(safe-area-inset-top)) 16px 10px;
+  }
+  .yc-side-title-text {
+    font-size: 30px;
+  }
+  .yc-appbar {
+    width: calc(100% - 16px);
+    max-width: none;
+    margin: calc(7px + env(safe-area-inset-top)) auto 0;
+    padding: 8px;
+    border-radius: 24px;
+  }
+  .yc-appbar-back,
+  .yc-appbar-action {
+    width: 38px;
+    height: 38px;
+  }
+  .yc-appbar-actions {
+    gap: 2px;
+  }
+  .yc-feed {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .yc-bottom {
+    padding: 7px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+  .yc-send {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+  }
+  .yc-placeholder {
+    padding: 18px;
+  }
+  .yc-placeholder-card {
+    padding: 30px 22px;
+  }
+  .yc-placeholder-title {
+    font-size: 21px;
+  }
+}
+
+@media (max-width: 420px) {
+  .yc-row {
+    gap: 10px;
+    padding: 10px;
+  }
+  .yc-row-time {
+    display: none;
+  }
+  .yc-appbar-action {
+    width: 36px;
+    height: 36px;
+  }
+  .yc-appbar-title {
+    font-size: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yc-row,
+  .yc-msg-row,
+  .yc-empty-mark,
+  .yc-placeholder-halo,
+  .yc-status-dot,
+  .yc-empty-mark::after {
+    animation: none !important;
+  }
+  .yc-row,
+  .yc-icon-btn,
+  .yc-chip,
+  .yc-pill,
+  .yc-pill-primary,
+  .yc-profile,
+  .yc-appbar-action,
+  .yc-appbar-back,
+  .yc-composer-icon,
+  .yc-send {
+    transition: none !important;
+  }
+}
+
+/* ============================================================
+   5. BEAUTY PASS — больше цвета, глубины и «воздуха»
+   ============================================================ */
+
+/* --- Сайдбар: свет и объём --- */
+.yc-sidebar {
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--you-outline-variant) 45%, transparent);
+}
+
+.yc-side-head {
+  position: relative;
+  isolation: isolate;
+}
+.yc-side-head::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -70px;
+  right: -48px;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 42% 42%,
+    color-mix(in srgb, var(--you-primary) 30%, transparent),
+    color-mix(in srgb, var(--you-secondary) 12%, transparent) 48%,
+    transparent 72%
+  );
+  filter: blur(10px);
+  pointer-events: none;
+}
+.yc-side-head::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 0;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--you-outline-variant) 75%, transparent) 18%,
+    color-mix(in srgb, var(--you-outline-variant) 55%, transparent) 82%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+.yc-brand-logo {
+  box-shadow:
+    0 16px 30px -16px color-mix(in srgb, var(--you-primary) 100%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 26%, transparent);
+}
+
+.yc-side-title {
+  position: relative;
+}
+.yc-side-title-text {
+  background: linear-gradient(
+    120deg,
+    var(--you-primary) 0%,
+    var(--you-primary-strong) 44%,
+    var(--you-secondary) 100%
+  );
+  background-size: 160% 160%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 12px 24px color-mix(in srgb, var(--you-primary) 18%, transparent));
+  animation: yc-title-flow 14s ease-in-out infinite alternate;
+}
+@keyframes yc-title-flow {
+  from {
+    background-position: 0% 40%;
+  }
+  to {
+    background-position: 100% 60%;
+  }
+}
+.yc-side-count {
+  background: linear-gradient(135deg, var(--you-primary-container), var(--you-secondary-container));
+  box-shadow:
+    0 10px 22px -16px color-mix(in srgb, var(--you-primary) 85%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 0 0 1px color-mix(in srgb, var(--you-primary) 10%, transparent);
+}
+
+/* --- Поиск с тональной иконкой --- */
+.yc-search {
+  height: 54px;
+  padding-left: 58px !important;
+}
+.yc-search-orb {
+  position: absolute;
+  top: 50%;
+  left: 7px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, var(--you-primary-container), var(--you-secondary-container));
+  color: var(--you-on-primary-container);
+  transform: translateY(-50%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  transition:
+    transform 0.24s cubic-bezier(0.2, 1.2, 0.3, 1),
+    background 0.24s ease,
+    color 0.24s ease;
+}
+.relative:has(.yc-search:focus) .yc-search-orb {
+  transform: translateY(-50%) scale(1.06);
+  background: linear-gradient(140deg, var(--you-primary), var(--you-primary-strong));
+  color: var(--you-on-primary);
+}
+
+/* --- Чипы-фильтры --- */
+.yc-chip {
+  background: color-mix(in srgb, var(--you-surface-low) 55%, transparent);
+}
+.yc-chip.is-active {
+  background: linear-gradient(135deg, var(--you-primary-container), var(--you-secondary-container));
+  color: var(--you-on-primary-container);
+  box-shadow:
+    0 12px 24px -18px color-mix(in srgb, var(--you-primary) 90%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 22%, transparent);
+}
+
+/* --- Строки: крупнее и с градиентным кольцом --- */
+.yc-row {
+  padding: 12px 13px;
+  border-radius: 28px;
+}
+.yc-row:hover {
+  transform: translateX(2px);
+}
+.yc-row.is-active {
+  transform: none;
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      color-mix(in srgb, var(--you-primary) 22%, transparent),
+      transparent 52%
+    ),
+    radial-gradient(
+      circle at 0% 100%,
+      color-mix(in srgb, var(--you-tertiary) 10%, transparent),
+      transparent 50%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--you-primary) 16%, var(--you-surface-low)),
+      color-mix(in srgb, var(--you-primary-container) 62%, var(--you-surface-low))
+    );
+  box-shadow:
+    0 22px 44px -30px color-mix(in srgb, var(--you-primary) 90%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 0 1px color-mix(in srgb, var(--you-primary) 18%, transparent);
+}
+.yc-row.is-active .yc-avatar {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.yc-row.is-active .yc-avatar > div:first-child {
+  border-radius: 17px;
+  border: 0;
+  box-shadow:
+    0 0 0 2px var(--you-surface-low),
+    0 0 0 4px color-mix(in srgb, var(--you-primary) 58%, transparent),
+    0 12px 24px -16px color-mix(in srgb, var(--you-primary) 90%, transparent);
+}
+.yc-row.is-active .yc-row-title {
+  color: var(--you-on-surface);
+}
+.yc-row.is-active .yc-row-preview {
+  color: color-mix(in srgb, var(--you-on-surface-variant) 92%, transparent);
+}
+
+.yc-row-time {
+  background: color-mix(in srgb, var(--you-surface-low) 72%, transparent);
+}
+.yc-row.is-active .yc-row-time {
+  background: color-mix(in srgb, var(--you-primary) 18%, transparent);
+  color: color-mix(in srgb, var(--you-primary) 82%, var(--you-on-surface));
+}
+
+/* --- Профиль внизу --- */
+.yc-profile {
+  background:
+    radial-gradient(
+      circle at 0% 50%,
+      color-mix(in srgb, var(--you-primary) 13%, transparent),
+      transparent 58%
+    ),
+    color-mix(in srgb, var(--you-surface-container) 76%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--you-outline-variant) 42%, transparent);
+}
+.yc-profile .yc-avatar {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+.yc-profile .yc-avatar > div:first-child {
+  border-radius: 12px;
+  border: 0;
+  box-shadow:
+    0 0 0 2px var(--you-surface-container),
+    0 0 0 4px color-mix(in srgb, var(--you-primary) 48%, transparent);
+}
+.yc-profile .yc-avatar > span {
+  border-color: var(--you-surface-container);
+}
+.yc-profile:hover {
+  background:
+    radial-gradient(
+      circle at 0% 50%,
+      color-mix(in srgb, var(--you-primary) 20%, transparent),
+      transparent 62%
+    ),
+    var(--you-secondary-container);
+}
+
+/* ============================================================
+   Беседа: парящая шапка, живые пузыри, светящийся композер
+   ============================================================ */
+
+.yc-chat {
+  background-image:
+    radial-gradient(
+      ellipse 64% 48% at 102% -6%,
+      color-mix(in srgb, var(--you-primary) 20%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 54% 44% at -8% 106%,
+      color-mix(in srgb, var(--you-tertiary) 20%, transparent),
+      transparent 66%
+    ),
+    radial-gradient(
+      ellipse 42% 34% at 50% 44%,
+      color-mix(in srgb, var(--you-secondary-container) 38%, transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--you-primary) 6%, transparent),
+      transparent 42%
+    );
+}
+
+/* --- Шапка --- */
+.yc-appbar {
+  position: relative;
+  isolation: isolate;
+  width: calc(100% - 20px);
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--you-surface-high) 90%, var(--you-primary) 5%),
+      color-mix(in srgb, var(--you-surface-high) 74%, transparent)
+    );
+  box-shadow:
+    0 30px 64px -48px color-mix(in srgb, var(--you-primary) 100%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  animation: yc-panel-in 0.45s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+.yc-appbar::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 1px;
+  border-radius: inherit;
+  background: radial-gradient(
+    ellipse 70% 130% at 12% 0%,
+    color-mix(in srgb, var(--you-primary) 14%, transparent),
+    transparent 62%
+  );
+  pointer-events: none;
+}
+.yc-appbar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 26px;
+  right: 26px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--you-primary) 70%, transparent),
+    color-mix(in srgb, var(--you-secondary) 55%, transparent),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.yc-appbar-back {
+  background: linear-gradient(140deg, var(--you-primary-container), var(--you-secondary-container));
+  box-shadow:
+    0 10px 22px -16px color-mix(in srgb, var(--you-primary) 80%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 24%, transparent);
+}
+
+.yc-appbar-avatar {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.yc-appbar-avatar > div:first-child {
+  border-radius: 16px;
+  border: 0;
+  box-shadow:
+    0 0 0 2px var(--you-surface-high),
+    0 0 0 4px color-mix(in srgb, var(--you-primary) 55%, transparent),
+    0 12px 26px -18px color-mix(in srgb, var(--you-primary) 95%, transparent);
+}
+.yc-appbar-avatar > span {
+  border-color: var(--you-surface-high);
+}
+
+.yc-appbar-title {
+  font-size: 17.5px;
+  letter-spacing: -0.035em;
+}
+
+.yc-appbar-action {
+  background: color-mix(in srgb, var(--you-surface-container) 58%, transparent);
+}
+.yc-appbar-action:hover {
+  background: var(--you-secondary-container);
+  transform: translateY(-1px);
+}
+
+/* --- Дата --- */
+.yc-date {
+  padding: 4px 12px;
+  background: color-mix(in srgb, var(--you-surface-container) 58%, transparent);
+  color: var(--you-on-surface-variant);
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 32%, transparent);
+  box-shadow: 0 8px 18px -18px color-mix(in srgb, var(--you-on-surface) 60%, transparent);
+}
+.yc-date::before,
+.yc-date::after {
+  width: 18px;
+  opacity: 0.7;
+}
+
+/* --- Пузыри --- */
+.yc-bubble {
+  border-radius: 26px;
+}
+.yc-bubble::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.09),
+    transparent 38%,
+    transparent 72%,
+    rgba(0, 0, 0, 0.05)
+  );
+  pointer-events: none;
+}
+.yc-bubble-own {
+  background:
+    linear-gradient(
+      150deg,
+      var(--you-primary) 0%,
+      var(--you-primary-strong) 56%,
+      color-mix(in srgb, var(--you-primary-strong) 78%, var(--you-tertiary)) 100%
+    );
+  box-shadow:
+    0 22px 40px -30px color-mix(in srgb, var(--you-primary) 100%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.yc-bubble-other {
+  /* Примесь on-surface делает пузырь светлее в тёмной палитре
+     и чуть глубже — в светлой. */
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--you-surface-high) 95%, var(--you-on-surface)),
+      color-mix(in srgb, var(--you-surface-high) 90%, var(--you-on-surface))
+    );
+  box-shadow:
+    0 18px 34px -30px color-mix(in srgb, var(--you-on-surface) 55%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px color-mix(in srgb, var(--you-outline-variant) 36%, transparent);
+}
+
+.yc-sender {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+  color: color-mix(in srgb, var(--you-primary) 82%, var(--you-on-surface));
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  opacity: 0.94;
+}
+.yc-sender::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--you-primary) 14%, transparent);
+}
+
+.yc-msg-avatar {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.yc-msg-avatar > div:first-child {
+  border-radius: 14px;
+  border: 0;
+  box-shadow:
+    0 0 0 2px var(--you-surface),
+    0 0 0 4px color-mix(in srgb, var(--you-primary) 42%, transparent);
+}
+.yc-msg-avatar > span {
+  border-color: var(--you-surface);
+}
+
+.yc-msg-action {
+  background: color-mix(in srgb, var(--you-surface-high) 76%, transparent);
+  box-shadow: 0 8px 18px -16px color-mix(in srgb, var(--you-on-surface) 60%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+/* --- Пустая беседа --- */
+.yc-empty-mark {
+  width: 104px;
+  height: 104px;
+  border-radius: 40% 60% 55% 45% / 48% 42% 58% 52%;
+  background:
+    radial-gradient(
+      circle at 34% 28%,
+      color-mix(in srgb, white 22%, transparent),
+      transparent 46%
+    ),
+    linear-gradient(
+      142deg,
+      var(--you-primary),
+      var(--you-primary-strong) 58%,
+      var(--you-tertiary) 100%
+    );
+  box-shadow:
+    0 34px 66px -34px color-mix(in srgb, var(--you-primary) 100%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 26%, transparent);
+}
+.yc-empty-logo {
+  width: 54px;
+  height: 54px;
+  border-radius: 17px;
+  object-fit: cover;
+  box-shadow:
+    0 10px 22px -12px color-mix(in srgb, black 50%, transparent),
+    0 0 0 3px color-mix(in srgb, white 22%, transparent);
+}
+.yc-empty-mark::after {
+  inset: -16px;
+  border-color: color-mix(in srgb, var(--you-primary) 32%, transparent);
+}
+
+/* --- Заглушка «выберите чат» --- */
+.yc-placeholder-card {
+  border-radius: 36px;
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--you-surface-low) 88%, transparent),
+      color-mix(in srgb, var(--you-surface-container) 66%, transparent)
+    );
+  box-shadow:
+    0 46px 100px -70px color-mix(in srgb, var(--you-primary) 100%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 16%, transparent);
+}
+.yc-placeholder-mark {
+  width: 92px;
+  height: 92px;
+  padding: 3px;
+  border-radius: 30px;
+  background: linear-gradient(145deg, var(--you-primary), var(--you-primary-strong) 58%, var(--you-tertiary));
+  box-shadow:
+    0 26px 52px -26px color-mix(in srgb, var(--you-primary) 100%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--you-surface-low) 55%, transparent);
+}
+.yc-placeholder-mark img {
+  border-radius: 27px;
+}
+.yc-placeholder-title {
+  font-size: 26px;
+}
+.yc-placeholder-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(14px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: yc-float 10s ease-in-out infinite alternate;
+}
+.yc-placeholder-orb-a {
+  top: 13%;
+  left: 12%;
+  width: 110px;
+  height: 110px;
+  background: radial-gradient(circle, var(--you-primary), transparent 68%);
+}
+.yc-placeholder-orb-b {
+  right: 13%;
+  bottom: 12%;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, var(--you-secondary), transparent 70%);
+  animation-delay: -4s;
+  animation-duration: 13s;
+}
+
+/* --- Композер --- */
+.yc-bottom {
+  position: relative;
+  isolation: isolate;
+  animation: yc-dock-in 0.5s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+.yc-bottom::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 14%;
+  right: 14%;
+  bottom: 2px;
+  height: 74px;
+  border-radius: 40px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--you-primary) 50%, transparent),
+    color-mix(in srgb, var(--you-secondary) 45%, transparent) 52%,
+    color-mix(in srgb, var(--you-tertiary) 45%, transparent)
+  );
+  filter: blur(30px);
+  opacity: 0.28;
+  pointer-events: none;
+}
+.yc-bottom > div {
+  position: relative;
+  z-index: 1;
+}
+
+.yc-composer {
+  position: relative;
+  border-radius: 28px;
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--you-surface-high) 96%, white),
+      color-mix(in srgb, var(--you-surface-high) 86%, var(--you-secondary-container))
+    );
+  box-shadow:
+    0 30px 64px -50px color-mix(in srgb, var(--you-primary) 100%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 0 1px color-mix(in srgb, var(--you-outline-variant) 28%, transparent);
+}
+.yc-composer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 26px;
+  right: 26px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--you-primary) 46%, transparent),
+    transparent
+  );
+  opacity: 0.5;
+  pointer-events: none;
+}
+.yc-composer:focus-within {
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--you-surface-high) 98%, white),
+      color-mix(in srgb, var(--you-surface-high) 90%, var(--you-secondary-container))
+    );
+}
+
+.yc-composer-icon {
+  background: color-mix(in srgb, var(--you-surface-container) 52%, transparent);
+}
+.yc-composer-icon:hover {
+  background: var(--you-secondary-container);
+}
+
+.yc-send {
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 30% 22%,
+      color-mix(in srgb, white 18%, transparent),
+      transparent 48%
+    ),
+    linear-gradient(
+      140deg,
+      var(--you-primary),
+      var(--you-primary-strong) 55%,
+      color-mix(in srgb, var(--you-primary-strong) 74%, var(--you-secondary))
+    );
+  box-shadow:
+    0 18px 34px -20px color-mix(in srgb, var(--you-primary) 100%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 20%, transparent);
+}
+
+.yc-send-tonal {
+  background: linear-gradient(140deg, var(--you-secondary-container), var(--you-primary-container));
+  color: var(--you-on-secondary-container);
+  box-shadow:
+    0 14px 28px -20px color-mix(in srgb, var(--you-secondary) 90%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 22%, transparent);
+}
+
+.yc-hint {
+  opacity: 0.78;
+}
+
+/* --- Фокус --- */
+.yc-row:focus-visible,
+.yc-chip:focus-visible,
+.yc-icon-btn:focus-visible,
+.yc-appbar-action:focus-visible,
+.yc-appbar-back:focus-visible,
+.yc-send:focus-visible,
+.yc-composer-icon:focus-visible,
+.yc-profile:focus-visible,
+.yc-pill:focus-visible,
+.yc-pill-primary:focus-visible,
+.yc-search-row:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--you-primary) 42%, transparent);
+  outline-offset: 2px;
+}
+
+@keyframes yc-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes yc-dock-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes yc-float {
+  from {
+    transform: translate3d(-10px, 8px, 0) scale(1);
+  }
+  to {
+    transform: translate3d(12px, -12px, 0) scale(1.08);
+  }
+}
+
+@media (max-width: 767px) {
+  .yc-side-title-text {
+    font-size: 32px;
+  }
+  .yc-row {
+    padding: 11px 12px;
+    border-radius: 26px;
+  }
+  .yc-bottom::before {
+    left: 8%;
+    right: 8%;
+    opacity: 0.22;
+  }
+  .yc-placeholder-orb {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yc-appbar,
+  .yc-bottom,
+  .yc-placeholder-orb {
+    animation: none !important;
+  }
+  .yc-side-title-text {
+    filter: none;
+  }
+}

@@ -42,10 +42,9 @@ import YouLocked from "./components/YouLocked";
 import GlassLocked from "./components/GlassLocked";
 import OobeUpdate from "./components/oobe/OobeUpdate";
 import OobeInstall from "./components/oobe/OobeInstall";
-import OobeThemeChooser, { type OobeVariant } from "./components/oobe/OobeThemeChooser";
+import type { OobeVariant } from "./components/oobe/OobeThemeChooser";
 /* OOBE прошлых версий (например 5.0) — назначается через терминал (/set oobe). */
 import OobeUpdate5 from "./components/oobe/OobeUpdate5";
-import type { OobeVariant as OobeVariant5 } from "./components/oobe/OobeThemeChooser5";
 
 /* ============================================================
    Лёгкий роутер (как в старом Wintozo)
@@ -57,12 +56,18 @@ import type { OobeVariant as OobeVariant5 } from "./components/oobe/OobeThemeCho
                     /events/themes/wintozo/*
    ============================================================ */
 const LEGACY_PREFIX = "/events/themes/wintozo";
+/** Прямая ссылка-превью OOBE 6.0 в браузере: /winchat_6_oobe */
+const OOBE_PREVIEW_PATH = "/winchat_6_oobe";
 const YOU_PREFIX = "/themes/you";
 const YOU_PREV_THEME_KEY = "winchat_you_prev_theme";
 const GLASS_PREFIX = "/themes/glass";
 const GLASS_PREV_THEME_KEY = "winchat_glass_prev_theme";
 /** Версия, при первом запуске которой уже показали долгий boot-сплэш. */
 const BOOT_LONG_VERSION_KEY = "winchat_boot_long_version";
+/** Токен долгой заставки: новая версия приложения или новая ступень OOBE. */
+function longBootToken(): string {
+  return `${APP_VERSION}:oobe${getOobeUpdateExpectedKey()}`;
+}
 
 function isYouPath(path: string): boolean {
   return path === YOU_PREFIX || path.startsWith(`${YOU_PREFIX}/`);
@@ -92,16 +97,18 @@ export default function App() {
   const [banReason, setBanReason] = useState("");
   /* Стартовая анимация: показываем, пока она сама не доиграет до конца. */
   const [splashDone, setSplashDone] = useState(false);
-  /* Первый запуск после установки или обновления — сплэш крутится дольше (10–13 с). */
+  /* Первый запуск после установки/обновления — сплэш крутится дольше (~10 с). */
   const [longBoot] = useState(() => {
     try {
-      return localStorage.getItem(BOOT_LONG_VERSION_KEY) !== APP_VERSION;
+      return localStorage.getItem(BOOT_LONG_VERSION_KEY) !== longBootToken();
     } catch {
       return false;
     }
   });
   /* Выбранный стиль стартовой заставки (читается один раз на запуск). */
   const [bootStyle] = useState(() => getBootStyle());
+  /* Первый запуск OOBE: играем заставку You ~10 секунд даже без темы You. */
+  const useYouBoot = bootStyle === "you" || longBoot;
   /* Плашка «переключить заставку на You-стиль?» после активации темы. */
   const [youBootAsk, setYouBootAsk] = useState(false);
   /* Ивент «Память о Wintozo»: показывать ли legacy-экран выбора/старый UI */
@@ -109,15 +116,8 @@ export default function App() {
   /* OOBE: приветствия после обновления и при первом скачивании */
   const [oobeUpdateShown, setOobeUpdateShown] = useState(true);
   const [oobeInstallShown, setOobeInstallShown] = useState(true);
-  /* Стиль OOBE: выбирает пользователь при первом запуске (You или Liquid в 5.0). */
-  const [oobeTheme, setOobeTheme] = useState<OobeVariant | null>(() => {
-    try {
-      const v = localStorage.getItem("winchat_oobe_theme");
-      return v === "you" || v === "liquid" ? v : null;
-    } catch {
-      return null;
-    }
-  });
+  /* OOBE в WinChat 6.0 всегда в стиле Material You — выбор в начале убран. */
+  const [oobeTheme] = useState<OobeVariant>("you");
   /* Лёгкий роутер: путь синхронизируется с экранами приложения */
   const path = useRoute();
   /* WinChat You — отдельный режим-маршрут /themes/you/* */
@@ -178,8 +178,12 @@ export default function App() {
   }, [inviteChatId, session, profile]);
 
   /* ---------- OOBE: приветствия (телефоны − автоматически, ПК − по адресу) ---------- */
+  /* Прямая ссылка-превью OOBE: /winchat_6_oobe (в том числе со слэшем). */
+  const isOobePreview =
+    path === OOBE_PREVIEW_PATH ||
+    path.startsWith(`${OOBE_PREVIEW_PATH}/`);
   const oobeForceUpdate = path.startsWith("/oobe_update");
-  const oobeForceInstall = path.startsWith("/install_oobe");
+  const oobeForceInstall = path.startsWith("/install_oobe") || isOobePreview;
   /* OOBE какой версии назначена пользователю через терминал (/set oobe):
      «5.0» или «6.0» — покажется при следующем входе даже без обновления. */
   const forcedOobeVersion = (profile?.oobe_version ?? "").trim();
@@ -191,12 +195,13 @@ export default function App() {
     (isPhoneDevice() && !oobeUpdateShown && !!profile && !banned);
 
   const finishUpdateOobe = () => {
-    markOobeUpdateDone();
+    /* Прямая ссылка /oobe_update — только превью: не «съедаем» настоящий OOBE. */
+    if (!oobeForceUpdate) markOobeUpdateDone();
     setOobeUpdateShown(true);
     navigate(profile ? "/chats" : "/login");
     /* OOBE была назначена через терминал (/set oobe) — снимаем её, чтобы
        при следующих входах снова работала обычная логика приветствий. */
-    if (profile?.oobe_version) {
+    if (!oobeForceUpdate && profile?.oobe_version) {
       setProfile({ ...profile, oobe_version: null });
       void supabase
         .from("profiles")
@@ -206,7 +211,8 @@ export default function App() {
     }
   };
   const finishInstallOobe = () => {
-    markOobeInstallDone();
+    /* /winchat_6_oobe и /install_oobe — превью, состояние не меняем. */
+    if (!oobeForceInstall) markOobeInstallDone();
     setOobeInstallShown(true);
     navigate(profile ? "/chats" : "/login");
   };
@@ -214,7 +220,8 @@ export default function App() {
   useEffect(() => {
     try {
       // OOBE обновления показываем, пока пользователь не дошёл ключом
-      // до текущей версии: 0 — не обновлялся, 1 — прошёл 5.0, 2 — прошёл 6.0 и т.д.
+      // до текущей версии: 0 — не обновлялся, 1 — прошёл 5.0, 2 — closed beta
+      // 6.0, 3 — релиз 6.0 и т.д.
       setOobeUpdateShown(readOobeUpdateKey() >= getOobeUpdateExpectedKey());
       setOobeInstallShown(localStorage.getItem(OOBE_INSTALL_KEY) === "1");
     } catch {
@@ -232,15 +239,16 @@ export default function App() {
     }
   }, [oobeTheme]);
 
-  /* Долгий boot-сплэш показываем один раз на версию приложения. */
+  /* Долгий You-сплэш — один раз на версию приложения и ступень OOBE.
+     Прямые OOBE-ссылки не «съедают» показ: им заставка не нужна. */
   useEffect(() => {
-    if (!longBoot) return;
+    if (!longBoot || oobeForceInstall) return;
     try {
-      localStorage.setItem(BOOT_LONG_VERSION_KEY, APP_VERSION);
+      localStorage.setItem(BOOT_LONG_VERSION_KEY, longBootToken());
     } catch {
       /* no-op */
     }
-  }, [longBoot]);
+  }, [longBoot, oobeForceInstall]);
 
   /* Активировали тему You — предлагаем You-заставку (один раз). */
   useEffect(() => {
@@ -562,21 +570,33 @@ export default function App() {
   }, [profile, glassMode, path, youMode, themedMode]);
 
   if (!splashDone || booting || (session && !profile)) {
-    /* OOBE первого скачивания: приветствие «Установка завершена» и форма — вместо splash */
-    if (!banned && showInstallOobe) {
-      if (!oobeTheme) {
-        return <OobeThemeChooser onChoose={setOobeTheme} />;
-      }
+    /* Прямая ссылка на OOBE (/winchat_6_oobe, /install_oobe) — без заставки,
+       чтобы экран можно было смотреть и отлаживать сразу. */
+    if (!banned && oobeForceInstall) {
+      return (
+        <OobeInstall
+          hasSession={false}
+          profile={profile}
+          onFinish={finishInstallOobe}
+          variant={oobeTheme}
+        />
+      );
+    }
+    /* Заставка уже доиграла, а сессия только что появилась и профиль ещё
+       грузится: не перезапускаем boot, если сейчас идёт OOBE установки. */
+    if (splashDone && !booting && !banned && showInstallOobe) {
       return (
         <OobeInstall
           hasSession={!!session}
           profile={null}
           onFinish={finishInstallOobe}
-          variant={oobeTheme ?? "you"}
+          variant={oobeTheme}
         />
       );
     }
-    return bootStyle === "you" ? (
+    /* Первый запуск после установки/обновления: даже без темы You играем
+       заставку You ~10 секунд — один раз на ступень OOBE. */
+    return useYouBoot ? (
       <BootAnimationYou
         ready={!booting && !(session && !profile)}
         long={longBoot}
@@ -595,41 +615,34 @@ export default function App() {
   /* ---------- OOBE: приветствия WinChat 6.0 (обновление / установка) ---------- */
   if (showInstallOobe) {
     document.title = "Добро пожаловать в WinChat";
-    if (!oobeTheme) {
-      return <OobeThemeChooser onChoose={setOobeTheme} />;
-    }
     return (
       <OobeInstall
         hasSession={!!session}
         profile={profile}
         onFinish={finishInstallOobe}
-        variant={oobeTheme ?? "you"}
+        variant={oobeTheme}
       />
     );
   }
   if (showUpdateOobe) {
-    /* OOBE версии 5.0 — оригинальное приветствие пятой версии (Liquid Glass
-     * доступен, переключение стиля кнопкой сверху). */
+    /* OOBE версии 5.0 — оригинальное приветствие пятой версии.
+     * В 6.0 показываем его в актуальном Material You-стиле. */
     if (forcedOobeVersion === "5.0") {
       document.title = "WinChat 5.0";
       return (
         <OobeUpdate5
           winPro={profile ? isWinProActive(profile) : session ? null : false}
           onFinish={finishUpdateOobe}
-          variant={(oobeTheme as OobeVariant5) ?? "liquid"}
-          onThemeSwitch={setOobeTheme}
+          variant={oobeTheme}
         />
       );
     }
     document.title = "WinChat 6.0";
-    if (!oobeTheme) {
-      return <OobeThemeChooser onChoose={setOobeTheme} />;
-    }
     return (
       <OobeUpdate
         winPro={profile ? isWinProActive(profile) : session ? null : false}
         onFinish={finishUpdateOobe}
-        variant={oobeTheme ?? "you"}
+        variant={oobeTheme}
       />
     );
   }

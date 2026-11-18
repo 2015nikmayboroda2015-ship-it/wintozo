@@ -51,8 +51,8 @@ const VIEW = 200;
 
 /** Минимум, чтобы все формы успели проиграть до фиксации. */
 const MIN_LOAD_MS = 3800;
-/** Первый запуск / запуск после обновления — вся заставка ~8–11 с. */
-const LONG_LOAD_MIN_MS = 7000;
+/** Первый запуск / запуск после обновления — форма перетекает ~10 секунд. */
+const LONG_LOAD_MIN_MS = 9600;
 const LONG_LOAD_MAX_MS = 10000;
 const SETTLE_MS = 620;
 const REVEAL_MS = 1900;
@@ -84,7 +84,7 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
   const clipId = `you-clip-${uid}`;
   const pathId = `you-path-${uid}`;
 
-  /* Длительность фиксируем на маунт (7–10 с при первом запуске/обновлении). */
+  /* Длительность фиксируем на маунт (около 10 с при первом запуске/обновлении). */
   const minWaitMs = useMemo(
     () =>
       long

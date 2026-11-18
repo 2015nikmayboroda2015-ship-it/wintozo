@@ -1476,6 +1476,30 @@ body {
   opacity: 0.38;
   filter: blur(48px);
 }
+.you-backdrop[data-seed="laguna"] .you-blob-c {
+  right: auto;
+  left: 6vmax;
+  bottom: -14vmax;
+  background: var(--you-tertiary);
+  opacity: 0.34;
+}
+.you-backdrop[data-seed="amber"] .you-blob-b {
+  background: var(--you-secondary-container);
+  opacity: 0.45;
+}
+.you-backdrop[data-seed="sakura"] .you-blob-a {
+  background: var(--you-secondary-container);
+  opacity: 0.5;
+}
+.you-backdrop[data-seed="cosmos"] .you-blob {
+  opacity: 0.3;
+  filter: blur(64px);
+}
+.you-backdrop[data-seed="graphite"] .you-blob {
+  opacity: 0.28;
+  filter: blur(58px);
+  background: var(--you-primary-container);
+}
 
 /* ---------- Океан: волны и пузырьки ---------- */
 .you-waves {

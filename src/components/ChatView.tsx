@@ -790,7 +790,7 @@ export default function ChatView({
             className={cn(
               "rounded-full px-3.5 py-1.5 text-[11px] font-bold",
               youMode
-                ? "you-date-chip"
+                ? "yc-date"
                 : "bg-black/6 text-black/50"
             )}
           >
@@ -806,14 +806,19 @@ export default function ChatView({
         className={cn(
           "group flex items-end gap-2",
           own ? "justify-end" : "justify-start",
-          groupedNext ? "mb-1" : "mb-3.5"
+          groupedNext ? "mb-1" : "mb-3.5",
+          youMode && "yc-msg-row"
         )}
       >
         {!own &&
           (groupedNext ? (
             <div className="w-9 shrink-0" />
           ) : (
-            <Avatar profile={sender} size="sm" className="mb-0.5" />
+            <Avatar
+              profile={sender}
+              size="sm"
+              className={cn("mb-0.5", youMode && "yc-msg-avatar")}
+            />
           ))}
 
         {own && (
@@ -821,7 +826,12 @@ export default function ChatView({
             {m.content && (
               <button
                 onClick={() => startEdit(m)}
-                className="rounded-full p-1.5 text-black/25 transition hover:bg-accent/10 hover:text-accent"
+                className={cn(
+                  "rounded-full p-1.5 transition",
+                  youMode
+                    ? "yc-msg-action"
+                    : "text-black/25 hover:bg-accent/10 hover:text-accent"
+                )}
                 aria-label="Редактировать сообщение"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -829,7 +839,12 @@ export default function ChatView({
             )}
             <button
               onClick={() => removeMessage(m.id)}
-              className="rounded-full p-1.5 text-black/25 transition hover:bg-red-500/10 hover:text-red-500"
+              className={cn(
+                "rounded-full p-1.5 transition",
+                youMode
+                  ? "yc-msg-action yc-msg-action-danger"
+                  : "text-black/25 hover:bg-red-500/10 hover:text-red-500"
+              )}
               aria-label="Удалить сообщение"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -840,18 +855,26 @@ export default function ChatView({
         <div className="animate-msg-in max-w-[78%] sm:max-w-[65%]">
           <div
             className={cn(
-              "overflow-hidden rounded-[20px] text-[15px] leading-relaxed font-medium",
+              "overflow-hidden text-[15px] leading-relaxed font-medium",
               m.sticker_url
                 ? "bg-transparent p-0"
                 : cn(
                     m.image_url || m.audio_url || m.video_url ? "p-1.5" : "px-4 py-2.5",
                     own
                       ? youMode
-                        ? "you-msg-own"
-                        : "rounded-br-lg bg-ink text-white"
+                        ? cn(
+                            "yc-bubble yc-bubble-own",
+                            groupedPrev && "yc-stack-own",
+                            !groupedNext && "yc-tail-own"
+                          )
+                        : "rounded-[20px] rounded-br-lg bg-ink text-white"
                       : youMode
-                        ? "you-msg-other"
-                        : "rounded-bl-lg bg-white text-ink shadow-sm ring-1 ring-black/8"
+                        ? cn(
+                            "yc-bubble yc-bubble-other",
+                            groupedPrev && "yc-stack-other",
+                            !groupedNext && "yc-tail-other"
+                          )
+                        : "rounded-[20px] rounded-bl-lg bg-white text-ink shadow-sm ring-1 ring-black/8"
                   )
             )}
           >
@@ -859,7 +882,7 @@ export default function ChatView({
               <p
                 className={cn(
                   "mb-0.5 flex items-center gap-1 text-[12px] font-bold",
-                  youMode ? "text-[var(--you-primary)]" : "text-accent",
+                  youMode ? "yc-sender" : "text-accent",
                   (m.image_url || m.audio_url || m.video_url) && "px-2.5 pt-1"
                 )}
               >
@@ -1017,7 +1040,13 @@ export default function ChatView({
                   <span
                     className={cn(
                       "float-right mt-3 ml-3 font-mono text-[10px]",
-                      m.sticker_url ? "text-black/40" : own ? "text-white/45" : "text-black/35"
+                      youMode
+                        ? "yc-bubble-time"
+                        : m.sticker_url
+                          ? "text-black/40"
+                          : own
+                            ? "text-white/45"
+                            : "text-black/35"
                     )}
                   >
                     {formatTime(m.created_at)}
@@ -1031,7 +1060,11 @@ export default function ChatView({
               <p
                 className={cn(
                   "px-3 pb-1 text-right font-mono text-[10px]",
-                  own ? "text-white/45" : "text-black/35"
+                  youMode
+                    ? "yc-bubble-time"
+                    : own
+                      ? "text-white/45"
+                      : "text-black/35"
                 )}
               >
                 {formatTime(m.created_at)}
@@ -1077,27 +1110,27 @@ export default function ChatView({
   );
 
   return (
-    <div className={cn("flex h-full flex-col", youMode ? "you-chat" : "bg-paper")}>
+    <div className={cn("flex h-full flex-col", youMode ? "you-chat yc-chat" : "bg-paper")}>
       {/* Шапка */}
       <header
         className={cn(
-          "flex items-center gap-2 px-3 py-2 backdrop-blur sm:gap-3 sm:px-4 sm:py-3",
+          "flex items-center gap-2 backdrop-blur sm:gap-3",
           youMode
-            ? "you-appbar rounded-b-[24px] border-b"
-            : "border-b border-black/8 bg-white/70"
+            ? "yc-appbar"
+            : "border-b border-black/8 bg-white/70 px-3 py-2 sm:px-4 sm:py-3"
         )}
       >
         <button
           onClick={onBack}
           className={cn(
-            "-ml-1 rounded-full p-2 transition md:hidden",
+            "md:hidden",
             youMode
-              ? "you-fab h-10 w-10 shrink-0"
-              : "hover:bg-black/5"
+              ? "yc-appbar-back"
+              : "-ml-1 rounded-full p-2 transition hover:bg-black/5"
           )}
           aria-label="Назад к чатам"
         >
-          <ArrowLeft className={youMode ? "h-5 w-5" : "h-5 w-5"} />
+          <ArrowLeft className="h-5 w-5" />
         </button>
         <button
           onClick={onOpenInfo}
@@ -1111,9 +1144,15 @@ export default function ChatView({
             group={chat.isGroup}
             channel={chat.isChannel}
             online={chat.isGroup || chat.isSaved ? null : online}
+            className={youMode ? "yc-appbar-avatar" : undefined}
           />
           <div className="min-w-0 flex-1">
-            <p className="flex min-w-0 items-center gap-1 text-[16px] font-extrabold tracking-tight">
+            <p
+              className={cn(
+                "flex min-w-0 items-center gap-1 text-[16px] font-extrabold tracking-tight",
+                youMode && "yc-appbar-title"
+              )}
+            >
               {chat.isSaved && (
                 <Star
                   className="mr-0.5 h-4 w-4 shrink-0 text-amber-500"
@@ -1136,25 +1175,37 @@ export default function ChatView({
             </p>
             <p
               className={cn(
-                "truncate text-xs font-semibold",
-                typingName !== null
-                  ? youMode
-                    ? "text-[var(--you-primary)]"
-                    : "text-accent"
-                  : online && !chat.isGroup
-                    ? youMode
-                      ? "text-[var(--you-on-surface-variant)]"
-                      : "text-emerald-600"
-                    : "text-black/40"
+                youMode
+                  ? cn(
+                      "yc-appbar-status",
+                      typingName !== null && "is-typing",
+                      typingName === null && online && !chat.isGroup && !chat.isSaved && "is-online"
+                    )
+                  : cn(
+                      "truncate text-xs font-semibold",
+                      typingName !== null
+                        ? "text-accent"
+                        : online && !chat.isGroup
+                          ? "text-emerald-600"
+                          : "text-black/40"
+                    )
               )}
             >
+              {youMode &&
+                typingName === null &&
+                online &&
+                !chat.isGroup &&
+                !chat.isSaved && <span className="yc-status-dot" aria-hidden />}
               {statusLine}
             </p>
           </div>
         </button>
         {chat.isSaved ? (
           <span
-            className="rounded-full p-2 text-amber-500"
+            className={cn(
+              "rounded-full p-2",
+              youMode ? "yc-appbar-action yc-appbar-action-gold" : "text-amber-500"
+            )}
             title="Заметки хранятся только на этом устройстве"
             aria-label="Локальные заметки"
           >
@@ -1166,7 +1217,7 @@ export default function ChatView({
             className={cn(
               "rounded-full p-2 transition",
               youMode
-                ? "text-[var(--you-on-surface-variant)] hover:bg-[var(--you-secondary-container)] hover:text-[var(--you-on-secondary-container)]"
+                ? "yc-appbar-action"
                 : "text-black/40 hover:bg-black/5 hover:text-ink"
             )}
             aria-label="Информация о чате"
@@ -1183,7 +1234,7 @@ export default function ChatView({
               className={cn(
                 "rounded-full p-2 transition",
                 youMode
-                  ? "text-[var(--you-on-surface-variant)] hover:bg-[var(--you-secondary-container)] hover:text-[var(--you-primary)]"
+                  ? "yc-appbar-action"
                   : "text-black/40 hover:bg-black/5 hover:text-ink"
               )}
               aria-label="Голосовой звонок"
@@ -1196,7 +1247,7 @@ export default function ChatView({
               className={cn(
                 "rounded-full p-2 transition",
                 youMode
-                  ? "text-[var(--you-on-surface-variant)] hover:bg-[var(--you-secondary-container)] hover:text-[var(--you-primary)]"
+                  ? "yc-appbar-action"
                   : "text-black/40 hover:bg-black/5 hover:text-ink"
               )}
               aria-label="Видеозвонок"
@@ -1209,8 +1260,14 @@ export default function ChatView({
       </header>
 
       {/* Лента */}
-      <div ref={boxRef} className="flex-1 overflow-y-auto px-4 py-6 sm:px-8">
-        <div className="mx-auto max-w-[820px]">
+      <div
+        ref={boxRef}
+        className={cn(
+          "flex-1 overflow-y-auto",
+          youMode ? "yc-feed px-4 py-5 sm:px-7" : "px-4 py-6 sm:px-8"
+        )}
+      >
+        <div className={cn("mx-auto max-w-[820px]", youMode && "yc-feed-inner")}>
           {loading ? (
             <div
               className={cn(
@@ -1225,24 +1282,35 @@ export default function ChatView({
             <div className="animate-fade-in flex flex-col items-center pt-20 text-center">
               <div
                 className={cn(
-                  "flex h-20 w-20 items-center justify-center rounded-[26px] shadow-lg",
+                  "flex items-center justify-center",
                   youMode
-                    ? "you-logo"
-                    : "bg-white shadow-sm ring-1 ring-black/8"
+                    ? "yc-empty-mark"
+                    : "h-20 w-20 rounded-[26px] bg-white shadow-lg shadow-sm ring-1 ring-black/8"
                 )}
               >
                 <MessageCircle
-                  className={cn("h-8 w-8", youMode ? "text-white" : "text-black/30")}
+                  className={cn(
+                    "h-8 w-8",
+                    youMode ? "hidden" : "text-black/30"
+                  )}
                   strokeWidth={1.6}
                 />
+                {youMode && (
+                  <img src="/logo.jpg" alt="" className="yc-empty-logo" aria-hidden />
+                )}
               </div>
-              <p className="mt-4 text-[17px] font-extrabold tracking-tight">
+              <p
+                className={cn(
+                  "mt-4 text-[17px] font-extrabold tracking-tight",
+                  youMode && "yc-empty-title-lg"
+                )}
+              >
                 {chat.isSaved ? "Заметок пока нет" : "Сообщений пока нет"}
               </p>
               <p
                 className={cn(
                   "mt-1 max-w-[280px] text-[13px] leading-relaxed font-medium",
-                  youMode ? "text-[var(--you-on-surface-variant)]" : "text-black/45"
+                  youMode ? "yc-empty-sub-lg" : "text-black/45"
                 )}
               >
                 {chat.isSaved
@@ -1266,10 +1334,9 @@ export default function ChatView({
       {/* Ввод */}
       <footer
         className={cn(
-          "px-2 py-2 backdrop-blur sm:px-8 sm:py-2.5",
           youMode
-            ? "you-bottombar rounded-t-[28px] border-t"
-            : "border-t border-black/8 bg-white/70"
+            ? "yc-bottom"
+            : "border-t border-black/8 bg-white/70 px-2 py-2 backdrop-blur sm:px-8 sm:py-2.5"
         )}
       >
         <div className="mx-auto max-w-[820px]">
@@ -1281,13 +1348,25 @@ export default function ChatView({
           )}
 
           {!canPost ? (
-            <div className="flex items-center justify-center gap-2 rounded-[22px] border border-black/8 bg-black/[0.03] px-4 py-4 text-center text-[13px] font-semibold text-black/45">
+            <div
+              className={cn(
+                "flex items-center justify-center gap-2 text-center text-[13px] font-semibold",
+                youMode
+                  ? "yc-notice"
+                  : "rounded-[22px] border border-black/8 bg-black/[0.03] px-4 py-4 text-black/45"
+              )}
+            >
               <Megaphone className="h-4 w-4 shrink-0" />
               Только администраторы канала могут писать
             </div>
           ) : videoRecording ? (
             /* --- Панель записи видеокружка --- */
-            <div className="animate-fade-in flex items-center gap-2 rounded-[22px] border border-purple-500/25 bg-purple-500/8 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
+            <div
+              className={cn(
+                "animate-fade-in flex items-center gap-2 rounded-[22px] border border-purple-500/25 bg-purple-500/8 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5",
+                youMode && "yc-record-panel"
+              )}
+            >
               {/* Миниатюра превью */}
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-black">
                 <video
@@ -1333,7 +1412,12 @@ export default function ChatView({
               </button>
             </div>
           ) : recording ? (
-            <div className="animate-fade-in flex items-center gap-2 rounded-[22px] border border-red-500/25 bg-red-500/8 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
+            <div
+              className={cn(
+                "animate-fade-in flex items-center gap-2 rounded-[22px] border border-red-500/25 bg-red-500/8 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5",
+                youMode && "yc-record-panel"
+              )}
+            >
               <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
               <span className="shrink-0 font-mono text-sm font-bold text-red-600 tabular-nums">
                 {formatDuration(recSeconds)}
@@ -1369,20 +1453,20 @@ export default function ChatView({
             <div className="flex items-end gap-1.5 sm:gap-2">
               <div
                 className={cn(
-                  "flex min-w-0 flex-1 items-end gap-0.5 px-1 py-1 transition sm:gap-1 sm:px-2 sm:py-1.5",
+                  "flex min-w-0 flex-1 items-end",
                   youMode
-                    ? "you-composer"
-                    : "rounded-[22px] border border-black/10 bg-white shadow-sm focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/10"
+                    ? "yc-composer"
+                    : "gap-0.5 rounded-[22px] border border-black/10 bg-white px-1 py-1 shadow-sm transition focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/10 sm:gap-1 sm:px-2 sm:py-1.5"
                 )}
               >
                 <button
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading || compressing || sending}
                   className={cn(
-                    "shrink-0 rounded-full p-2 transition disabled:opacity-50 sm:p-2.5",
+                    "shrink-0 disabled:opacity-50",
                     youMode
-                      ? "text-[var(--you-on-surface-variant)] hover:text-[var(--you-primary)]"
-                      : "text-black/40 hover:bg-black/5 hover:text-accent"
+                      ? "yc-composer-icon"
+                      : "rounded-full p-2 text-black/40 transition hover:bg-black/5 hover:text-accent sm:p-2.5"
                   )}
                   aria-label="Прикрепить фото или видео"
                   title="Фото или видео"
@@ -1397,10 +1481,10 @@ export default function ChatView({
                   onClick={() => setStickerPickerOpen(true)}
                   disabled={compressing || sending}
                   className={cn(
-                    "shrink-0 rounded-full p-2 transition disabled:opacity-50 sm:p-2.5",
+                    "shrink-0 disabled:opacity-50",
                     youMode
-                      ? "text-[var(--you-on-surface-variant)] hover:text-[var(--you-primary)]"
-                      : "text-black/40 hover:bg-black/5 hover:text-accent"
+                      ? "yc-composer-icon"
+                      : "rounded-full p-2 text-black/40 transition hover:bg-black/5 hover:text-accent sm:p-2.5"
                   )}
                   aria-label="Открыть меню стикеров"
                   title="Стикеры"
@@ -1443,7 +1527,7 @@ export default function ChatView({
                   className={cn(
                     "max-h-32 min-w-0 flex-1 resize-none bg-transparent px-1.5 py-2 text-[15px] font-medium outline-none sm:px-2",
                     youMode
-                      ? "placeholder:text-[var(--you-on-surface-variant)]"
+                      ? "yc-composer-input"
                       : "placeholder:text-black/30"
                   )}
                 />
@@ -1468,8 +1552,10 @@ export default function ChatView({
                   onClick={() => send()}
                   disabled={sending || compressing}
                   className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-25 sm:h-11 sm:w-11",
-                    youMode ? "you-fab" : "rounded-full bg-ink text-white hover:bg-black"
+                    "shrink-0 transition",
+                    youMode
+                      ? "yc-send"
+                      : "flex h-10 w-10 items-center justify-center rounded-full bg-ink text-white hover:bg-black active:scale-95 disabled:opacity-25 sm:h-11 sm:w-11"
                   )}
                   aria-label="Отправить сообщение"
                 >
@@ -1485,10 +1571,10 @@ export default function ChatView({
                     onClick={startVideoRecording}
                     disabled={sending || compressing}
                     className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-40 sm:h-11 sm:w-11",
+                      "shrink-0 transition",
                       youMode
-                        ? "you-fab-tonal"
-                        : "rounded-full bg-purple-500 text-white hover:bg-purple-600"
+                        ? "yc-send yc-send-tonal"
+                        : "flex h-10 w-10 items-center justify-center rounded-full bg-purple-500 text-white hover:bg-purple-600 active:scale-95 disabled:opacity-40 sm:h-11 sm:w-11"
                     )}
                     aria-label="Записать видеокружок"
                     title="Видеокружок"
@@ -1499,8 +1585,10 @@ export default function ChatView({
                     onClick={startRecording}
                     disabled={sending || compressing}
                     className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center transition active:scale-95 disabled:opacity-40 sm:h-11 sm:w-11",
-                      youMode ? "you-fab" : "rounded-full bg-ink text-white hover:bg-black"
+                      "shrink-0 transition",
+                      youMode
+                        ? "yc-send"
+                        : "flex h-10 w-10 items-center justify-center rounded-full bg-ink text-white hover:bg-black active:scale-95 disabled:opacity-40 sm:h-11 sm:w-11"
                     )}
                     aria-label="Записать голосовое сообщение"
                     title="Голосовое сообщение"
@@ -1516,7 +1604,14 @@ export default function ChatView({
             </div>
           )}
 
-          <p className="mt-1.5 text-center font-mono text-[9px] tracking-wide text-black/30 sm:mt-2 sm:text-[10px]">
+          <p
+            className={cn(
+              "text-center",
+              youMode
+                ? "yc-hint"
+                : "mt-1.5 font-mono text-[9px] tracking-wide text-black/30 sm:mt-2 sm:text-[10px]"
+            )}
+          >
             {compressing
               ? `сжимаем видео… ${Math.round(compressPct * 100)}%`
               : uploading

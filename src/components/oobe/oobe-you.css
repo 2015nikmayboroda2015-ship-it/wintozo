@@ -1,0 +1,1412 @@
+/* ============================================================
+   OOBE You — Material 3 Expressive
+   Живой фон из форм заставки, тональные поверхности, крупная
+   типографика и мягкие «пружинные» появления.
+   ============================================================ */
+
+.oobe-you-page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: var(--you-surface-low, #f7f0ff);
+  color: var(--you-on-surface, #1d1233);
+  font-family: "Google Sans", "Outfit", "Roboto", ui-sans-serif, system-ui,
+    sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.oobe-you-page *,
+.oobe-you-page *::before,
+.oobe-you-page *::after {
+  box-sizing: border-box;
+}
+
+/* ---------------- Живой фон ---------------- */
+
+.oobe-you-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      76% 58% at 84% 4%,
+      color-mix(in srgb, var(--you-primary-container) 72%, transparent) 0%,
+      transparent 72%
+    ),
+    radial-gradient(
+      66% 54% at 8% 98%,
+      color-mix(in srgb, var(--you-tertiary-container) 64%, transparent) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      54% 42% at 46% 54%,
+      color-mix(in srgb, var(--you-secondary-container) 30%, transparent) 0%,
+      transparent 78%
+    ),
+    linear-gradient(
+      168deg,
+      var(--you-surface-low) 0%,
+      var(--you-surface) 52%,
+      color-mix(in srgb, var(--you-surface-high) 86%, var(--you-primary-container))
+        100%
+    );
+}
+
+/* Лёгкое зерно — как в Material 3 Expressive. */
+.oobe-you-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+}
+
+.oobe-you-orb {
+  position: absolute;
+  display: block;
+  filter: blur(46px) saturate(1.06);
+  opacity: 0.5;
+  will-change: transform;
+}
+
+.oobe-you-orb svg,
+.oobe-you-orb {
+  overflow: visible;
+}
+
+.oobe-you-orb-a {
+  width: 98vmax;
+  height: 98vmax;
+  top: -46vmax;
+  right: -34vmax;
+  opacity: 0.62;
+  animation: oobe-you-drift-a 32s ease-in-out infinite alternate;
+}
+
+.oobe-you-orb-b {
+  width: 88vmax;
+  height: 88vmax;
+  left: -42vmax;
+  bottom: -44vmax;
+  opacity: 0.48;
+  filter: blur(54px) saturate(1.04);
+  animation: oobe-you-drift-b 38s ease-in-out infinite alternate;
+}
+
+.oobe-you-orb-c {
+  width: 56vmax;
+  height: 56vmax;
+  left: 20vw;
+  top: 30vh;
+  opacity: 0.34;
+  filter: blur(58px) saturate(1.1);
+  animation: oobe-you-drift-c 26s ease-in-out infinite alternate;
+}
+
+.oobe-you-orb-outline {
+  width: 74vmax;
+  height: 74vmax;
+  left: -18vmax;
+  top: 2vh;
+  opacity: 0.16;
+  filter: none;
+  animation: oobe-you-orbit 52s linear infinite;
+}
+
+.oobe-you-orb-outline path {
+  fill: none;
+  stroke: var(--you-primary);
+  stroke-width: 1.25;
+  stroke-dasharray: 2 3;
+}
+
+.oobe-you-sparks {
+  position: absolute;
+  inset: 0;
+}
+
+.oobe-you-sparks span {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+  opacity: 0.34;
+  filter: blur(0.4px);
+  animation: oobe-you-spark 10s ease-in-out infinite;
+}
+
+/* ---------------- Шапка ---------------- */
+
+.oobe-you-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px clamp(18px, 4vw, 34px);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--you-surface-low) 82%, transparent),
+    color-mix(in srgb, var(--you-surface-low) 42%, transparent) 66%,
+    transparent
+  );
+  backdrop-filter: blur(18px) saturate(1.18);
+  -webkit-backdrop-filter: blur(18px) saturate(1.18);
+}
+
+.oobe-you-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.oobe-you-brand-logo {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 15px;
+  background: linear-gradient(
+    135deg,
+    var(--you-primary),
+    var(--you-primary-strong) 58%,
+    var(--you-secondary)
+  );
+  box-shadow: 0 12px 26px -16px color-mix(in srgb, var(--you-primary) 80%, transparent);
+}
+
+.oobe-you-brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.oobe-you-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.oobe-you-brand-text strong {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.oobe-you-brand-text small {
+  margin-top: 3px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--you-on-surface-variant);
+}
+
+.oobe-you-version {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 15px;
+  border-radius: 999px;
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* ---------------- Каркас экрана ---------------- */
+
+.oobe-you-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 600px;
+  min-height: calc(100dvh - 74px);
+  margin: 0 auto;
+  padding: clamp(10px, 2.6vw, 24px) clamp(18px, 4.4vw, 30px) 42px;
+}
+
+.oobe-you-steps {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: min(248px, 72%);
+  margin: 4px auto clamp(18px, 4vh, 32px);
+  padding: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-surface-high) 62%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.oobe-you-steps-seg {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-on-surface) 13%, transparent);
+  transition:
+    flex 0.45s cubic-bezier(0.2, 0.9, 0.2, 1),
+    background 0.4s ease;
+}
+
+.oobe-you-steps-seg.is-done {
+  background: color-mix(in srgb, var(--you-primary) 48%, transparent);
+}
+
+.oobe-you-steps-seg.is-active {
+  flex: 1.9;
+  background: linear-gradient(
+    100deg,
+    var(--you-primary),
+    var(--you-primary-strong) 54%,
+    var(--you-secondary)
+  );
+}
+
+.oobe-you-step {
+  animation: oobe-you-enter 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.oobe-you-center,
+.oobe-you-stack {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 8px 0 28px;
+  text-align: center;
+}
+
+/* ---------------- Логотип-силуэт ---------------- */
+
+.oobe-you-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.oobe-you-mark-glow {
+  position: absolute;
+  inset: -16%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 48%,
+    color-mix(in srgb, var(--you-primary) 42%, transparent) 0%,
+    color-mix(in srgb, var(--you-secondary) 16%, transparent) 46%,
+    transparent 70%
+  );
+  filter: blur(24px);
+  animation: oobe-you-breathe 5.4s ease-in-out infinite;
+}
+
+.oobe-you-mark-svg {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(
+    0 28px 42px color-mix(in srgb, var(--you-primary-strong) 34%, transparent)
+  );
+  animation: oobe-you-mark-float 6.4s ease-in-out infinite;
+}
+
+.oobe-you-mark-orbit {
+  position: absolute;
+  inset: -9%;
+  z-index: 0;
+  border: 1.5px dashed color-mix(in srgb, var(--you-outline) 42%, transparent);
+  border-radius: 50%;
+  animation: oobe-you-spin 28s linear infinite;
+}
+
+.oobe-you-mark-orbit i {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: block;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--you-secondary);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--you-secondary) 75%, transparent);
+  transform: translate(-50%, -50%);
+}
+
+.oobe-you-hero-mark {
+  width: clamp(132px, 34vw, 172px);
+  margin-bottom: clamp(20px, 4vh, 30px);
+}
+
+.oobe-you-success-mark {
+  width: clamp(128px, 32vw, 164px);
+  margin-bottom: clamp(16px, 3vh, 24px);
+}
+
+.oobe-you-check-mark {
+  width: 118px;
+  height: 118px;
+}
+
+/* ---------------- Текст ---------------- */
+
+.oobe-you-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.oobe-you-eyebrow svg {
+  width: 13px;
+  height: 13px;
+}
+
+.oobe-you-h1,
+.oobe-you-h2 {
+  margin: 16px 0 0;
+  max-width: 480px;
+  color: var(--you-on-surface);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.99;
+  text-wrap: balance;
+}
+
+.oobe-you-h1 {
+  font-size: clamp(36px, 8.6vw, 50px);
+}
+
+.oobe-you-h2 {
+  font-size: clamp(27px, 6.4vw, 36px);
+  line-height: 1.03;
+}
+
+.oobe-you-h1 .oobe-you-grad,
+.oobe-you-h2 .oobe-you-grad {
+  display: block;
+  padding-bottom: 0.06em;
+  background: linear-gradient(
+    100deg,
+    var(--you-primary) 0%,
+    var(--you-primary-strong) 34%,
+    var(--you-secondary) 68%,
+    var(--you-tertiary) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.oobe-you-lead {
+  margin: 15px 0 0;
+  max-width: 372px;
+  color: var(--you-on-surface-variant);
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.58;
+}
+
+.oobe-you-kicker {
+  margin: 0 0 7px;
+  color: var(--you-primary);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ---------------- Кнопки ---------------- */
+
+.oobe-you-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  max-width: 372px;
+  margin-top: clamp(22px, 4vh, 30px);
+}
+
+.oobe-you-center > .oobe-you-action,
+.oobe-you-stack > .oobe-you-action {
+  width: min(372px, 100%);
+  margin-top: clamp(20px, 4vh, 28px);
+}
+
+.oobe-you-action {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 58px;
+  padding: 0 58px;
+  border: 0;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1),
+    filter 0.24s ease,
+    box-shadow 0.28s ease,
+    background 0.28s ease;
+}
+
+.oobe-you-action:active {
+  transform: scale(0.978);
+}
+
+.oobe-you-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+  filter: saturate(0.6);
+}
+
+.oobe-you-action-leading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oobe-you-action-leading svg {
+  width: 18px;
+  height: 18px;
+}
+
+.oobe-you-action-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.oobe-you-action-arrow {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  transition:
+    transform 0.24s cubic-bezier(0.2, 0.9, 0.2, 1),
+    background 0.24s ease;
+}
+
+.oobe-you-action-arrow svg {
+  width: 17px;
+  height: 17px;
+}
+
+.oobe-you-action:hover .oobe-you-action-arrow {
+  transform: translateY(-50%) translateX(2px);
+}
+
+.oobe-you-action-filled {
+  background: linear-gradient(
+    110deg,
+    var(--you-primary),
+    var(--you-primary-strong) 56%,
+    var(--you-secondary) 120%
+  );
+  color: var(--you-on-primary);
+  box-shadow: 0 19px 38px -20px color-mix(in srgb, var(--you-primary) 82%, transparent);
+}
+
+.oobe-you-action-filled:hover {
+  filter: brightness(1.055);
+  box-shadow: 0 23px 44px -20px color-mix(in srgb, var(--you-primary) 88%, transparent);
+}
+
+.oobe-you-action-filled .oobe-you-action-arrow {
+  background: rgba(255, 255, 255, 0.19);
+}
+
+.oobe-you-action-tonal {
+  background: var(--you-secondary-container);
+  color: var(--you-on-secondary-container);
+}
+
+.oobe-you-action-tonal:hover {
+  background: color-mix(in srgb, var(--you-secondary-container) 82%, var(--you-secondary));
+}
+
+.oobe-you-action-tonal .oobe-you-action-arrow {
+  background: color-mix(in srgb, var(--you-on-secondary-container) 9%, transparent);
+}
+
+.oobe-you-action-text {
+  min-height: 46px;
+  padding: 0 18px;
+  background: transparent;
+  color: var(--you-primary);
+  box-shadow: none;
+}
+
+.oobe-you-action-text:hover {
+  background: color-mix(in srgb, var(--you-primary) 8%, transparent);
+}
+
+.oobe-you-action-text .oobe-you-action-arrow {
+  position: static;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  transform: none;
+}
+
+.oobe-you-action-text:hover .oobe-you-action-arrow {
+  transform: translateX(2px);
+}
+
+.oobe-you-textbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--you-primary);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.22s ease;
+}
+
+.oobe-you-textbtn:hover {
+  background: color-mix(in srgb, var(--you-primary) 8%, transparent);
+}
+
+.oobe-you-textbtn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---------------- Чипы ---------------- */
+
+.oobe-you-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: clamp(22px, 4vh, 32px);
+}
+
+.oobe-you-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 34%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-surface-low) 46%, transparent);
+  color: var(--you-on-surface-variant);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+}
+
+.oobe-you-chip svg {
+  width: 14px;
+  height: 14px;
+  color: var(--you-primary);
+}
+
+/* ---------------- Заголовок секции с «назад» ---------------- */
+
+.oobe-you-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  width: 100%;
+  max-width: 444px;
+  margin: 0 auto 20px;
+  text-align: left;
+}
+
+.oobe-you-back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-surface-high) 80%, transparent);
+  color: var(--you-on-surface);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.oobe-you-back:hover {
+  background: var(--you-surface-highest);
+}
+
+.oobe-you-back:active {
+  transform: scale(0.94);
+}
+
+.oobe-you-back svg {
+  width: 19px;
+  height: 19px;
+}
+
+.oobe-you-head-copy {
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.oobe-you-head h1,
+.oobe-you-head h2 {
+  margin: 0;
+  color: var(--you-on-surface);
+  font-size: clamp(27px, 6.2vw, 35px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.03;
+}
+
+.oobe-you-head p {
+  margin: 7px 0 0;
+  color: var(--you-on-surface-variant);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+/* ---------------- Segmented (Регистрация / Вход) ---------------- */
+
+.oobe-you-segmented {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  max-width: 444px;
+  margin: 0 auto 13px;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 38%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-surface-high) 72%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.oobe-you-segmented-thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 999px;
+  background: linear-gradient(
+    110deg,
+    var(--you-primary),
+    var(--you-primary-strong) 72%,
+    var(--you-secondary) 130%
+  );
+  box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--you-primary) 85%, transparent);
+  transition: transform 0.38s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.oobe-you-segmented[data-mode="login"] .oobe-you-segmented-thumb {
+  transform: translateX(100%);
+}
+
+.oobe-you-segmented button {
+  position: relative;
+  z-index: 1;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--you-on-surface-variant);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: color 0.25s ease;
+}
+
+.oobe-you-segmented button[aria-selected="true"] {
+  color: var(--you-on-primary);
+}
+
+/* ---------------- Карточка ---------------- */
+
+.oobe-you-card {
+  position: relative;
+  width: 100%;
+  max-width: 444px;
+  margin: 0 auto;
+  padding: clamp(18px, 4.4vw, 25px);
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 42%, transparent);
+  border-radius: 34px;
+  background: color-mix(in srgb, var(--you-surface-container) 88%, transparent);
+  box-shadow:
+    0 36px 90px -62px color-mix(in srgb, var(--you-on-surface) 70%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 34%, transparent);
+  backdrop-filter: blur(22px) saturate(1.12);
+  -webkit-backdrop-filter: blur(22px) saturate(1.12);
+  animation: oobe-you-enter 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.04s both;
+}
+
+.oobe-you-card-title {
+  margin: 0 0 16px;
+  color: var(--you-on-surface);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ---------------- Поля ввода ---------------- */
+
+.oobe-you-field {
+  display: block;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.oobe-you-field-label {
+  display: block;
+  margin: 0 0 6px 7px;
+  color: var(--you-on-surface-variant);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.oobe-you-field-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 15px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--you-surface-highest) 74%, transparent);
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.oobe-you-field-box:focus-within {
+  border-color: color-mix(in srgb, var(--you-primary) 46%, transparent);
+  background: var(--you-surface-highest);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--you-primary) 13%, transparent);
+}
+
+.oobe-you-field-box > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: var(--you-primary);
+}
+
+.oobe-you-field-box input {
+  flex: 1;
+  min-width: 0;
+  padding: 17px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--you-on-surface);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  caret-color: var(--you-primary);
+}
+
+.oobe-you-field-box input::placeholder {
+  color: color-mix(in srgb, var(--you-on-surface-variant) 58%, transparent);
+  font-weight: 500;
+}
+
+.oobe-you-field-trail {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--you-on-surface-variant);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.oobe-you-field-trail:hover {
+  background: color-mix(in srgb, var(--you-on-surface) 8%, transparent);
+  color: var(--you-on-surface);
+}
+
+.oobe-you-field-trail svg {
+  width: 17px;
+  height: 17px;
+}
+
+.oobe-you-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 3px 0 13px;
+  padding: 12px 14px;
+  border-radius: 19px;
+  background: color-mix(in srgb, #ff5449 13%, var(--you-surface-container));
+  color: color-mix(in srgb, #ff5449 68%, var(--you-on-surface));
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  animation: oobe-you-enter 0.3s ease both;
+}
+
+.oobe-you-error svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.oobe-you-card .oobe-you-action {
+  margin-top: 5px;
+}
+
+/* ---------------- WinPass ---------------- */
+
+.oobe-you-winpass {
+  width: 100%;
+  max-width: 444px;
+  margin: 14px auto 0;
+  text-align: center;
+}
+
+.oobe-you-winpass-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-primary) 9%, transparent);
+  color: var(--you-primary);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.22s ease;
+}
+
+.oobe-you-winpass-cta:hover {
+  background: color-mix(in srgb, var(--you-primary) 15%, transparent);
+}
+
+.oobe-you-winpass-cta svg {
+  width: 15px;
+  height: 15px;
+}
+
+.oobe-you-winpass-card {
+  padding: 22px;
+  text-align: left;
+}
+
+.oobe-you-winpass-hero {
+  text-align: center;
+}
+
+.oobe-you-winpass-hero .oobe-you-h2 {
+  margin-top: 0;
+}
+
+.oobe-you-winpass-hero .oobe-you-lead {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.oobe-you-winpass-hero .oobe-you-winpass-actions {
+  margin-top: 20px;
+}
+
+.oobe-you-winpass-card h3 {
+  margin: 0 0 6px;
+  color: var(--you-on-surface);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.oobe-you-winpass-card > p {
+  margin: 0 0 14px;
+  color: var(--you-on-surface-variant);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.oobe-you-winpass-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.oobe-you-winpass-actions .oobe-you-action {
+  min-height: 48px;
+  font-size: 13.5px;
+  padding: 0 50px;
+}
+
+.oobe-you-winpass-actions .oobe-you-action-arrow {
+  width: 32px;
+  height: 32px;
+}
+
+/* ---------------- Big WinPass код ---------------- */
+
+.oobe-you-icon-badge {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 23px;
+  background: linear-gradient(
+    140deg,
+    var(--you-primary-container),
+    color-mix(in srgb, var(--you-primary-container) 58%, var(--you-tertiary-container))
+  );
+  color: var(--you-on-primary-container);
+  box-shadow: 0 16px 32px -22px color-mix(in srgb, var(--you-primary) 70%, transparent);
+}
+
+.oobe-you-icon-badge svg {
+  width: 27px;
+  height: 27px;
+}
+
+.oobe-you-code {
+  margin: 18px 0 14px;
+  padding: 18px 16px;
+  border: 1.5px dashed color-mix(in srgb, var(--you-primary) 42%, transparent);
+  border-radius: 23px;
+  background: color-mix(in srgb, var(--you-surface-highest) 76%, transparent);
+  color: var(--you-on-surface);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: clamp(16px, 4.4vw, 20px);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+/* ---------------- Проверка ---------------- */
+
+.oobe-you-check-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(160px, 44vw, 196px);
+  height: clamp(160px, 44vw, 196px);
+  margin-bottom: 20px;
+}
+
+.oobe-you-check-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px dashed color-mix(in srgb, var(--you-primary) 30%, transparent);
+  border-radius: 50%;
+  animation: oobe-you-spin 16s linear infinite;
+}
+
+.oobe-you-check-ring::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--you-primary);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--you-primary) 70%, transparent);
+  transform: translateX(-50%);
+}
+
+.oobe-you-check-ring-inner {
+  position: absolute;
+  inset: 15px;
+  border: 1.5px solid color-mix(in srgb, var(--you-secondary) 26%, transparent);
+  border-top-color: var(--you-secondary);
+  border-radius: 50%;
+  animation: oobe-you-spin 2.8s linear infinite reverse;
+}
+
+.oobe-you-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 340px;
+  margin-top: 24px;
+  text-align: left;
+}
+
+.oobe-you-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 13px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--you-surface-container) 54%, transparent);
+  color: var(--you-on-surface-variant);
+  font-size: 12.5px;
+  font-weight: 700;
+  opacity: 0.5;
+  transition:
+    opacity 0.35s ease,
+    background 0.35s ease,
+    color 0.35s ease,
+    transform 0.35s ease;
+}
+
+.oobe-you-check.is-on {
+  background: color-mix(in srgb, var(--you-surface-high) 82%, transparent);
+  color: var(--you-on-surface);
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.oobe-you-check i {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-primary) 11%, transparent);
+  color: var(--you-primary);
+}
+
+.oobe-you-check i svg {
+  width: 14px;
+  height: 14px;
+}
+
+.oobe-you-check.is-on i {
+  background: var(--you-primary);
+  color: var(--you-on-primary);
+}
+
+/* ---------------- Превью-видео ---------------- */
+
+.oobe-you-video {
+  position: relative;
+  width: min(318px, 100%);
+  margin-bottom: 18px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 52%, transparent);
+  border-radius: 34px;
+  background: var(--you-surface-container);
+  box-shadow:
+    0 42px 86px -56px color-mix(in srgb, var(--you-primary) 70%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 32%, transparent);
+}
+
+.oobe-you-video video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.oobe-you-video-tag {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--you-surface-low) 76%, transparent);
+  color: var(--you-on-surface);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  backdrop-filter: blur(14px);
+}
+
+.oobe-you-video-tag svg {
+  width: 12px;
+  height: 12px;
+  color: var(--you-primary);
+}
+
+/* ---------------- Что нового ---------------- */
+
+.oobe-you-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 100%;
+  max-width: 444px;
+  margin-top: 22px;
+  text-align: left;
+}
+
+.oobe-you-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 10px 15px 10px 10px;
+  border: 1px solid color-mix(in srgb, var(--you-outline-variant) 36%, transparent);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--you-surface-container) 82%, transparent);
+  color: var(--you-on-surface);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  backdrop-filter: blur(14px);
+  animation: oobe-you-list-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.oobe-you-list-num {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 15px;
+  background: linear-gradient(
+    140deg,
+    var(--you-primary-container),
+    color-mix(in srgb, var(--you-secondary-container) 60%, var(--you-primary-container))
+  );
+  color: var(--you-on-primary-container);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.oobe-you-list-num svg {
+  width: 16px;
+  height: 16px;
+}
+
+.oobe-you-list-item:nth-child(2n) .oobe-you-list-num {
+  background: linear-gradient(
+    140deg,
+    var(--you-tertiary-container),
+    color-mix(in srgb, var(--you-primary-container) 55%, var(--you-tertiary-container))
+  );
+  color: var(--you-on-tertiary-container);
+}
+
+/* ---------------- Анимации ---------------- */
+
+@keyframes oobe-you-enter {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translateY(20px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+@keyframes oobe-you-list-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes oobe-you-breathe {
+  0%,
+  100% {
+    opacity: 0.62;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes oobe-you-mark-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.2deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(1.4deg);
+  }
+}
+
+@keyframes oobe-you-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes oobe-you-spark {
+  0%,
+  100% {
+    opacity: 0.16;
+    transform: translate3d(0, 0, 0) scale(0.85);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translate3d(0, -16px, 0) scale(1.25);
+  }
+}
+
+@keyframes oobe-you-drift-a {
+  from {
+    transform: translate3d(0, 0, 0) rotate(-4deg) scale(1);
+  }
+  to {
+    transform: translate3d(-5vmax, 4vmax, 0) rotate(5deg) scale(1.09);
+  }
+}
+
+@keyframes oobe-you-drift-b {
+  from {
+    transform: translate3d(0, 0, 0) rotate(3deg) scale(1.04);
+  }
+  to {
+    transform: translate3d(5vmax, -4vmax, 0) rotate(-5deg) scale(0.96);
+  }
+}
+
+@keyframes oobe-you-drift-c {
+  from {
+    transform: translate3d(-2vmax, 1vmax, 0) rotate(-2deg) scale(0.98);
+  }
+  to {
+    transform: translate3d(3vmax, -2vmax, 0) rotate(3deg) scale(1.07);
+  }
+}
+
+@keyframes oobe-you-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.oobe-you-spin {
+  animation: oobe-you-spin 0.9s linear infinite;
+}
+
+/* ---------------- Мобильные и доступность ---------------- */
+
+@media (max-width: 520px) {
+  .oobe-you-topbar {
+    padding-top: 12px;
+    padding-bottom: 10px;
+  }
+
+  .oobe-you-brand-logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 13px;
+  }
+
+  .oobe-you-main {
+    min-height: calc(100dvh - 64px);
+    padding-bottom: 32px;
+  }
+
+  .oobe-you-orb {
+    filter: blur(38px) saturate(1.04);
+  }
+
+  .oobe-you-orb-c {
+    filter: blur(48px) saturate(1.06);
+  }
+
+  .oobe-you-card {
+    border-radius: 28px;
+  }
+
+  .oobe-you-action {
+    min-height: 54px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oobe-you-bg *,
+  .oobe-you-bg *::before,
+  .oobe-you-bg *::after,
+  .oobe-you-mark-glow,
+  .oobe-you-mark-svg,
+  .oobe-you-mark-orbit,
+  .oobe-you-check-ring,
+  .oobe-you-check-ring-inner,
+  .oobe-you-step,
+  .oobe-you-card,
+  .oobe-you-list-item {
+    animation: none !important;
+  }
+
+  .oobe-you-step,
+  .oobe-you-card,
+  .oobe-you-list-item {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}

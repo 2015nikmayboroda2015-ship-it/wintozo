@@ -94,7 +94,7 @@ export default function YouBackdrop() {
         </>
       )}
 
-      {seed === "ocean" && (
+      {(seed === "ocean" || seed === "laguna") && (
         <>
           <div className="you-waves">
             <svg viewBox="0 0 1200 320" preserveAspectRatio="none">
@@ -148,7 +148,7 @@ export default function YouBackdrop() {
         </div>
       )}
 
-      {seed === "sunset" && (
+      {(seed === "sunset" || seed === "amber") && (
         <>
           <div className="you-sun-rays" />
           <div className="you-sun" />
@@ -156,7 +156,7 @@ export default function YouBackdrop() {
         </>
       )}
 
-      {seed === "cherry" && (
+      {(seed === "cherry" || seed === "sakura") && (
         <div className="you-petals">
           {cherryPetals.map((p, i) => (
             <span
@@ -184,7 +184,7 @@ export default function YouBackdrop() {
         </div>
       )}
 
-      {seed === "dark" && (
+      {(seed === "dark" || seed === "cosmos") && (
         <>
           <div className="you-stars">
             {stars.map((s, i) => (
@@ -203,6 +203,16 @@ export default function YouBackdrop() {
           </div>
           <div className="you-moon" />
         </>
+      )}
+
+      {seed === "cosmos" && (
+        <div className="you-orbits">
+          <span />
+          <span />
+          <span />
+          <span />
+          <i />
+        </div>
       )}
 
       {seed === "red" && (
@@ -234,7 +244,7 @@ export default function YouBackdrop() {
         </div>
       )}
 
-      {seed === "beige" && (
+      {(seed === "beige" || seed === "graphite") && (
         <div className="you-arcs">
           <span />
           <span />
