@@ -160,6 +160,15 @@ body {
   background-size: 24px 24px;
 }
 
+/* ---------- PC: главный экран — комфортная колонка чата ---------- */
+
+@media (min-width: 1280px) {
+  .winchat-main-area {
+    max-width: 880px;
+    margin-inline: auto;
+  }
+}
+
 .typing-dot {
   animation: var(--animate-dot-blink);
 }

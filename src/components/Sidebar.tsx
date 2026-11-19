@@ -280,6 +280,19 @@ export default function Sidebar({
             </div>
           </div>
           <div className={youMode ? "yc-side-actions" : "flex items-center gap-1.5"}>
+            {!youMode && (
+              <button
+                onClick={() => {
+                  const saved = chats.find((c) => c.isSaved);
+                  if (saved) onSelect(saved);
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-400/15 text-amber-600 transition hover:bg-amber-400/25 active:scale-95"
+                aria-label="Избранное"
+                title="Избранное"
+              >
+                <Star className="h-4.5 w-4.5" fill="currentColor" strokeWidth={1.8} />
+              </button>
+            )}
             {isAdmin && (
               <button
                 onClick={onOpenAdmin}

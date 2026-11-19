@@ -303,6 +303,38 @@ export function saveThemeId(id: string): void {
   try { localStorage.setItem("winchat_theme_id", id); } catch {}
 }
 
+/** CSS-переменные Material You, которые applyYouPalette задаёт inline.
+ *  Сбрасываются, когда активна не-You тема (например, Glass): иначе инлайн-значения
+ *  перекрывают стили темы и Liquid Glass начинает выглядеть как Material You. */
+const YOU_INLINE_VARS = [
+  "--you-primary",
+  "--you-on-primary",
+  "--you-primary-strong",
+  "--you-primary-container",
+  "--you-on-primary-container",
+  "--you-secondary",
+  "--you-on-secondary",
+  "--you-secondary-container",
+  "--you-on-secondary-container",
+  "--you-tertiary",
+  "--you-on-tertiary",
+  "--you-tertiary-container",
+  "--you-on-tertiary-container",
+  "--you-surface",
+  "--you-surface-low",
+  "--you-surface-container",
+  "--you-surface-high",
+  "--you-surface-highest",
+  "--you-on-surface",
+  "--you-on-surface-variant",
+  "--you-outline",
+  "--you-outline-variant",
+  "--you-r",
+  "--you-r-sm",
+  "--you-r-lg",
+  "--you-shape-clip",
+] as const;
+
 /** Применить тему к CSS-переменным документа. */
 export function applyTheme(theme: Theme | WinProTheme): void {
   const r = document.documentElement.style;
@@ -327,6 +359,12 @@ export function applyTheme(theme: Theme | WinProTheme): void {
     delete document.documentElement.dataset.youSeed;
     delete document.documentElement.dataset.youScheme;
     document.documentElement.style.colorScheme = "";
+    /* Выключаем inline-переменные You, если сейчас активна другая тема
+       (например, Glass): иначе они перекрывают стили темы и Liquid Glass
+       начинает выглядеть как Material You. */
+    YOU_INLINE_VARS.forEach((name) => {
+      document.documentElement.style.removeProperty(name);
+    });
     r.removeProperty("--color-ink");
     r.removeProperty("--color-ink-soft");
   }

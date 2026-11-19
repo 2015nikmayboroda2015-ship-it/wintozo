@@ -31,6 +31,8 @@ export interface Profile {
   winpro_until?: string | null;
   /** WinChat Glass: 'is_winchat_glass_true' — доступ есть, иначе 'is_winchat_glass_no'. */
   is_winchat_glass?: string | null;
+  /** Принудительный базовый интерфейс (legacy): 'is_winchat_legacy_true' | 'is_winchat_legacy_false'. */
+  is_winchat_legacy?: string | null;
   /** OOBE какой версии показать пользователю при следующем входе
    *  («5.0», «6.0» и т.д.). Пусто/null — обычная логика OOBE. */
   oobe_version?: string | null;
@@ -51,6 +53,10 @@ export const isWinProActive = (p?: Profile | null): boolean => {
 /** Есть ли у профиля доступ к WinChat Glass (флаг профиля). */
 export const isGlassGranted = (p?: Profile | null): boolean =>
   p?.is_winchat_glass === "is_winchat_glass_true";
+
+/** Принудительный базовый (legacy) интерфейс для пользователя. */
+export const isWinChatLegacy = (p?: Profile | null): boolean =>
+  p?.is_winchat_legacy === "is_winchat_legacy_true";
 
 /** Уровень верификации пользователя (для галочек). */
 export const verifyLevel = (p?: Profile | null): VerifyLevel => {

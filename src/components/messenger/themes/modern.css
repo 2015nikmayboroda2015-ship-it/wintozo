@@ -1,0 +1,277 @@
+/* Новая тема мессенджера (поверх базы / winchat-legacy fallback). */
+.messenger-modern {
+  --modern-radius: 22px;
+  --modern-surface: rgba(255, 255, 255, 0.78);
+  --modern-border: rgba(16, 18, 20, 0.08);
+  --modern-shadow: 0 18px 50px -28px rgba(16, 18, 20, 0.35);
+  color-scheme: light;
+}
+
+/* ---------- Анимации ---------- */
+@keyframes modern-float-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes modern-soft-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 0%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-accent) 10%, transparent); }
+}
+@keyframes modern-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes modern-pop {
+  0% { transform: scale(.92); opacity: 0; }
+  70% { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.messenger-modern .modern-fade-in { animation: modern-float-in .38s cubic-bezier(.2,.8,.2,1) both; }
+.messenger-modern .modern-pop { animation: modern-pop .28s cubic-bezier(.2,.9,.2,1) both; }
+.messenger-modern .modern-skeleton {
+  background: linear-gradient(90deg, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.10) 37%, rgba(0,0,0,0.05) 63%);
+  background-size: 400% 100%;
+  animation: modern-shimmer 1.25s ease-in-out infinite;
+}
+
+/* ---------- Сайдбар / список чатов ---------- */
+@media (min-width: 768px) {
+  .messenger-modern .modern-sidebar {
+    background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.68));
+    backdrop-filter: blur(18px) saturate(1.15);
+  }
+}
+.messenger-modern .modern-chat-row {
+  transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease;
+}
+.messenger-modern .modern-chat-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px -18px rgba(16,18,20,0.28);
+}
+.messenger-modern .modern-chat-row.is-active {
+  box-shadow: 0 14px 34px -20px color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+.messenger-modern .modern-icon-btn {
+  transition: transform .15s ease, background-color .15s ease, box-shadow .15s ease, color .15s ease;
+}
+.messenger-modern .modern-icon-btn:hover { transform: translateY(-1px); }
+.messenger-modern .modern-icon-btn:active { transform: scale(.94); }
+
+/* ---------- ChatView (общий) — мягкий современный вид ---------- */
+.messenger-modern main header {
+  background: color-mix(in srgb, var(--color-paper, #fff) 72%, rgba(255,255,255,0.9)) !important;
+  backdrop-filter: blur(16px) saturate(1.2);
+  border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+}
+.messenger-modern main header button {
+  transition: transform .15s ease, background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.messenger-modern main header button:hover { transform: translateY(-1px); }
+.messenger-modern main header button:active { transform: scale(.95); }
+
+.messenger-modern .dot-grid-dark {
+  background-image:
+    radial-gradient(color-mix(in srgb, var(--color-accent) 10%, transparent) 1px, transparent 1.2px),
+    radial-gradient(rgba(16,18,20,0.06) 1px, transparent 1.2px);
+  background-size: 28px 28px, 28px 28px;
+  background-position: 0 0, 14px 14px;
+}
+
+/* Composer */
+.messenger-modern main .sticky.bottom-0,
+.messenger-modern main div[class*="border-t"][class*="px-3"][class*="py-3"] {
+  background: color-mix(in srgb, var(--color-paper, #fff) 70%, rgba(255,255,255,0.92)) !important;
+  backdrop-filter: blur(16px) saturate(1.15);
+  border-top: 1px solid rgba(0,0,0,0.06) !important;
+}
+.messenger-modern main textarea,
+.messenger-modern main input[type="text"] {
+  transition: box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
+}
+.messenger-modern main textarea:focus,
+.messenger-modern main input[type="text"]:focus {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+/* Action/send buttons in chat */
+.messenger-modern main button[class*="bg-ink"],
+.messenger-modern main button[class*="bg-accent"] {
+  box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--color-accent) 45%, rgba(0,0,0,0.25));
+  transition: transform .15s ease, box-shadow .18s ease, filter .18s ease;
+}
+.messenger-modern main button[class*="bg-ink"]:hover,
+.messenger-modern main button[class*="bg-accent"]:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.05);
+}
+.messenger-modern main button[class*="bg-ink"]:active,
+.messenger-modern main button[class*="bg-accent"]:active {
+  transform: scale(.96);
+}
+
+/* Message bubbles — новая форма и анимация появления */
+.messenger-modern main .modern-bubble {
+  transition: transform .16s ease, box-shadow .2s ease, filter .18s ease;
+}
+.messenger-modern main .modern-bubble:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.02);
+}
+.messenger-modern main .modern-bubble-own {
+  box-shadow: 0 14px 30px -18px rgba(16,18,20,0.55), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.messenger-modern main .modern-bubble-other {
+  box-shadow: 0 10px 26px -18px rgba(16,18,20,0.22);
+}
+.messenger-modern main .animate-fade-in { animation: modern-float-in .3s cubic-bezier(.2,.8,.2,1) both; }
+.messenger-modern main .animate-msg-in { animation: modern-float-in .28s cubic-bezier(.2,.8,.2,1) both; }
+.messenger-modern main footer button[class*="rounded-full"],
+.messenger-modern main header button[class*="rounded-full"] {
+  border-radius: 16px !important;
+}
+.messenger-modern main ::-webkit-scrollbar { width: 8px; height: 8px; }
+.messenger-modern main ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 999px; }
+.messenger-modern main ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+
+/* ---------- Модалки (настройки / профили / инфо) ---------- */
+.messenger-modern .modern-modal {
+  border: 1px solid rgba(255,255,255,0.7);
+  background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(250,250,248,0.94));
+  backdrop-filter: blur(20px) saturate(1.15);
+  box-shadow: 0 34px 100px -34px rgba(16,18,20,0.5);
+}
+.messenger-modern .modern-modal .modern-section {
+  border-radius: 24px;
+  border: 1px solid rgba(0,0,0,0.06);
+  background: rgba(248,248,246,0.75);
+}
+/* Новые формы кнопок/полей внутри модалок новой темы */
+.messenger-modern .modern-modal button[class*="rounded-xl"],
+.messenger-modern .modern-modal a[class*="rounded-xl"] {
+  border-radius: 18px !important;
+}
+.messenger-modern .modern-modal button[class*="rounded-2xl"],
+.messenger-modern .modern-modal a[class*="rounded-2xl"] {
+  border-radius: 22px !important;
+}
+.messenger-modern .modern-modal input,
+.messenger-modern .modern-modal textarea,
+.messenger-modern .modern-modal select {
+  border-radius: 16px !important;
+}
+.messenger-modern .modern-modal button {
+  transition: transform .15s ease, box-shadow .18s ease, background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.messenger-modern .modern-modal button:hover { transform: translateY(-1px); }
+.messenger-modern .modern-modal button:active { transform: scale(.97); }
+.messenger-modern .modern-modal [class*="bg-ink"] {
+  box-shadow: 0 12px 28px -14px rgba(16,18,20,0.45);
+}
+.messenger-modern .modern-modal [class*="bg-accent"] {
+  box-shadow: 0 12px 28px -14px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+/* ---------- Настройки: глубокий редизайн через стили ---------- */
+.messenger-modern .modern-modal [class*="rounded-2xl border"] {
+  border-radius: 24px !important;
+}
+.messenger-modern .modern-modal .space-y-6 > div[class*="border"],
+.messenger-modern .modern-modal .space-y-5 > div[class*="border"],
+.messenger-modern .modern-modal .space-y-4 > div[class*="border"] {
+  background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(248,248,246,0.72)) !important;
+  border-color: rgba(0,0,0,0.06) !important;
+  box-shadow: 0 14px 34px -28px rgba(16,18,20,0.25);
+}
+.messenger-modern .modern-modal h4[class*="font-bold"],
+.messenger-modern .modern-modal p[class*="font-bold"][class*="text-sm"] {
+  letter-spacing: -0.01em;
+}
+/* Кнопки действий в настройках — пилюли/сквиркл, новые акценты */
+.messenger-modern .modern-modal button[class*="bg-ink"][class*="text-white"] {
+  border-radius: 18px !important;
+  background: linear-gradient(135deg, #171a1d, #2a2f35) !important;
+}
+.messenger-modern .modern-modal button[class*="border-black/10"] {
+  background: rgba(255,255,255,0.72);
+}
+.messenger-modern .modern-modal button[class*="text-red"] {
+  border-radius: 18px !important;
+}
+/* Инпуты */
+.messenger-modern .modern-modal input[type="text"],
+.messenger-modern .modern-modal input[type="password"],
+.messenger-modern .modern-modal input[type="email"],
+.messenger-modern .modern-modal input:not([type]),
+.messenger-modern .modern-modal textarea {
+  background: rgba(255,255,255,0.85) !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+}
+.messenger-modern .modern-modal input:focus,
+.messenger-modern .modern-modal textarea:focus {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, rgba(0,0,0,0.1)) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 12%, transparent), inset 0 1px 0 rgba(255,255,255,0.6) !important;
+}
+/* Переключатели/чипы/табы внутри контента */
+.messenger-modern .modern-modal [role="switch"],
+.messenger-modern .modern-modal [aria-checked] {
+  transition: transform .15s ease, background-color .18s ease;
+}
+/* Чат-инфо: секции и участники */
+.messenger-modern .modern-modal .group\/member {
+  border-radius: 18px;
+  transition: background-color .15s ease, transform .15s ease;
+}
+.messenger-modern .modern-modal .group\/member:hover {
+  background: rgba(0,0,0,0.03);
+}
+/* Плавное появление контента вкладок */
+.messenger-modern .modern-modal .animate-fade-in {
+  animation: modern-float-in .32s cubic-bezier(.2,.8,.2,1) both;
+}
+/* Общие меню/списки внутри новой темы */
+.messenger-modern [role="menu"],
+.messenger-modern [role="listbox"] {
+  border-radius: 20px !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  background: rgba(255,255,255,0.92) !important;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 20px 50px -24px rgba(16,18,20,0.35) !important;
+  padding: 6px !important;
+}
+.messenger-modern [role="menuitem"],
+.messenger-modern [role="option"] {
+  border-radius: 14px !important;
+  transition: background-color .14s ease, transform .14s ease;
+}
+.messenger-modern [role="menuitem"]:hover,
+.messenger-modern [role="option"]:hover {
+  transform: translateX(2px);
+}
+/* Админ-панель/групповые модалки внутри messenger-modern */
+.messenger-modern > [class*="fixed"] [class*="rounded-2xl"],
+.messenger-modern > [class*="fixed"] [class*="rounded-3xl"] {
+  backdrop-filter: blur(10px);
+}
+
+/* Крупнее тач-таргеты и мягче анимации на маленьких экранах */
+@media (max-width: 640px) {
+  .messenger-modern .modern-chat-row { padding: 14px 14px; border-radius: 24px; }
+  .messenger-modern .modern-icon-btn { transition: transform .16s ease, background-color .16s ease, box-shadow .18s ease; }
+}
+
+/* Полноэкранные настройки (Android/телефон) */
+.messenger-modern .modern-phone-settings {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,247,245,1));
+}
+.messenger-modern .modern-phone-settings header,
+.messenger-modern .modern-phone-settings [class*="sticky"] {
+  backdrop-filter: blur(16px);
+}
+.messenger-modern .modern-phone-settings button {
+  transition: transform .15s ease, background-color .15s ease, box-shadow .18s ease;
+}
+.messenger-modern .modern-phone-settings button:active { transform: scale(.98); }
+
+@media (min-width: 1024px) {
+  .messenger-modern main > div { border-left: 1px solid rgba(0,0,0,0.04); }
+}

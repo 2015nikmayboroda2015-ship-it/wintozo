@@ -1440,6 +1440,100 @@
 }
 
 /* ============================================================
+   Очень маленькие экраны (телефоны в портрете, узкие iPhone SE и т.п.):
+   уменьшаем всё, чтобы интерфейс не распирался за экран.
+   ============================================================ */
+
+@media (max-width: 480px) {
+  .oobe-you-h1 {
+    font-size: clamp(30px, 9.4vw, 38px);
+  }
+
+  .oobe-you-h2 {
+    font-size: clamp(24px, 7.6vw, 30px);
+    line-height: 1.05;
+  }
+
+  .oobe-you-hero-mark {
+    width: min(100%, 118px);
+    margin-bottom: 14px;
+  }
+
+  .oobe-you-success-mark {
+    width: min(100%, 104px);
+    margin-bottom: 12px;
+  }
+
+  .oobe-you-check-mark {
+    width: 96px;
+    height: 96px;
+  }
+
+  .oobe-you-lead {
+    font-size: 13px;
+    max-width: 100%;
+  }
+
+  .oobe-you-card {
+    padding: 16px;
+    border-radius: 26px;
+  }
+
+  .oobe-you-action {
+    min-height: 50px;
+    font-size: 14px;
+  }
+
+  .oobe-you-action-text {
+    min-height: 44px;
+  }
+
+  .oobe-you-chips {
+    gap: 6px;
+  }
+
+  .oobe-you-chip {
+    font-size: 10px;
+    min-height: 30px;
+    padding: 0 10px;
+  }
+
+  .oobe-you-code {
+    padding: 14px 12px;
+    font-size: clamp(14px, 4.6vw, 18px);
+  }
+
+  .oobe-you-checks {
+    gap: 6px;
+  }
+
+  .oobe-you-check {
+    min-height: 42px;
+    padding: 6px 10px;
+    border-radius: 16px;
+  }
+
+  .oobe-you-list-item {
+    min-height: 50px;
+  }
+
+  .oobe-you-list-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 12px;
+  }
+
+  .oobe-you-head h1,
+  .oobe-you-head h2 {
+    font-size: clamp(24px, 7.4vw, 30px);
+  }
+
+  .oobe-you-head p {
+    font-size: 12px;
+  }
+}
+
+/* ============================================================
    Телефоны: убираем GPU-тяжёлые эффекты.
 
    Android WebView мерцает и рисует белые «квадраты», если на экране

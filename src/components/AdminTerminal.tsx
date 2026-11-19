@@ -225,6 +225,8 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
             { type: "info", text: '/set ota [@username] "<ссылка>" [версия] [@target|*] — OTA для Android' },
             { type: "info", text: "/set ota off                — Отключить OTA" },
             { type: "info", text: "/get ota                    — Текущая OTA-настройка" },
+            { type: "info", text: "/set legacy @username       — Включить базовый (legacy) интерфейс WinChat" },
+            { type: "info", text: "/del legacy @username       — Вернуть новый интерфейс WinChat" },
             { type: "info", text: '/set oobe @username "<X.Y>" — Показать пользователю OOBE версии (5.0 / 6.0) при следующем входе' },
             { type: "info", text: "/set oobe @username off     — Вернуть обычную логику OOBE" },
             { type: "info", text: "/get devices                — Устройства, которые запускали приложение" },
@@ -391,6 +393,31 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
 
         case "/set": {
           const what = parts[1];
+
+          if (what === "legacy") {
+            const username = parts[2]?.replace(/^@/, "").replace(/["']/g, "");
+            if (!username) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: "Использование: /set legacy @username" },
+              ]);
+              break;
+            }
+            const { error } = await supabase
+              .from("profiles")
+              .update({ is_winchat_legacy: "is_winchat_legacy_true" })
+              .eq("username", username);
+            if (error) {
+              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+            } else {
+              setHistory((prev) => [
+                ...prev,
+                { type: "success", text: `✓ @${username}: включён legacy-интерфейс (winchat-legacy)` },
+              ]);
+              onProfileUpdated();
+            }
+            break;
+          }
 
           if (what === "ota") {
             // Всё после "/set ota" — исходная строка (URL чувствителен к регистру).
@@ -894,6 +921,38 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
           } else {
             setHistory((prev) => [...prev, { type: "error", text: `✗ ${res.error}` }]);
           }
+          break;
+        }
+
+        case "/del": {
+          if (parts[1] === "legacy") {
+            const username = parts[2]?.replace(/^@/, "").replace(/["']/g, "");
+            if (!username) {
+              setHistory((prev) => [
+                ...prev,
+                { type: "error", text: "Использование: /del legacy @username" },
+              ]);
+              break;
+            }
+            const { error } = await supabase
+              .from("profiles")
+              .update({ is_winchat_legacy: "is_winchat_legacy_false" })
+              .eq("username", username);
+            if (error) {
+              setHistory((prev) => [...prev, { type: "error", text: `Ошибка: ${error.message}` }]);
+            } else {
+              setHistory((prev) => [
+                ...prev,
+                { type: "success", text: `✓ @${username}: включён новый интерфейс (legacy выключен)` },
+              ]);
+              onProfileUpdated();
+            }
+            break;
+          }
+          setHistory((prev) => [
+            ...prev,
+            { type: "error", text: "Использование: /del legacy @username" },
+          ]);
           break;
         }
 

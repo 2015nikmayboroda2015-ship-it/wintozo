@@ -1,6 +1,6 @@
 # ============================================================
 #  WinChat — GitHub Actions: сборка APK (Android 8+, Java 21)
-#  Версия: 3.0.0
+#  Версия: 6.0.0
 #  Пакет: org.wintozo.messenger
 # ============================================================
 
@@ -76,12 +76,6 @@ jobs:
             echo "::warning::ANDROID_KEYSTORE secret is not set — release APK will NOT be built"
           fi
 
-      - name: Build debug APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
-
       # ── Release-сборка с подписью (абсолютный путь к keystore в корне) ──
       - name: Build release APK (signed)
         if: env.KEYSTORE_SAVED == 'true'
@@ -93,13 +87,6 @@ jobs:
             -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
-
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: wintozo-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
 
       - name: Upload release APK
         if: env.KEYSTORE_SAVED == 'true'
@@ -124,13 +111,27 @@ jobs:
             **WinChat v${{ steps.ver.outputs.version }}**
 
             Android 8+ | org.wintozo.messenger
-            Подписанный APK
 
-            Новое в 5.0.0:
-            - WinChat Glass (Liquid Glass): прозрачные панели, глубокое размытие, глянцевые блики
-            - Очень крупные скругления и новый шрифт
-            - Отдельный маршрут /themes/glass/chat
-            - WinChat Glass доступен с WinPro
+            Новое в 6.0.0:
+            - Обновлённая OOBE и новые анимации (Material You)
+            - OOBE теперь только в стиле Material You
+            - Новый дизайн чатов WinChat You: пузыри, композер и список чатов
+            - 15 палитр — Океан, Лагуна, Янтарь, Сакура, Космос и другие
             - Исправлены баги
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Debug-сборка ──
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: wintozo-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+

@@ -7,6 +7,7 @@
  * лайм), крупные формы и тональные поверхности.
  */
 
+import type { CSSProperties } from "react";
 import {
   DEFAULT_YOU_SHAPE,
   getYouShapeOption,
@@ -507,6 +508,40 @@ export function applyYouShape(id = getYouShape()): YouShape {
   document.documentElement.dataset.youShape = s.id;
   window.dispatchEvent(new Event("winchat-you-shape-change"));
   return s.id;
+}
+
+/**
+ * CSS-переменные Material You (префикс --yb-) для бут-анимации, собранные
+ * из выбранного сида You. Fallback, если переменной нет, — базовая M3-палитра.
+ * Стартовая заставка (BootAnimation_you) использует их, чтобы она точно
+ * следовала цвету активной темы (например, «Лаванда» → голубая лаванда).
+ */
+export function youPaletteVars(seed: YouSeed = getYouSeed()): CSSProperties {
+  const v = {
+    "--yb-primary": seed.primary,
+    "--yb-on-primary": seed.onPrimary,
+    "--yb-primary-strong": seed.primaryStrong,
+    "--yb-primary-container": seed.primaryContainer,
+    "--yb-on-primary-container": seed.onPrimaryContainer,
+    "--yb-secondary": seed.secondary,
+    "--yb-on-secondary": seed.onSecondary,
+    "--yb-secondary-container": seed.secondaryContainer,
+    "--yb-on-secondary-container": seed.onSecondaryContainer,
+    "--yb-tertiary": seed.tertiary,
+    "--yb-on-tertiary": seed.onTertiary,
+    "--yb-tertiary-container": seed.tertiaryContainer,
+    "--yb-on-tertiary-container": seed.onTertiaryContainer,
+    "--yb-surface": seed.surface,
+    "--yb-surface-low": seed.surfaceLow,
+    "--yb-surface-container": seed.surfaceContainer,
+    "--yb-surface-high": seed.surfaceHigh,
+    "--yb-surface-highest": seed.surfaceHighest,
+    "--yb-on-surface": seed.onSurface,
+    "--yb-on-surface-variant": seed.onSurfaceVariant,
+    "--yb-outline": seed.outline,
+    "--yb-outline-variant": seed.outlineVariant,
+  };
+  return v as CSSProperties;
 }
 
 /** Применить выразительную схему Material You к CSS-переменным документа. */

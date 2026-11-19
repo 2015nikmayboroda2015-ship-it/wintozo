@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   SHAPE_SEQUENCE,
   TILE_SPEC,
@@ -6,6 +6,7 @@ import {
   shapePath,
   type ShapeSpec,
 } from "../lib/youShapes";
+import { getYouSeed, youPaletteVars } from "../lib/materialYou";
 import { useLiteMotion } from "../lib/devicePerf";
 import "./You_boot.css";
 
@@ -20,27 +21,8 @@ type Phase = "loading" | "settle" | "reveal" | "exit";
 
    Внутри силуэта — простая чёрная буква «W» (знак WinChat),
    обрезанная формой. Вся заставка держится в голубой
-   Material You-палитре (Google Blue).
+   Material You-палитре активной темы пользователя.
    ============================================================ */
-
-/* ---------------- Голубая палитра (M3, light) ---------------- */
-
-const BLUE_VARS = {
-  "--yb-primary": "#0b57d0",
-  "--yb-on-primary": "#ffffff",
-  "--yb-primary-strong": "#0842a0",
-  "--yb-primary-container": "#d3e3fd",
-  "--yb-secondary": "#00639b",
-  "--yb-secondary-container": "#c2e7ff",
-  "--yb-tertiary": "#006a6a",
-  "--yb-tertiary-container": "#c8f0ee",
-  "--yb-surface": "#eef4fd",
-  "--yb-surface-low": "#f6f9ff",
-  "--yb-surface-high": "#e1ecfb",
-  "--yb-on-surface": "#0f1c2c",
-  "--yb-on-surface-variant": "#3e4c60",
-  "--yb-outline": "#6b7b90",
-} as CSSProperties;
 
 /* ---------------- Геометрия экспрессивных форм ---------------- */
 /* Силуэты и математика общие с кастомизацией You — lib/youShapes.ts. */
@@ -83,6 +65,8 @@ interface Props {
 export default function BootAnimationYou({ ready, long = false, onDone }: Props) {
   const [phase, setPhase] = useState<Phase>("loading");
   const uid = useId().replace(/:/g, "");
+  /* Активная You-тема: палитра бут-анимации следует за ней. */
+  const seed = useMemo(() => getYouSeed(), []);
   const gradientId = `you-grad-${uid}`;
   const glowId = `you-glow-${uid}`;
   const clipId = `you-clip-${uid}`;
@@ -209,7 +193,7 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
     <div
       className="youboot"
       data-phase={phase}
-      style={BLUE_VARS}
+      style={youPaletteVars(seed)}
       role="status"
       aria-live="polite"
       aria-label="Загрузка WinChat You"
@@ -233,7 +217,7 @@ export default function BootAnimationYou({ ready, long = false, onDone }: Props)
                 <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
               </radialGradient>
               <clipPath id={clipId}>
-                <use href={`#${pathId}`} />
+                <use href={`#${pathId}`} xlinkHref={`#${pathId}`} />
               </clipPath>
             </defs>
 
