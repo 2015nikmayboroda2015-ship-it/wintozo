@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   supabase,
   type ChatItem,
@@ -39,7 +39,7 @@ import CheckVersion from "../../CheckVersion";
 import YouBackdrop from "../../YouBackdrop";
 import { cn } from "../../../utils/cn";
 import { loadSavedNotes, SAVED_CHAT_ID } from "../../../lib/savedNotes";
-import { Megaphone, MessageCircle, Search, Settings, Star, UsersRound } from "lucide-react";
+import { Megaphone, MessageCircle, Search, Settings, Star, Terminal, UsersRound } from "lucide-react";
 
 /** «Избранное» всегда закреплено сверху, остальные — по времени. */
 const bySavedThenDate = (a: ChatItem, b: ChatItem) =>
@@ -103,11 +103,17 @@ function Placeholder({
   onCreateGroup,
   onCreateChannel,
   onOpenSaved,
+  isAdmin,
+  onOpenTerminal,
+  onLogoTap,
 }: {
   youMode?: boolean;
   onCreateGroup?: () => void;
   onCreateChannel?: () => void;
   onOpenSaved?: () => void;
+  isAdmin?: boolean;
+  onOpenTerminal?: () => void;
+  onLogoTap?: () => void;
 }) {
   if (youMode) {
     return (
@@ -116,9 +122,9 @@ function Placeholder({
         <span className="yc-placeholder-orb yc-placeholder-orb-a" aria-hidden />
         <span className="yc-placeholder-orb yc-placeholder-orb-b" aria-hidden />
         <div className="yc-placeholder-card">
-          <div className="yc-placeholder-mark">
+          <button type="button" onClick={onLogoTap} className="yc-placeholder-mark" aria-label="WinChat">
             <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
-          </div>
+          </button>
           <p className="yc-placeholder-title">Ваши беседы</p>
           <p className="yc-placeholder-sub">
             Выберите чат, найдите человека или создайте группу — всё в одном месте.
@@ -138,45 +144,73 @@ function Placeholder({
     hour < 6 ? "Доброй ночи" : hour < 12 ? "Доброе утро" : hour < 18 ? "Добрый день" : "Добрый вечер";
 
   return (
-    <div className="relative flex h-full flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-paper via-white to-accent-soft/30 text-center">
+    <div className="dot-grid-dark relative flex h-full flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-[#fbfbfa] via-white to-accent-soft/25 px-4 text-center sm:px-8">
       <span
         aria-hidden
-        className="pointer-events-none absolute -top-28 right-[-6rem] h-[26rem] w-[26rem] rounded-full bg-accent/10 blur-3xl"
+        className="pointer-events-none absolute -top-24 right-[-8rem] h-[30rem] w-[30rem] rounded-full bg-accent/10 blur-3xl"
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute -bottom-32 left-[-4rem] h-[28rem] w-[28rem] rounded-full bg-accent-soft/70 blur-3xl"
+        className="pointer-events-none absolute -bottom-28 left-[-6rem] h-[30rem] w-[30rem] rounded-full bg-accent-soft/70 blur-3xl"
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute top-1/3 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-white/60 blur-3xl"
+        className="pointer-events-none absolute left-1/2 top-[18%] h-72 w-72 -translate-x-1/2 rounded-full bg-white/70 blur-3xl"
       />
 
-      <div className="animate-scale-in relative mx-4 w-full max-w-2xl">
-        <div className="rounded-[36px] border border-white/70 bg-white/70 p-7 shadow-[0_24px_80px_-24px_rgba(16,18,20,0.25)] backdrop-blur-xl sm:p-10">
-          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:text-left">
+      {/* Логотип WinChat и админ-терминал в правом верхнем углу */}
+      <div className="absolute top-4 right-4 z-20 hidden items-center gap-2 md:flex">
+        {onLogoTap && (
+          <button
+            onClick={onLogoTap}
+            className="flex items-center gap-2 rounded-2xl border border-black/8 bg-white/85 py-1.5 pr-3 pl-1.5 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md active:scale-95"
+            aria-label="WinChat"
+            title="WinChat"
+          >
+            <span className="h-8 w-8 overflow-hidden rounded-xl ring-1 ring-black/5">
+              <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
+            </span>
+            <span className="text-[13px] font-extrabold tracking-tight text-ink">WinChat</span>
+          </button>
+        )}
+        {isAdmin && onOpenTerminal && (
+          <button
+            onClick={onOpenTerminal}
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-200/80 bg-emerald-50/90 text-emerald-700 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-emerald-50 hover:shadow-md active:scale-95"
+            aria-label="Admin Terminal"
+            title="Admin Terminal"
+          >
+            <Terminal className="h-4.5 w-4.5" strokeWidth={2} />
+          </button>
+        )}
+      </div>
+
+      <div className="modern-fade-in relative w-full max-w-3xl">
+        <div className="overflow-hidden rounded-[40px] border border-white/80 bg-white/72 p-6 shadow-[0_30px_90px_-32px_rgba(16,18,20,0.28)] backdrop-blur-2xl sm:p-10">
+          <div className="flex flex-col items-center gap-7 lg:flex-row lg:items-start lg:gap-8 lg:text-left">
             <div className="relative shrink-0">
-              <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-[30px] bg-white shadow-xl ring-1 ring-black/5">
+              <div className="absolute inset-0 scale-110 rounded-[34px] bg-accent/15 blur-xl" aria-hidden />
+              <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-[32px] bg-white shadow-xl ring-1 ring-black/5 sm:h-28 sm:w-28">
                 <img src="/logo.jpg" alt="WinChat" className="h-full w-full object-cover" />
               </div>
             </div>
 
             <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
+              <h1 className="text-3xl font-extrabold tracking-tight text-ink sm:text-[2.2rem]">
                 {greeting}
               </h1>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed font-medium text-black/50 sm:text-[15px]">
-                Выберите чат слева, начните новый разговор или откройте избранное. Всё важное — под рукой.
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed font-medium text-black/50 sm:text-[15px] lg:mx-0">
+                Выберите чат слева, найдите собеседника или создайте новое пространство. Сообщения, каналы и заметки — в одном аккуратном месте.
               </p>
 
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5 lg:justify-start">
                 {onCreateGroup && (
                   <button
                     type="button"
                     onClick={onCreateGroup}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-ink px-5 py-3 text-sm font-bold text-white shadow-lg shadow-ink/20 transition hover:-translate-y-0.5 hover:bg-ink/90 hover:shadow-xl active:scale-95"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-ink px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-ink/20 transition hover:-translate-y-0.5 hover:bg-ink/90 hover:shadow-xl active:scale-95"
                   >
-                    <UsersRound className="h-4 w-4" />
+                    <UsersRound className="h-4.5 w-4.5" />
                     Новая группа
                   </button>
                 )}
@@ -184,19 +218,19 @@ function Placeholder({
                   <button
                     type="button"
                     onClick={onCreateChannel}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-white/90 px-5 py-3 text-sm font-bold text-ink shadow-sm transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md active:scale-95"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-white/90 px-5 py-3.5 text-sm font-bold text-ink shadow-sm transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md active:scale-95"
                   >
-                    <Megaphone className="h-4 w-4 text-accent" />
-                    Канал
+                    <Megaphone className="h-4.5 w-4.5 text-accent" />
+                    Создать канал
                   </button>
                 )}
                 {onOpenSaved && (
                   <button
                     type="button"
                     onClick={onOpenSaved}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-amber-200/70 bg-amber-50/80 px-5 py-3 text-sm font-bold text-amber-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-md active:scale-95"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-amber-200/80 bg-gradient-to-b from-amber-50 to-white px-5 py-3.5 text-sm font-bold text-amber-900 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-95"
                   >
-                    <Star className="h-4 w-4 text-amber-500" fill="currentColor" strokeWidth={1.8} />
+                    <Star className="h-4.5 w-4.5 text-amber-500" fill="currentColor" strokeWidth={1.8} />
                     Избранное
                   </button>
                 )}
@@ -204,32 +238,32 @@ function Placeholder({
             </div>
           </div>
 
-          <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-black/5 bg-white/70 p-4 text-left transition hover:bg-white">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent">
+          <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="group rounded-[24px] border border-black/6 bg-white/75 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-accent transition group-hover:scale-105">
                 <Search className="h-5 w-5" />
               </div>
-              <p className="mt-3 text-sm font-bold text-ink">Поиск</p>
+              <p className="mt-3 text-sm font-extrabold text-ink">Быстрый поиск</p>
               <p className="mt-1 text-xs leading-relaxed font-medium text-black/45">
-                Найдите людей, чаты и группы через строку слева.
+                Ищите людей, чаты и группы прямо из боковой панели.
               </p>
             </div>
-            <div className="rounded-2xl border border-black/5 bg-white/70 p-4 text-left transition hover:bg-white">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent">
+            <div className="group rounded-[24px] border border-black/6 bg-white/75 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-accent transition group-hover:scale-105">
                 <MessageCircle className="h-5 w-5" />
               </div>
-              <p className="mt-3 text-sm font-bold text-ink">Диалоги</p>
+              <p className="mt-3 text-sm font-extrabold text-ink">Все диалоги</p>
               <p className="mt-1 text-xs leading-relaxed font-medium text-black/45">
-                Личные и групповые чаты — в одном удобном списке.
+                Личные переписки, группы и каналы — в едином списке.
               </p>
             </div>
-            <div className="rounded-2xl border border-black/5 bg-white/70 p-4 text-left transition hover:bg-white">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent">
+            <div className="group rounded-[24px] border border-black/6 bg-white/75 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-accent transition group-hover:scale-105">
                 <Settings className="h-5 w-5" />
               </div>
-              <p className="mt-3 text-sm font-bold text-ink">Настройки</p>
+              <p className="mt-3 text-sm font-extrabold text-ink">Настройки</p>
               <p className="mt-1 text-xs leading-relaxed font-medium text-black/45">
-                Темы, профиль и параметры — в меню настроек.
+                Профиль, темы, безопасность и персонализация — рядом.
               </p>
             </div>
           </div>
@@ -265,7 +299,17 @@ export default function Messenger({
   const [infoOpen, setInfoOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [termOpen, setTermOpen] = useState(false);
+  const [trollOpen, setTrollOpen] = useState(false);
+  const logoTaps = useRef(0);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  /** Пасхалка: 9 кликов по логотипу — полноэкранный TROLL TROLL. */
+  const registerLogoTap = useCallback(() => {
+    logoTaps.current += 1;
+    if (logoTaps.current < 9) return;
+    logoTaps.current = 0;
+    setTrollOpen(true);
+  }, []);
 
   /* ---------- высота под мобильную клавиатуру ---------- */
   useEffect(() => {
@@ -533,7 +577,9 @@ export default function Messenger({
     <div
       className={cn(
         "font-app flex h-dvh overflow-hidden",
-        youMode ? "you-shell" : "messenger-modern bg-gradient-to-br from-paper via-[#fafaf8] to-accent-soft/20"
+        youMode
+          ? "you-shell"
+          : "messenger-modern bg-gradient-to-br from-[#fbfbfa] via-[#f7f7f4] to-accent-soft/25"
       )}
       style={viewportHeight ? { height: viewportHeight } : undefined}
     >
@@ -545,7 +591,7 @@ export default function Messenger({
 
       <div
         className={cn(
-          "winchat-page-transition you-front h-full w-full md:w-[380px] md:shrink-0",
+          "winchat-page-transition you-front h-full w-full md:w-[424px] md:shrink-0",
           active ? "hidden md:block" : "block"
         )}
       >
@@ -567,6 +613,7 @@ export default function Messenger({
           isAdmin={isAdmin}
           youMode={youMode}
           onExitYou={onExitYou}
+          onLogoTap={registerLogoTap}
         />
       </div>
 
@@ -586,6 +633,8 @@ export default function Messenger({
             onActivity={applyIncoming}
             onOpenInfo={() => setInfoOpen(true)}
             youMode={youMode}
+            isAdmin={isAdmin}
+            onOpenTerminal={() => setTermOpen(true)}
           />
         ) : (
           <Placeholder
@@ -596,6 +645,9 @@ export default function Messenger({
               const saved = chats.find((c) => c.isSaved);
               if (saved) selectChat(saved);
             }}
+            isAdmin={isAdmin}
+            onOpenTerminal={() => setTermOpen(true)}
+            onLogoTap={registerLogoTap}
           />
         )}
       </main>
@@ -696,6 +748,27 @@ export default function Messenger({
             });
           }}
         />
+      )}
+
+      {/* Пасхалка: 9 кликов по логотипу. Закрыть можно только перезагрузкой. */}
+      {trollOpen && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6 bg-black p-4">
+          <p className="select-none text-center text-4xl font-black uppercase tracking-[0.22em] text-red-600 sm:text-6xl">
+            TROLL TROLL
+          </p>
+          <div className="w-full max-w-[720px] overflow-hidden rounded-2xl bg-black shadow-[0_0_90px_rgba(220,38,38,0.45)] ring-1 ring-red-600/40">
+            <iframe
+              width="720"
+              height="405"
+              src="https://rutube.ru/play/embed/7d0c916c2867a2c217b762f55ee45cf0/"
+              style={{ border: "none" }}
+              allow="clipboard-write; autoplay"
+              allowFullScreen
+              className="aspect-video w-full"
+              title="TROLL TROLL"
+            />
+          </div>
+        </div>
       )}
     </div>
   );

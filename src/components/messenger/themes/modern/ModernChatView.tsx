@@ -17,6 +17,7 @@ import {
   Plus,
   Star,
   Sticker,
+  Terminal,
   Trash2,
   Users,
   Video,
@@ -60,6 +61,9 @@ interface Props {
   onOpenInfo: () => void;
   /** Режим WinChat You (Material You). */
   youMode?: boolean;
+  /** Глобальный админ — показывает админ-терминал в шапке. */
+  isAdmin?: boolean;
+  onOpenTerminal?: () => void;
 }
 
 function TypingLabel({ who }: { who?: string }) {
@@ -83,6 +87,8 @@ export default function ChatView({
   onActivity,
   onOpenInfo,
   youMode = false,
+  isAdmin = false,
+  onOpenTerminal,
 }: Props) {
   const chatId = chat.id;
   const [messages, setMessages] = useState<Message[]>([]);
@@ -791,7 +797,7 @@ export default function ChatView({
           ) : (
             <>
               <span className="h-px flex-1 bg-gradient-to-r from-transparent via-black/10 to-transparent" />
-              <span className="rounded-full border border-black/8 bg-white/75 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-black/45 shadow-sm backdrop-blur">
+              <span className="modern-date-chip rounded-full border border-black/8 bg-white/75 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-black/45 shadow-sm backdrop-blur">
                 {dateLabel(m.created_at)}
               </span>
               <span className="h-px flex-1 bg-gradient-to-r from-transparent via-black/10 to-transparent" />
@@ -825,8 +831,10 @@ export default function ChatView({
         {own && (
           <div
             className={cn(
-              "mb-1 flex items-center gap-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100",
-              youMode ? "" : "flex-col rounded-2xl border border-black/8 bg-white/80 p-1 shadow-sm backdrop-blur"
+              "mb-1 flex items-center gap-1 transition md:opacity-0 md:group-hover:opacity-100",
+              youMode
+                ? "opacity-100"
+                : "rounded-2xl border border-black/8 bg-white/85 p-1 shadow-sm backdrop-blur-sm"
             )}
           >
             {m.content && (
@@ -836,7 +844,7 @@ export default function ChatView({
                   "transition",
                   youMode
                     ? "yc-msg-action rounded-full p-1.5"
-                    : "flex h-7 w-7 items-center justify-center rounded-xl text-black/35 hover:bg-accent/10 hover:text-accent active:scale-95"
+                    : "flex h-8 w-8 items-center justify-center rounded-xl text-black/40 hover:bg-accent/10 hover:text-accent active:scale-95 md:h-7 md:w-7"
                 )}
                 aria-label="Редактировать сообщение"
                 title="Редактировать"
@@ -850,7 +858,7 @@ export default function ChatView({
                 "transition",
                 youMode
                   ? "yc-msg-action yc-msg-action-danger rounded-full p-1.5"
-                  : "flex h-7 w-7 items-center justify-center rounded-xl text-black/35 hover:bg-red-500/10 hover:text-red-500 active:scale-95"
+                  : "flex h-8 w-8 items-center justify-center rounded-xl text-black/40 hover:bg-red-500/10 hover:text-red-500 active:scale-95 md:h-7 md:w-7"
               )}
               aria-label="Удалить сообщение"
               title="Удалить"
@@ -860,7 +868,7 @@ export default function ChatView({
           </div>
         )}
 
-        <div className="modern-pop max-w-[78%] sm:max-w-[65%]">
+        <div className="modern-pop max-w-[84%] sm:max-w-[68%] md:max-w-[62%]">
           <div
             className={cn(
               "overflow-hidden text-[15px] leading-relaxed font-medium transition-shadow",
@@ -876,7 +884,7 @@ export default function ChatView({
                             !groupedNext && "yc-tail-own"
                           )
                         : cn(
-                            "modern-bubble modern-bubble-own rounded-[26px] bg-gradient-to-br from-ink to-ink/90 text-white shadow-lg shadow-ink/20",
+                            "modern-bubble modern-bubble-own rounded-[26px] text-white shadow-lg",
                             groupedPrev ? "rounded-tr-[14px]" : "",
                             !groupedNext ? "rounded-br-[8px]" : "rounded-br-[14px]"
                           )
@@ -887,7 +895,7 @@ export default function ChatView({
                             !groupedNext && "yc-tail-other"
                           )
                         : cn(
-                            "modern-bubble modern-bubble-other rounded-[26px] border border-black/6 bg-white/95 text-ink shadow-md shadow-black/5",
+                            "modern-bubble modern-bubble-other rounded-[26px] border border-black/6 text-ink shadow-md",
                             groupedPrev ? "rounded-tl-[14px]" : "",
                             !groupedNext ? "rounded-bl-[8px]" : "rounded-bl-[14px]"
                           )
@@ -1130,10 +1138,10 @@ export default function ChatView({
       {/* Шапка */}
       <header
         className={cn(
-          "flex items-center gap-2 backdrop-blur sm:gap-3",
+          "relative z-10 flex items-center gap-2 backdrop-blur sm:gap-3",
           youMode
             ? "yc-appbar"
-            : "border-b border-black/8 bg-white/65 px-2.5 py-2 sm:px-4 sm:py-2.5"
+            : "border-b border-black/8 bg-white/72 px-2.5 py-2 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] sm:px-5 sm:py-2.5"
         )}
       >
         <button
@@ -1249,14 +1257,26 @@ export default function ChatView({
             </button>
           )}
         </div>
+
+        {/* Админ-терминал в правом верхнем углу (десктоп, только для админа) */}
+        {isAdmin && onOpenTerminal && (
+          <button
+            onClick={onOpenTerminal}
+            className="ml-1 hidden h-10 w-10 items-center justify-center rounded-2xl border border-emerald-200/80 bg-emerald-50/90 text-emerald-700 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-emerald-50 hover:shadow-md active:scale-95 md:flex"
+            aria-label="Admin Terminal"
+            title="Admin Terminal"
+          >
+            <Terminal className="h-[18px] w-[18px]" strokeWidth={2} />
+          </button>
+        )}
       </header>
 
       {/* Лента */}
       <div
         ref={boxRef}
         className={cn(
-          "flex-1 overflow-y-auto",
-          youMode ? "yc-feed px-4 py-5 sm:px-7" : "px-4 py-6 sm:px-8"
+          "flex-1 overflow-y-auto scroll-smooth",
+          youMode ? "yc-feed px-4 py-5 sm:px-7" : "modern-feed px-3 py-5 sm:px-8 sm:py-6"
         )}
       >
         <div className={cn("mx-auto max-w-[820px]", youMode && "yc-feed-inner")}>
@@ -1327,9 +1347,10 @@ export default function ChatView({
       {/* Ввод */}
       <footer
         className={cn(
+          "relative z-10",
           youMode
             ? "yc-bottom"
-            : "border-t border-black/8 bg-white/70 px-2 py-2 backdrop-blur sm:px-8 sm:py-2.5"
+            : "border-t border-black/8 bg-white/72 px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl sm:px-6 sm:py-2.5"
         )}
       >
         <div className="mx-auto max-w-[820px]">
@@ -1480,17 +1501,14 @@ export default function ChatView({
                 </>
               ) : (
                 <>
-                  {/* Новая компоновка: панель действий слева, поле по центру, отправка справа */}
-                  <div className="flex shrink-0 items-center gap-1 rounded-[20px] border border-black/8 bg-white/80 p-1 shadow-sm">
-                    <button onClick={() => fileRef.current?.click()} disabled={uploading || compressing || sending} className="flex h-10 w-10 items-center justify-center rounded-2xl text-black/45 transition hover:bg-accent/10 hover:text-accent active:scale-95 disabled:opacity-50" aria-label="Прикрепить фото или видео" title="Фото или видео">
+                  {/* Одна пилюля: вложения + поле ввода */}
+                  <div className="modern-composer flex min-w-0 flex-1 items-end gap-0.5 rounded-[26px] border border-black/8 px-1.5 py-1.5 shadow-sm">
+                    <button onClick={() => fileRef.current?.click()} disabled={uploading || compressing || sending} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-black/45 transition hover:bg-accent/10 hover:text-accent active:scale-95 disabled:opacity-50" aria-label="Прикрепить фото или видео" title="Фото или видео">
                       {uploading || compressing ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" strokeWidth={1.8} />}
                     </button>
-                    <button onClick={() => setStickerPickerOpen(true)} disabled={compressing || sending} className="flex h-10 w-10 items-center justify-center rounded-2xl text-black/45 transition hover:bg-accent/10 hover:text-accent active:scale-95 disabled:opacity-50" aria-label="Открыть меню стикеров" title="Стикеры">
+                    <button onClick={() => setStickerPickerOpen(true)} disabled={compressing || sending} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-black/45 transition hover:bg-accent/10 hover:text-accent active:scale-95 disabled:opacity-50" aria-label="Открыть меню стикеров" title="Стикеры">
                       <Sticker className="h-5 w-5" strokeWidth={1.8} />
                     </button>
-                  </div>
-
-                  <div className="flex min-w-0 flex-1 items-end rounded-[24px] border border-black/8 bg-white/90 px-3 py-1.5 shadow-sm transition focus-within:border-accent/40 focus-within:ring-4 focus-within:ring-accent/10">
                     <textarea
                       ref={textRef}
                       rows={1}
@@ -1501,22 +1519,22 @@ export default function ChatView({
                       onFocus={() => { if (textRef.current) { uncontrolledText.current = textRef.current.value; setHasText(textRef.current.value.trim().length > 0); } }}
                       onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }}
                       placeholder={chat.isSaved ? "Напишите заметку…" : "Напишите сообщение…"}
-                      className="max-h-32 min-w-0 flex-1 resize-none bg-transparent px-1 py-2 text-[15px] font-medium outline-none placeholder:text-black/30"
+                      className="max-h-32 min-w-0 flex-1 resize-none bg-transparent px-1.5 py-2 text-[15px] font-medium outline-none placeholder:text-black/30"
                     />
                     <input ref={fileRef} type="file" accept="image/*,video/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (f.type.startsWith("video/")) sendVideoFile(f); else send({ image: f }); } e.target.value = ""; }} />
                   </div>
 
                   {hasText ? (
-                    <button onClick={() => send()} disabled={sending || compressing} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-ink text-white shadow-lg shadow-ink/20 transition hover:-translate-y-0.5 hover:bg-ink/90 active:scale-95 disabled:opacity-30" aria-label="Отправить сообщение">
+                    <button onClick={() => send()} disabled={sending || compressing} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-white shadow-lg shadow-accent/30 transition hover:-translate-y-0.5 hover:brightness-105 active:scale-95 disabled:opacity-30" aria-label="Отправить сообщение">
                       {sending && !uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" strokeWidth={2.4} />}
                     </button>
                   ) : (
-                    <div className="flex shrink-0 items-center gap-1 rounded-[20px] border border-black/8 bg-white/80 p-1 shadow-sm">
-                      <button onClick={startRecording} disabled={sending || compressing} className="flex h-10 w-10 items-center justify-center rounded-2xl bg-ink text-white transition hover:bg-ink/90 active:scale-95 disabled:opacity-40" aria-label="Записать голосовое сообщение" title="Голосовое">
-                        {sending ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Mic className="h-5 w-5" strokeWidth={1.9} />}
-                      </button>
-                      <button onClick={startVideoRecording} disabled={sending || compressing} className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent/12 text-accent transition hover:bg-accent/20 active:scale-95 disabled:opacity-40" aria-label="Записать видеокружок" title="Видеокружок">
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <button onClick={startVideoRecording} disabled={sending || compressing} className="hidden h-11 w-11 items-center justify-center rounded-full border border-black/8 bg-white/85 text-accent shadow-sm transition hover:-translate-y-0.5 hover:bg-white active:scale-95 disabled:opacity-40 sm:flex" aria-label="Записать видеокружок" title="Видеокружок">
                         <Video className="h-5 w-5" strokeWidth={1.9} />
+                      </button>
+                      <button onClick={startRecording} disabled={sending || compressing} className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-white shadow-lg shadow-accent/30 transition hover:-translate-y-0.5 hover:brightness-105 active:scale-95 disabled:opacity-40" aria-label="Записать голосовое сообщение" title="Голосовое">
+                        {sending ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Mic className="h-5 w-5" strokeWidth={1.9} />}
                       </button>
                     </div>
                   )}

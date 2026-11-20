@@ -429,10 +429,17 @@ export default function SettingsModal({
         <div
           className={cn(
             "shrink-0 px-4 py-3 sm:px-8",
-            you ? "border-b border-[var(--you-outline-variant)]" : "border-b border-black/5 bg-gradient-to-b from-white/80 to-transparent"
+            you
+              ? "border-b border-[var(--you-outline-variant)]"
+              : "border-b border-black/5 bg-gradient-to-b from-white/90 to-white/40"
           )}
         >
-          <div className={cn("flex gap-2 overflow-x-auto pb-0.5", you ? "rounded-2xl bg-[var(--you-surface-container)] p-1" : "")}>
+          <div
+            className={cn(
+              "flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              you ? "rounded-2xl bg-[var(--you-surface-container)] p-1" : "rounded-[22px] bg-black/[0.03] p-1.5"
+            )}
+          >
             {tabs.map((t) => {
               const Icon = t.icon;
               const active = activeTab === t.id;
@@ -445,21 +452,23 @@ export default function SettingsModal({
                     scrollRef.current?.scrollTo({ top: 0 });
                   }}
                   className={cn(
-                    "flex shrink-0 items-center gap-2 px-4 py-2.5 text-[12px] font-bold transition",
+                    "flex shrink-0 items-center justify-center gap-2 px-3.5 py-2.5 text-[12px] font-bold transition sm:px-4",
                     you
                       ? cn(
                           "flex-1 flex-col gap-1 rounded-xl px-1 py-2 text-[11px]",
-                          active ? "bg-[var(--you-surface-highest)] text-[var(--you-on-surface)] shadow-sm" : "text-[var(--you-on-surface-variant)]"
+                          active
+                            ? "bg-[var(--you-surface-highest)] text-[var(--you-on-surface)] shadow-sm"
+                            : "text-[var(--you-on-surface-variant)]"
                         )
                       : cn(
-                          "rounded-full border",
+                          "min-w-[max-content] rounded-[16px]",
                           active
-                            ? "border-ink bg-ink text-white shadow-lg shadow-ink/15"
-                            : "border-black/8 bg-white/70 text-black/55 hover:border-black/15 hover:bg-white hover:text-ink"
+                            ? "bg-white text-ink shadow-sm ring-1 ring-black/6"
+                            : "text-black/50 hover:bg-white/70 hover:text-ink"
                         )
                   )}
                 >
-                  <Icon className="h-4 w-4" strokeWidth={2} />
+                  <Icon className={cn("h-4 w-4", !you && active && "text-accent")} strokeWidth={2.2} />
                   <span>{t.label}</span>
                 </button>
               );
@@ -471,8 +480,8 @@ export default function SettingsModal({
         <div
           ref={scrollRef}
           className={cn(
-            "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:px-8 sm:pt-6 sm:pb-8",
-            you ? "text-[var(--you-on-surface)]" : ""
+            "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-7 sm:pt-5 sm:pb-8",
+            you ? "text-[var(--you-on-surface)]" : "bg-gradient-to-b from-transparent via-transparent to-black/[0.01]"
           )}
         >
           

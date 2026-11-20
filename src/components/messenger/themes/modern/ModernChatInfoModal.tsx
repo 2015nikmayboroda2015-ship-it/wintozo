@@ -263,17 +263,17 @@ export default function ChatInfoModal({
     const role = roleOf(p.id);
     const isChannelAdmin = role === "owner" || role === "admin";
     return (
-      <div key={p.id} className="group/member flex items-center gap-3 rounded-2xl px-2 py-2">
+      <div key={p.id} className="group/member flex items-center gap-3 rounded-2xl border border-transparent px-2.5 py-2.5 transition hover:border-black/6 hover:bg-white/70">
         <Avatar profile={p} size="sm" online={onlineIds.has(p.id)} />
         <div className="min-w-0 flex-1">
-          <p className="flex min-w-0 items-center gap-1 text-sm font-bold">
+          <p className="flex min-w-0 items-center gap-1 text-sm font-bold text-ink">
             <span className="truncate">{p.nickname}</span>
             {isVerified(p) && <Verified size="xs" level={badgeLevel(p)} />}
             {p.id === me.id && (
-              <span className="ml-0.5 text-xs font-semibold text-black/35">вы</span>
+              <span className="ml-0.5 rounded-full bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-semibold text-black/40">вы</span>
             )}
           </p>
-          <p className="truncate font-mono text-[11px] text-black/40">@{p.username}</p>
+          <p className="truncate font-mono text-[11px] font-medium text-black/40">@{p.username}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
@@ -623,8 +623,8 @@ export default function ChatInfoModal({
         </div>
 
         {(chat.isGroup || (isChannel && canManage)) && (
-          <div className="border-t border-black/8 bg-gradient-to-t from-black/[0.02] to-transparent px-5 py-4">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="border-t border-black/8 bg-gradient-to-t from-white/60 to-transparent px-5 py-4">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {chat.invite_code && (
                 <button
                   type="button"

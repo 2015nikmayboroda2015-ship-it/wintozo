@@ -5,8 +5,8 @@
  */
 import { supabase } from "./supabase";
 
-/** Текущая версия клиента. Синхронизирована с GitHub Release v6.0.0. */
-export const APP_VERSION = "6.0.1";
+/** Текущая версия клиента. Синхронизирована с GitHub Release v6.0.2. */
+export const APP_VERSION = "6.0.2";
 
 /** Ссылка на APK в релизах GitHub. */
 export const DOWNLOAD_URL = "https://github.com/NikitaDev2015/wintozo/releases/latest";
@@ -192,6 +192,16 @@ export interface ChangelogEntry {
 
 /** Что нового в текущих версиях (пополняется с каждым релизом). */
 export const CHANGELOGS: Record<string, ChangelogEntry> = {
+  "6.0.2": {
+    version: "6.0.2",
+    title: "В версии 6.0.2 были добавлены функции",
+    items: [
+      "1. Новый десктопный интерфейс: колонка разделов, список чатов и лёгкая синяя лента",
+      "2. Обновлённые пузыри сообщений и композер в одну строку",
+      "3. Настройки и админ-панель снова открываются по центру экрана",
+      "4. Исправлены баги",
+    ],
+  },
   "6.0.0": {
     version: "6.0.0",
     title: "В версии 6.0.0 были добавлены функции",

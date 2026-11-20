@@ -199,146 +199,149 @@ export default function AdminPanel({ meId, onClose }: Props) {
 
   /* ---------- Render ---------- */
   return (
-    <div className="font-app fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="font-app fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
       <button
         aria-label="Закрыть"
         onClick={onClose}
-        className="animate-fade-in absolute inset-0 bg-ink/40 backdrop-blur-[3px]"
+        className="animate-fade-in absolute inset-0 bg-ink/45 backdrop-blur-[4px]"
       />
 
-      <div className="animate-scale-in relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-[28px] bg-white shadow-2xl flex flex-col">
+      <div className="modern-modal animate-scale-in relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[30px] shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-black/8 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-ink" strokeWidth={2} />
-            <h3 className="text-lg font-extrabold tracking-tight">Админ-панель</h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-full p-2 text-black/45 transition hover:bg-black/5 hover:text-ink"
-            aria-label="Закрыть"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-black/8 px-6">
-          {(["users", "audit"] as const).map((t) => (
+        <div className="relative shrink-0 border-b border-black/6 px-5 py-4 sm:px-6">
+          <span className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-accent/10 blur-2xl" />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-ink text-white shadow-lg shadow-ink/20">
+                <ShieldCheck className="h-5 w-5" strokeWidth={2} />
+              </span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-black/35">Управление</p>
+                <h3 className="text-lg font-extrabold tracking-tight text-ink leading-none mt-0.5">Админ-панель</h3>
+              </div>
+            </div>
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={cn(
-                "px-4 py-3 text-sm font-bold transition border-b-2",
-                tab === t
-                  ? "border-ink text-ink"
-                  : "border-transparent text-black/40 hover:text-ink"
-              )}
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-black/8 bg-white/70 text-black/45 transition hover:bg-black/5 hover:text-ink"
+              aria-label="Закрыть"
             >
-              {t === "users" ? (
-                <span className="flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5" />
-                  Пользователи
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  Аудит
-                </span>
-              )}
+              <X className="h-5 w-5" />
             </button>
-          ))}
+          </div>
+
+          {/* Tabs */}
+          <div className="mt-4 flex gap-2 rounded-2xl border border-black/8 bg-white/60 p-1.5">
+            {(["users", "audit"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition",
+                  tab === t
+                    ? "bg-ink text-white shadow-md shadow-ink/15"
+                    : "text-black/45 hover:bg-white hover:text-ink"
+                )}
+              >
+                {t === "users" ? <Users className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                {t === "users" ? "Пользователи" : "Аудит"}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Content */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
           {/* ---- Users tab ---- */}
           {tab === "users" && (
             <div className="space-y-4">
-              {/* Search */}
               <div className="relative">
-                <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-black/35" />
+                <Search className="absolute top-1/2 left-4 h-4.5 w-4.5 -translate-y-1/2 text-black/35" />
                 <input
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  placeholder="Поиск по username / nickname"
-                  className="w-full rounded-xl border border-black/10 bg-paper py-2.5 pr-4 pl-10 text-sm font-medium outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10"
+                  placeholder="Поиск по username или никнейму"
+                  className="w-full rounded-2xl border border-black/10 bg-white/90 py-3 pr-4 pl-11 text-sm font-semibold outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10"
                 />
               </div>
 
               {error && (
-                <div className="flex items-start gap-2.5 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm font-semibold text-red-600">
+                <div className="flex items-start gap-2.5 rounded-2xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm font-semibold text-red-600">
                   <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>{error}</span>
                 </div>
               )}
 
               {loading ? (
-                <div className="flex items-center justify-center gap-2.5 py-12 text-sm font-semibold text-black/40">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Загружаем…
+                <div className="space-y-2 py-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="flex animate-pulse items-center gap-3 rounded-2xl border border-black/5 bg-white/60 px-3 py-3">
+                      <div className="h-10 w-10 rounded-xl bg-black/8" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 w-1/3 rounded-full bg-black/8" />
+                        <div className="h-2.5 w-1/4 rounded-full bg-black/5" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : users.length === 0 ? (
-                <p className="py-12 text-center text-sm font-medium text-black/40">Пользователи не найдены</p>
+                <div className="rounded-[24px] border border-dashed border-black/10 bg-white/50 px-6 py-12 text-center">
+                  <Users className="mx-auto h-8 w-8 text-black/25" />
+                  <p className="mt-3 text-sm font-bold text-ink">Пользователи не найдены</p>
+                  <p className="mt-1 text-xs font-medium text-black/45">Попробуйте изменить поисковый запрос.</p>
+                </div>
               ) : (
                 <>
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {users.map((u) => (
-                      <div
+                      <button
                         key={u.id}
+                        type="button"
                         className={cn(
-                          "flex items-center gap-3 rounded-xl px-3 py-2.5 transition",
-                          "hover:bg-paper cursor-pointer",
-                          u.banned_at && "bg-red-500/5"
+                          "modern-chat-row flex w-full items-center gap-3 rounded-[22px] border px-3 py-3 text-left transition",
+                          u.banned_at ? "border-red-500/15 bg-red-500/[0.04] hover:bg-red-500/[0.06]" : "border-black/6 bg-white/70 hover:border-black/10 hover:bg-white"
                         )}
                         onClick={() => setSelectedUser(u)}
                       >
                         <Avatar profile={u} size="sm" />
                         <div className="min-w-0 flex-1">
-                          <p className="flex items-center gap-1.5 text-sm font-bold">
+                          <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
                             <span className="truncate">{u.nickname}</span>
                             {u.verified && <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[#1d9bf0]" />}
-                            {u.id === meId && (
-                              <span className="ml-0.5 text-[10px] font-bold text-black/30">вы</span>
-                            )}
+                            {u.id === meId && <span className="rounded-full bg-black/5 px-1.5 py-0.5 text-[10px] font-bold text-black/40">вы</span>}
                           </p>
                           <p className="truncate font-mono text-[11px] text-black/40">@{u.username}</p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex shrink-0 items-center gap-2">
                           {u.banned_at ? (
-                            <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-600">
-                              забанен
-                            </span>
+                            <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-[10px] font-bold text-red-600">забанен</span>
                           ) : (
-                            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600">
-                              активен
-                            </span>
+                            <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-600">активен</span>
                           )}
+                          <ChevronRight className="h-4 w-4 text-black/25" />
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
 
-                  {/* Pagination */}
                   {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-2 pt-1">
                       <button
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                         disabled={page <= 1}
-                        className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-bold disabled:opacity-40 hover:bg-black/5"
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-black/10 bg-white/70 disabled:opacity-40 hover:bg-white"
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </button>
-                      <span className="text-xs font-medium text-black/40">
+                      <span className="rounded-full bg-black/[0.04] px-3 py-1.5 text-xs font-bold text-black/45">
                         {page} / {totalPages}
                       </span>
                       <button
                         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                         disabled={page >= totalPages}
-                        className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-bold disabled:opacity-40 hover:bg-black/5"
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-black/10 bg-white/70 disabled:opacity-40 hover:bg-white"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </button>
@@ -358,46 +361,49 @@ export default function AdminPanel({ meId, onClose }: Props) {
                   Загружаем…
                 </div>
               ) : audits.length === 0 ? (
-                <p className="py-12 text-center text-sm font-medium text-black/40">Аудит пуст</p>
+                <div className="rounded-[24px] border border-dashed border-black/10 bg-white/50 px-6 py-12 text-center">
+                  <ShieldCheck className="mx-auto h-8 w-8 text-black/25" />
+                  <p className="mt-3 text-sm font-bold text-ink">Аудит пуст</p>
+                  <p className="mt-1 text-xs font-medium text-black/45">Действия администраторов появятся здесь.</p>
+                </div>
               ) : (
                 <>
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {audits.map((a) => (
-                      <div key={a.id} className="flex items-center gap-3 rounded-xl bg-paper px-3 py-2.5">
-                        <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold", actionColor(a.action))}>
+                      <div key={a.id} className="flex items-center gap-3 rounded-[20px] border border-black/6 bg-white/70 px-4 py-3">
+                        <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold", actionColor(a.action))}>
                           {actionLabel(a.action)}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium">
+                          <p className="text-xs font-medium text-ink">
                             <span className="font-bold">{a.admin_username}</span>
-                            {" → "}
-                            <span className="truncate">
+                            <span className="text-black/35"> → </span>
+                            <span className="truncate font-semibold">
                               {a.target_nickname || a.target_username || a.target_id.slice(0, 8)}
                             </span>
                           </p>
-                          <p className="truncate font-mono text-[10px] text-black/35">{formatDate(a.created_at)}</p>
+                          <p className="truncate font-mono text-[10px] text-black/35 mt-0.5">{formatDate(a.created_at)}</p>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Pagination */}
                   {auditTotal > 50 && (
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-2 pt-1">
                       <button
                         onClick={() => setAuditPage((p) => Math.max(1, p - 1))}
                         disabled={auditPage <= 1}
-                        className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-bold disabled:opacity-40 hover:bg-black/5"
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-black/10 bg-white/70 disabled:opacity-40 hover:bg-white"
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </button>
-                      <span className="text-xs font-medium text-black/40">
+                      <span className="rounded-full bg-black/[0.04] px-3 py-1.5 text-xs font-bold text-black/45">
                         {auditPage} / {Math.ceil(auditTotal / 50)}
                       </span>
                       <button
                         onClick={() => setAuditPage((p) => p + 1)}
                         disabled={auditPage * 50 >= auditTotal}
-                        className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-bold disabled:opacity-40 hover:bg-black/5"
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-black/10 bg-white/70 disabled:opacity-40 hover:bg-white"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </button>
@@ -411,94 +417,99 @@ export default function AdminPanel({ meId, onClose }: Props) {
 
         {/* ---- User Detail Modal ---- */}
         {selectedUser && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-ink/20 backdrop-blur-[2px]">
-            <div className="animate-scale-in mx-4 max-w-md w-full rounded-[24px] bg-white p-6 shadow-2xl">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-ink/25 p-4 backdrop-blur-[3px]">
+            <div className="modern-modal animate-scale-in w-full max-w-md rounded-[28px] p-6 shadow-2xl">
               <div className="flex items-center justify-between">
-                <h4 className="text-base font-extrabold tracking-tight">
-                  {detailMode === "edit" ? "Редактирование" : "Профиль"}
-                </h4>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-black/35">Пользователь</p>
+                  <h4 className="mt-0.5 text-base font-extrabold tracking-tight text-ink">
+                    {detailMode === "edit" ? "Редактирование" : "Профиль"}
+                  </h4>
+                </div>
                 <div className="flex items-center gap-1">
                   {detailMode === "view" && selectedUser.id !== meId && (
                     <button
                       onClick={() => setDetailMode("edit")}
-                      className="rounded-full p-1.5 text-black/30 transition hover:bg-black/5 hover:text-ink"
-                      title="Редактировать"
+                      className="rounded-xl border border-black/8 bg-white/70 px-3 py-1.5 text-xs font-bold text-black/50 transition hover:bg-white hover:text-ink"
                     >
-                      <span className="text-xs font-bold">✏️</span>
+                      Изменить
                     </button>
                   )}
                   <button
                     onClick={() => setSelectedUser(null)}
-                    className="rounded-full p-1.5 text-black/30 transition hover:bg-black/5 hover:text-ink"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl text-black/40 transition hover:bg-black/5 hover:text-ink"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-col items-center">
+              <div className="mt-4 flex flex-col items-center text-center">
                 <Avatar profile={selectedUser} size="xl" />
-                <p className="mt-3 flex items-center gap-1.5 text-base font-extrabold">
+                <p className="mt-3 flex items-center gap-1.5 text-base font-extrabold text-ink">
                   <span className="truncate">{selectedUser.nickname}</span>
                   {selectedUser.verified && <ShieldCheck className="h-4 w-4 shrink-0 text-[#1d9bf0]" />}
                 </p>
                 <p className="font-mono text-sm text-black/40">@{selectedUser.username}</p>
                 {selectedUser.banned_at && (
-                  <p className="mt-1 text-xs font-bold text-red-600">
+                  <p className="mt-2 rounded-full bg-red-500/10 px-3 py-1 text-xs font-bold text-red-600">
                     Забанен: {selectedUser.ban_reason || "без причины"}
                   </p>
                 )}
               </div>
 
-              {/* View mode */}
               {detailMode === "view" && (
                 <div className="mt-5 space-y-3">
-                  {selectedUser.bio && (
-                    <p className="rounded-xl bg-paper px-4 py-3 text-sm font-medium text-black/70">
+                  {selectedUser.bio ? (
+                    <p className="rounded-2xl border border-black/8 bg-white/70 px-4 py-3 text-sm font-medium text-black/70">
                       {selectedUser.bio}
+                    </p>
+                  ) : (
+                    <p className="rounded-2xl border border-dashed border-black/10 bg-white/50 px-4 py-3 text-sm font-medium text-black/35">
+                      Описание не указано
                     </p>
                   )}
 
-                  <p className="text-[11px] font-medium text-black/35">
+                  <p className="text-center font-mono text-[11px] font-medium text-black/35">
                     Регистрация: {formatDate(selectedUser.created_at)}
                   </p>
 
-                  {/* Actions */}
                   {selectedUser.id !== meId && (
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        {selectedUser.banned_at ? (
-                          <button
-                            onClick={() => handleBan(selectedUser.id, false)}
-                            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-500/25 py-2.5 text-xs font-bold text-emerald-600 transition hover:bg-emerald-500/5"
-                          >
-                            <Check className="h-3.5 w-3.5" />
-                            Разбанить
-                          </button>
-                        ) : (
-                          <div className="flex flex-1 gap-2">
+                    <div className="space-y-2 pt-1">
+                      {selectedUser.banned_at ? (
+                        <button
+                          onClick={() => handleBan(selectedUser.id, false)}
+                          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 py-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-500/10"
+                        >
+                          <Check className="h-4 w-4" />
+                          Разбанить
+                        </button>
+                      ) : (
+                        <div className="rounded-2xl border border-black/8 bg-white/60 p-3">
+                          <label className="mb-1.5 block font-mono text-[10px] font-semibold tracking-[0.14em] text-black/40 uppercase">Причина бана</label>
+                          <div className="flex gap-2">
                             <input
                               value={banReason}
                               onChange={(e) => setBanReason(e.target.value)}
-                              placeholder="Причина бана"
-                              className="flex-1 rounded-xl border border-black/10 px-3 py-2.5 text-xs font-medium outline-none focus:border-red-500"
+                              placeholder="Нарушение правил"
+                              className="min-w-0 flex-1 rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-red-500"
                             />
                             <button
                               onClick={() => handleBan(selectedUser.id, true)}
-                              className="flex items-center gap-1.5 rounded-xl bg-red-500 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-red-600"
+                              className="flex items-center gap-1.5 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-600"
                             >
-                              <Ban className="h-3.5 w-3.5" />
+                              <Ban className="h-4 w-4" />
                               Бан
                             </button>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
 
                       <button
                         onClick={() => handleDelete(selectedUser.id)}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-red-500/25 py-2.5 text-xs font-bold text-red-600 transition hover:bg-red-500/5"
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-white py-3 text-sm font-bold text-red-600 transition hover:bg-red-500/5"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4" />
                         Удалить аккаунт
                       </button>
                     </div>
@@ -506,27 +517,22 @@ export default function AdminPanel({ meId, onClose }: Props) {
                 </div>
               )}
 
-              {/* Edit mode */}
               {detailMode === "edit" && (
                 <div className="mt-5 space-y-3">
                   <div>
-                    <label className="mb-1 block font-mono text-[10px] font-semibold tracking-[0.16em] text-black/40 uppercase">
-                      Никнейм
-                    </label>
+                    <label className="mb-1 block font-mono text-[10px] font-semibold tracking-[0.16em] text-black/40 uppercase">Никнейм</label>
                     <input
                       value={editNickname}
                       onChange={(e) => setEditNickname(e.target.value)}
-                      className="w-full rounded-xl border border-black/10 px-4 py-2.5 text-sm font-medium outline-none focus:border-accent"
+                      className="w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-medium outline-none focus:border-accent"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block font-mono text-[10px] font-semibold tracking-[0.16em] text-black/40 uppercase">
-                      Username
-                    </label>
+                    <label className="mb-1 block font-mono text-[10px] font-semibold tracking-[0.16em] text-black/40 uppercase">Username</label>
                     <input
                       value={editUsername}
                       onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
-                      className="w-full rounded-xl border border-black/10 px-4 py-2.5 font-mono text-sm font-medium outline-none focus:border-accent"
+                      className="w-full rounded-xl border border-black/10 bg-white px-4 py-2.5 font-mono text-sm font-medium outline-none focus:border-accent"
                     />
                   </div>
                   <div className="flex items-center gap-3">
@@ -534,31 +540,29 @@ export default function AdminPanel({ meId, onClose }: Props) {
                       onClick={() => setEditVerified(!editVerified)}
                       className={cn(
                         "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition",
-                        editVerified
-                          ? "bg-[#1d9bf0]/10 text-[#1d9bf0]"
-                          : "bg-black/5 text-black/40"
+                        editVerified ? "bg-[#1d9bf0]/10 text-[#1d9bf0]" : "bg-black/5 text-black/40"
                       )}
                     >
                       <ShieldCheck className="h-3.5 w-3.5" />
                       {editVerified ? "Верифицирован" : "Не верифицирован"}
                     </button>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 pt-1">
                     <button
                       onClick={() => {
                         setDetailMode("view");
                         setSelectedUser(selectedUser);
                       }}
-                      className="flex-1 rounded-xl border border-black/10 py-2.5 text-xs font-bold transition hover:bg-black/5"
+                      className="flex-1 rounded-2xl border border-black/10 bg-white py-3 text-sm font-bold transition hover:bg-black/5"
                     >
                       Отмена
                     </button>
                     <button
                       onClick={handleEditSave}
                       disabled={saving}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-ink py-2.5 text-xs font-bold text-white transition hover:bg-black disabled:opacity-60"
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-ink py-3 text-sm font-bold text-white shadow-lg shadow-ink/20 transition hover:bg-black disabled:opacity-60"
                     >
-                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Сохранить"}
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Сохранить"}
                     </button>
                   </div>
                 </div>
@@ -566,7 +570,6 @@ export default function AdminPanel({ meId, onClose }: Props) {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

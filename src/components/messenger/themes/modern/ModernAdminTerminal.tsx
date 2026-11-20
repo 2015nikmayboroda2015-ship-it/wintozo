@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BadgeCheck,
   Ban,
@@ -10,14 +10,12 @@ import {
   Shield,
   Smartphone,
   Terminal,
-  Trash2,
   UserCheck,
   UserX,
   Wrench,
   X,
 } from "lucide-react";
 import { supabase, type Profile } from "../../../../lib/supabase";
-import { BADGE_LABELS } from "../../../../lib/badges";
 import { cn } from "../../../../utils/cn";
 
 interface Props {
@@ -492,6 +490,108 @@ export default function ModernAdminTerminal({ me, open, onClose, onProfileUpdate
         const { data, error } = await supabase.rpc("get_wintozo_version");
         if (error) return append({ type: "error", text: `Ошибка: ${error.message}` });
         append({ type: "info", text: `Версия: ${String((data as any)?.version ?? data ?? "—")}` });
+        return;
+      }
+      if (cmd === "/get" && parts[1] === "ota") {
+        const { data, error } = await supabase.rpc("get_winchat_ota");
+        if (error) return append({ type: "error", text: `Ошибка: ${error.message}` });
+        const res = data as any;
+        if (!res?.ok) return append({ type: "error", text: `✗ ${res?.error ?? "Не удалось получить OTA"}` });
+        append([
+          { type: "info", text: `OTA URL: ${res.url || "— (выключено)"}` },
+          { type: "info", text: `Версия: ${res.version ?? "—"} · Цель: ${res.target ?? "*"}` },
+          ...(res.description ? [{ type: "info" as const, text: `Описание: ${res.description}` }] : []),
+        ]);
+        return;
+      }
+      if (cmd === "/set" && parts[1] === "ota") {
+        const after = trimmed.replace(/^\/set\s+ota\s*/i, "").trim();
+        if (!after) {
+          append({ type: "error", text: 'Использование: /set ota [@username] "<ссылка>" [версия] [@target|*] ["описание"]' });
+          return;
+        }
+        if (/^(off|clear|remove|delete|disable)$/i.test(after)) {
+          const { data, error } = await supabase.rpc("set_winchat_ota", {
+            _admin_id: me.id,
+            _url: "",
+            _version: null,
+            _target: null,
+          });
+          if (error) return append({ type: "error", text: `Ошибка: ${error.message}` });
+          const res = data as any;
+          append({ type: res.ok ? "success" : "error", text: res.ok ? `✓ ${res.message}` : `✗ ${res.error}` });
+          return;
+        }
+
+        let rest = after;
+        let prefixTarget: string | null = null;
+        const pre = rest.match(/^@([^\s"']+)\s+([\s\S]*)$/);
+        if (pre) {
+          prefixTarget = `@${pre[1]}`;
+          rest = pre[2].trim();
+        }
+
+        let description: string | null = null;
+        let parseRest = rest.replace(/"([^"]*)"/g, (_m, g: string) => {
+          description = g;
+          return "";
+        });
+        parseRest = parseRest.replace(/'([^']*)'/g, (_m, g: string) => {
+          description = g;
+          return "";
+        });
+
+        const urlM = /https?:\/\/[^\s"']+/i.exec(parseRest);
+        const url = urlM ? urlM[0] : "";
+        const remainder = urlM ? parseRest.slice(urlM.index + urlM[0].length).trim() : "";
+        if (!url) {
+          append({ type: "error", text: "Ссылка должна начинаться с http:// или https://" });
+          return;
+        }
+
+        let version: string | null = null;
+        let target: string | null = null;
+        const tokens = remainder.split(/\s+/).filter(Boolean);
+        for (const token of tokens) {
+          const clean = token.replace(/^["']|["']$/g, "");
+          if (!version && /^\d+\.\d+(\.\d+)?(-[0-9a-z][0-9a-z.\-]*(\+[0-9a-z.\-]+)?)?$/i.test(clean)) {
+            version = clean;
+          } else if (!target) {
+            target = clean;
+          }
+        }
+
+        const finalTarget = prefixTarget ?? target ?? null;
+        const finalDescription =
+          description ??
+          (tokens
+            .filter((t) => t !== version && t !== target)
+            .map((t) => t.replace(/^["']|["']$/g, ""))
+            .join(" ")
+            .trim() || null);
+
+        const { data, error } = await supabase.rpc("set_winchat_ota", {
+          _admin_id: me.id,
+          _url: url,
+          _version: version,
+          _target: finalTarget,
+          _desc: finalDescription,
+        });
+        if (error) return append({ type: "error", text: `Ошибка: ${error.message}` });
+        const res = data as any;
+        if (!res?.ok) {
+          append({ type: "error", text: `✗ ${res?.error ?? "Ошибка установки OTA"}` });
+          return;
+        }
+        append({ type: "success", text: `✓ ${res.message ?? "OTA установлена"}` });
+        append({ type: "info", text: `URL: ${res.url ?? url}` });
+        append({ type: "info", text: `Версия: ${res.version ?? version ?? "не указана"} · Цель: ${res.target ?? finalTarget ?? "*"}` });
+        if (res.description ?? finalDescription) {
+          append({ type: "info", text: `Описание: ${res.description ?? finalDescription}` });
+        }
+        if (url && finalTarget && finalTarget !== "*") {
+          void openOtaPicker(finalTarget, res.url ?? url, res.version ?? version ?? null);
+        }
         return;
       }
 

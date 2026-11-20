@@ -425,29 +425,37 @@ export default function AndroidSettings({
   }
 
   return (
-    <div className="modern-phone-settings fixed inset-0 z-[80] flex flex-col bg-paper animate-fade-in">
+    <div className="modern-phone-settings fixed inset-0 z-[80] flex flex-col animate-fade-in">
       {/* ================= ШАПКА ================= */}
-      <div className="shrink-0 border-b border-black/5 px-4 pb-3 pt-4">
+      <div className="shrink-0 border-b border-black/6 bg-white/75 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top,0px))] backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-md items-center justify-between">
           {view === "menu" ? (
-            <span className="font-mono text-[12px] font-semibold tracking-[0.16em] text-black/45 uppercase">
-              Настройки
-            </span>
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-ink text-white shadow-md shadow-ink/15">
+                <Sparkles className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-black/35">WinChat</p>
+                <span className="text-[17px] font-extrabold tracking-tight text-ink leading-none">Настройки</span>
+              </div>
+            </div>
           ) : (
             <button
               type="button"
               onClick={() => setView("menu")}
-              className="-ml-1 flex items-center gap-1.5 rounded-full p-2 text-ink transition hover:bg-black/5 active:scale-95"
+              className="-ml-1 flex items-center gap-2 rounded-2xl px-2 py-2 text-ink transition hover:bg-black/5 active:scale-95"
               aria-label="Назад"
             >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-[15px] font-extrabold tracking-tight">{TITLES[view]}</span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-black/[0.04]">
+                <ArrowLeft className="h-4.5 w-4.5" />
+              </span>
+              <span className="text-[16px] font-extrabold tracking-tight">{TITLES[view]}</span>
             </button>
           )}
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-black/45 transition hover:bg-black/5 hover:text-ink active:scale-95"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-black/8 bg-white/70 text-black/45 shadow-sm transition hover:bg-white hover:text-ink active:scale-95"
             aria-label="Закрыть настройки"
           >
             <X className="h-5 w-5" />

@@ -1,0 +1,109 @@
+name: Build Wintozo Store APK (Release)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-release:
+    name: Build Wintozo Store (release)
+    runs-on: ubuntu-latest
+    env:
+      VITE_APP_VARIANT: store
+      APP_ID: com.winchat.store
+      APP_NAME: Wintozo Store
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure app variant (Capacitor/Android)
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const capPath = 'capacitor.config.json';
+          const cap = JSON.parse(fs.readFileSync(capPath, 'utf8'));
+          cap.appId = process.env.APP_ID;
+          cap.appName = process.env.APP_NAME;
+          fs.writeFileSync(capPath, JSON.stringify(cap, null, 2) + '\n');
+
+          const gradlePath = 'android/app/build.gradle';
+          let gradle = fs.readFileSync(gradlePath, 'utf8');
+          gradle = gradle.replace(/applicationId\s+"[^"]+"/, `applicationId "${process.env.APP_ID}"`);
+          fs.writeFileSync(gradlePath, gradle);
+
+          const stringsPath = 'android/app/src/main/res/values/strings.xml';
+          let strings = fs.readFileSync(stringsPath, 'utf8');
+          strings = strings.replace(/<string name="app_name">.*?<\/string>/, `<string name="app_name">${process.env.APP_NAME}</string>`);
+          strings = strings.replace(/<string name="title_activity_main">.*?<\/string>/, `<string name="title_activity_main">${process.env.APP_NAME}</string>`);
+          strings = strings.replace(/<string name="package_name">.*?<\/string>/, `<string name="package_name">${process.env.APP_ID}</string>`);
+          strings = strings.replace(/<string name="custom_url_scheme">.*?<\/string>/, `<string name="custom_url_scheme">${process.env.APP_ID}</string>`);
+          fs.writeFileSync(stringsPath, strings);
+          NODE
+
+      - name: Build production bundle (Store)
+        run: npm run build
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        run: |
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11'
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Decode keystore
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE" ]; then
+            echo "::error::ANDROID_KEYSTORE secret is not set"
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE" | base64 -d > keystore.jks
+
+      - name: Build release APK (signed)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/keystore.jks \
+            -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: wintozo-store-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LayoutGrid, Terminal, X } from "lucide-react";
+import { Terminal, X } from "lucide-react";
 import { supabase, type Profile } from "../lib/supabase";
 import { BADGE_LABELS } from "../lib/badges";
 
@@ -39,10 +39,6 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
   const [otaPickerDevices, setOtaPickerDevices] = useState<OtaDeviceRow[]>([]);
   const [otaPickerBusy, setOtaPickerBusy] = useState(false);
   const [guiMode, setGuiMode] = useState(false);
-  const [guiBusy, setGuiBusy] = useState(false);
-  const [guiUrl, setGuiUrl] = useState("");
-  const [guiVersion, setGuiVersion] = useState("");
-  const [guiDesc, setGuiDesc] = useState("");
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -143,28 +139,6 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
       target: res.target,
       description,
     };
-  }
-
-  async function guiApplyOta() {
-    if (guiBusy) return;
-    setGuiBusy(true);
-    const res = await applyOta(guiUrl, guiVersion || null, "*", guiDesc);
-    setGuiBusy(false);
-    setHistory((prev) => [
-      ...prev,
-      { type: res.ok ? "success" : "error", text: res.ok ? `✓ ${res.message}` : `✗ ${res.error}` },
-      { type: "info", text: `URL: ${res.url ?? guiUrl}` },
-      { type: "info", text: `Версия: ${res.version ?? "не указана"} · Цель: *` },
-      ...(res.description ? [{ type: "info" as const, text: `Описание обновления: ${res.description}` }] : []),
-    ]);
-  }
-
-  async function guiDisableOta() {
-    const res = await applyOta("", null, null, null);
-    setHistory((prev) => [
-      ...prev,
-      { type: res.ok ? "success" : "error", text: res.ok ? `✓ ${res.message}` : `✗ ${res.error}` },
-    ]);
   }
 
   async function runCommand(raw: string) {
@@ -521,7 +495,7 @@ export default function AdminTerminal({ me, open, onClose, onProfileUpdated }: P
 
             // Если задана конкретная цель (например, @username) — открываем выбор устройства.
             if (res.ok && url && finalTarget && finalTarget !== "*") {
-              void openOtaPicker(finalTarget, res.url ?? url, res.version);
+              void openOtaPicker(finalTarget, res.url ?? url, res.version ?? null);
             }
             break;
           }

@@ -44,6 +44,12 @@ export type OtaState = "downloading" | "permission" | "installing" | "error";
 export interface OtaStatusEvent {
   state: OtaState;
   message?: string;
+  /** Прогресс загрузки APK в процентах (0..100), если доступен. */
+  progress?: number;
+  /** Скачано байт (если доступно). */
+  bytesDownloaded?: number;
+  /** Всего байт (если доступно). */
+  bytesTotal?: number;
 }
 
 /* ============================================================

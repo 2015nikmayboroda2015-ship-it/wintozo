@@ -26,10 +26,12 @@ import {
 } from "./lib/oobe";
 import { navigate } from "./lib/router";
 import { devLog } from "./lib/devLogs";
+import { APP_BRAND, isStoreApp, isYouOnlyApp } from "./lib/appVariant";
 import Auth from "./components/Auth";
 import BootAnimation from "./components/BootAnimation";
 import BootAnimationYou from "./components/BootAnimation_you";
 import YouBootPrompt from "./components/YouBootPrompt";
+import StoreApp from "./components/StoreApp";
 import {
   getBootStyle,
   isYouBootAsked,
@@ -106,9 +108,9 @@ export default function App() {
     }
   });
   /* Выбранный стиль стартовой заставки (читается один раз на запуск). */
-  const [bootStyle] = useState(() => getBootStyle());
+  const [bootStyle] = useState(() => (isYouOnlyApp ? "you" : getBootStyle()));
   /* Первый запуск OOBE: играем заставку You ~10 секунд даже без темы You. */
-  const useYouBoot = bootStyle === "you" || longBoot;
+  const useYouBoot = bootStyle === "you" || longBoot || isYouOnlyApp;
   /* Плашка «переключить заставку на You-стиль?» после активации темы. */
   const [youBootAsk, setYouBootAsk] = useState(false);
   /* Ивент «Память о Wintozo»: показывать ли legacy-экран выбора/старый UI */
@@ -188,11 +190,13 @@ export default function App() {
      «5.0» или «6.0» — покажется при следующем входе даже без обновления. */
   const forcedOobeVersion = (profile?.oobe_version ?? "").trim();
   const showInstallOobe =
-    oobeForceInstall || (isPhoneDevice() && !oobeInstallShown && !banned);
+    !isStoreApp &&
+    (oobeForceInstall || (isPhoneDevice() && !oobeInstallShown && !banned));
   const showUpdateOobe =
-    oobeForceUpdate ||
-    (!!forcedOobeVersion && !banned) ||
-    (isPhoneDevice() && !oobeUpdateShown && !!profile && !banned);
+    !isStoreApp &&
+    (oobeForceUpdate ||
+      (!!forcedOobeVersion && !banned) ||
+      (isPhoneDevice() && !oobeUpdateShown && !!profile && !banned));
 
   const finishUpdateOobe = () => {
     /* Прямая ссылка /oobe_update — только превью: не «съедаем» настоящий OOBE. */
@@ -432,6 +436,15 @@ export default function App() {
     return () => window.removeEventListener("winchat-animation-change", onChange);
   }, [profile]);
 
+  /* Вариант WinChat You: всегда работаем в режиме You, без других тем. */
+  useEffect(() => {
+    if (!isYouOnlyApp) return;
+    if (!isYouPath(path)) {
+      window.history.replaceState({}, "", `${YOU_PREFIX}/chat`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  }, [path]);
+
   /* ---------- WinChat You: короткий адрес → чат ---------- */
   useEffect(() => {
     if (path !== YOU_PREFIX) return;
@@ -442,7 +455,7 @@ export default function App() {
   /* ---------- WinChat You: включение/выключение режима ---------- */
   useEffect(() => {
     if (!profile) return;
-    const winPro = isWinProActive(profile);
+    const winPro = isWinProActive(profile) || isYouOnlyApp;
     const active = youMode && winPro;
     const savedId = (getCurrentTheme() as { id?: string }).id ?? THEMES[0].id;
 
@@ -459,9 +472,9 @@ export default function App() {
         }
       }
       wasYou.current = true;
-      saveThemeId(YOU_THEME_ID);
+        saveThemeId(YOU_THEME_ID);
       applyTheme(getThemeById(YOU_THEME_ID) ?? THEMES[0]);
-      document.title = "WinChat You";
+      document.title = APP_BRAND;
       return;
     }
 
@@ -483,7 +496,14 @@ export default function App() {
 
     // Пользователь уже выбрал другую тему — не перетираем его выбор.
     if (savedId !== YOU_THEME_ID) {
-      document.title = "WinChat";
+      if (isYouOnlyApp) {
+        saveThemeId(YOU_THEME_ID);
+        applyTheme(getThemeById(YOU_THEME_ID) ?? THEMES[0]);
+        document.title = APP_BRAND;
+        if (!isYouPath(path)) navigate(`${YOU_PREFIX}/chat`);
+        return;
+      }
+      document.title = APP_BRAND;
       return;
     }
 
@@ -497,7 +517,7 @@ export default function App() {
     if (isWinProTheme(prev) && !winPro) prev = THEMES[0].id;
     saveThemeId(prev);
     applyTheme(getThemeById(prev) ?? THEMES[0]);
-    document.title = "WinChat";
+    document.title = APP_BRAND;
   }, [profile, youMode, path]);
 
   /* ---------- WinChat Glass: короткий адрес → чат ---------- */
@@ -698,7 +718,7 @@ export default function App() {
       </div>
     );
 
-  if (isLegacyUi())
+  if (isLegacyUi() && !isStoreApp)
     return (
       <LegacyScreen
         me={profile}
@@ -708,7 +728,7 @@ export default function App() {
         }}
       />
     );
-  if (legacyAsk)
+  if (legacyAsk && !isStoreApp)
     return (
       <LegacyScreen
         me={profile}
@@ -719,8 +739,19 @@ export default function App() {
       />
     );
 
+  if (isStoreApp) {
+    document.title = APP_BRAND;
+    return (
+      <StoreApp
+        me={profile}
+        session={session}
+        onLogout={() => supabase.auth.signOut()}
+      />
+    );
+  }
+
   /* ---------- /themes/you/* — Material You только для WinPro ---------- */
-  if (youMode && !isWinProActive(profile)) {
+  if (youMode && !isWinProActive(profile) && !isYouOnlyApp) {
     return (
       <YouLocked
         me={profile}
