@@ -54,11 +54,8 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-35" "build-tools;35.0.0" > /dev/null
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.11'
-
+      # Gradle не устанавливаем отдельным action: в android/ уже есть
+      # wrapper (gradle-8.11.1), он сам скачает нужную версию.
       - name: Sync Capacitor Android
         run: npx cap sync android
 
