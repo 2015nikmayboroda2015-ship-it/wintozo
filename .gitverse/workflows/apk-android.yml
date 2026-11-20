@@ -1,9 +1,3 @@
-# ============================================================
-#  WinChat — GitHub Actions: сборка APK (Android 8+, Java 21)
-#  Версия: 6.0.2
-#  Пакет: org.wintozo.messenger
-# ============================================================
-
 name: Build Android APK
 
 on:
@@ -44,7 +38,6 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # ── Android SDK + лицензии ──
       - name: Setup Android SDK
         run: |
           export ANDROID_HOME=/usr/local/lib/android/sdk
@@ -54,12 +47,9 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-35" "build-tools;35.0.0" > /dev/null
 
-      # Gradle не устанавливаем отдельным action: в android/ уже есть
-      # wrapper (gradle-8.11.1), он сам скачает нужную версию.
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      # ── Декодируем keystore из секрета (сохраняем В КОРЕНЬ) ──
       - name: Decode keystore
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
@@ -73,7 +63,6 @@ jobs:
             echo "::warning::ANDROID_KEYSTORE secret is not set — release APK will NOT be built"
           fi
 
-      # ── Release-сборка с подписью (абсолютный путь к keystore в корне) ──
       - name: Build release APK (signed)
         if: env.KEYSTORE_SAVED == 'true'
         run: |
@@ -97,13 +86,13 @@ jobs:
         id: ver
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
-      - name: Create GitHub Release
+      # Заменить на официальное действие создания релиза GitVerse
+      - name: Create GitVerse Release
         if: github.ref == 'refs/heads/main' && env.KEYSTORE_SAVED == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: actions/create-release@v1
         with:
-          tag_name: v${{ steps.ver.outputs.version }}
-          name: WinChat v${{ steps.ver.outputs.version }}
-          files: android/app/build/outputs/apk/release/app-release.apk
+          api_key: ${{ secrets.GITVERSE_API_KEY }}
+          title: WinChat v${{ steps.ver.outputs.version }}
           body: |
             **WinChat v${{ steps.ver.outputs.version }}**
 
@@ -115,10 +104,9 @@ jobs:
             - Новый дизайн чатов WinChat You: пузыри, композер и список чатов
             - 15 палитр — Океан, Лагуна, Янтарь, Сакура, Космос и другие
             - Исправлены баги
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            android/app/build/outputs/apk/release/app-release.apk
 
-      # ── Debug-сборка ──
       - name: Build debug APK
         run: |
           cd android
@@ -131,4 +119,3 @@ jobs:
           name: wintozo-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
-
