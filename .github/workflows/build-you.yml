@@ -1,4 +1,4 @@
-name: Build Wintozo Store APK (Release)
+name: Build WinChat You APK (Release)
 
 on:
   push:
@@ -11,12 +11,12 @@ concurrency:
 
 jobs:
   build-release:
-    name: Build Wintozo Store (release)
+    name: Build WinChat You (release)
     runs-on: ubuntu-latest
     env:
-      VITE_APP_VARIANT: store
-      APP_ID: com.winchat.store
-      APP_NAME: Wintozo Store
+      VITE_APP_VARIANT: you
+      APP_ID: org.winchat.you
+      APP_NAME: WinChat You
 
     steps:
       - name: Checkout code
@@ -55,7 +55,7 @@ jobs:
           fs.writeFileSync(stringsPath, strings);
           NODE
 
-      - name: Build production bundle (Store)
+      - name: Build production bundle (You-only)
         run: npm run build
 
       - name: Setup Java 21
@@ -111,7 +111,22 @@ jobs:
             echo "::error::ANDROID_KEYSTORE secret is not set"
             exit 1
           fi
-          echo "$ANDROID_KEYSTORE" | base64 -d > keystore.jks
+          # Секрет может прийти с CRLF, кавычками, пробелами или literal \n.
+          KEYSTORE_B64="$(printf '%s' "$ANDROID_KEYSTORE" \
+            | sed 's/\\n/\n/g' \
+            | tr -d '[:space:]' \
+            | tr -d '"' \
+            | tr -d "'" \
+            | tr '_-' '/+')"
+          case $(( ${#KEYSTORE_B64} % 4 )) in
+            2) KEYSTORE_B64="${KEYSTORE_B64}==" ;;
+            3) KEYSTORE_B64="${KEYSTORE_B64}=" ;;
+          esac
+          if ! printf '%s' "$KEYSTORE_B64" | base64 -d > keystore.jks 2>/dev/null || [ ! -s keystore.jks ]; then
+            rm -f keystore.jks
+            echo "::error::ANDROID_KEYSTORE не является корректным base64 — пересохраните секрет без кавычек и лишних символов"
+            exit 1
+          fi
 
       - name: Build release APK (signed)
         run: |
@@ -126,6 +141,6 @@ jobs:
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: wintozo-store-release-apk
+          name: winchat-you-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30

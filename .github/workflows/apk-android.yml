@@ -81,8 +81,24 @@ jobs:
           ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
         run: |
           if [ -n "$ANDROID_KEYSTORE" ]; then
-            echo "$ANDROID_KEYSTORE" | base64 -d > keystore.jks
-            echo "KEYSTORE_SAVED=true" >> $GITHUB_ENV
+            # Секрет может прийти с CRLF, кавычками, пробелами или literal \n.
+            KEYSTORE_B64="$(printf '%s' "$ANDROID_KEYSTORE" \
+              | sed 's/\\n/\n/g' \
+              | tr -d '[:space:]' \
+              | tr -d '"' \
+              | tr -d "'" \
+              | tr '_-' '/+')"
+            case $(( ${#KEYSTORE_B64} % 4 )) in
+              2) KEYSTORE_B64="${KEYSTORE_B64}==" ;;
+              3) KEYSTORE_B64="${KEYSTORE_B64}=" ;;
+            esac
+            if printf '%s' "$KEYSTORE_B64" | base64 -d > keystore.jks 2>/dev/null && [ -s keystore.jks ]; then
+              echo "KEYSTORE_SAVED=true" >> $GITHUB_ENV
+            else
+              rm -f keystore.jks
+              echo "::error::ANDROID_KEYSTORE не является корректным base64 — пересохраните секрет без кавычек и лишних символов"
+              exit 1
+            fi
           else
             echo "KEYSTORE_SAVED=false" >> $GITHUB_ENV
             echo "::warning::ANDROID_KEYSTORE secret is not set — release APK will NOT be built"
